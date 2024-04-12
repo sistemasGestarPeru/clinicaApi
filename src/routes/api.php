@@ -30,12 +30,11 @@ Route::post('acceso', [UserController::class, 'acceso']);
 
 Route::apiResource("testimonio", TestimonioController::class);
 Route::apiResource("sede", SedeController::class);
-Route::apiResource("medico", MedicoController::class);
+
 
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
-
-   
+    Route::apiResource("medico", MedicoController::class);
 });
