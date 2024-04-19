@@ -28,13 +28,10 @@ Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
 
 
-Route::apiResource("testimonio", TestimonioController::class);
-Route::apiResource("sede", SedeController::class);
-
-
-
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
     Route::apiResource("medico", MedicoController::class);
+    Route::apiResource("testimonio", TestimonioController::class);
+    Route::apiResource("sede", SedeController::class);
 });
