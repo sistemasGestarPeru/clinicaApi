@@ -34,7 +34,7 @@ class UserController extends Controller
                 'msg' => ['Las credenciales son incorrectas!'],
             ]);
         }
-        $expiresAt = now()->addMinutes(10); // Fecha de vencimiento a 10 minutos en el futuro
+        $expiresAt = now()->addMinutes(120); // Fecha de vencimiento a 10 minutos en el futuro
         $token = $user->createToken($request->email, ['*'], $expiresAt)->plainTextToken;
         
         $mensaje = 'Acceso Correcto';
