@@ -18,12 +18,7 @@ RUN cd /app && \
 
 RUN chown -R www-data: /app
 
-# Define las variables de entorno para la conexión a Cloud SQL
-ENV DB_CONNECTION=mysql
-ENV DB_HOST=34.176.138.52
-ENV DB_PORT=3306
-ENV DB_DATABASE=bd_gestar
-ENV DB_USERNAME=root
-ENV DB_PASSWORD='({Bjh+.h%uR`""JA'
 
 CMD sh /app/docker/startup.sh
+
+# comit
