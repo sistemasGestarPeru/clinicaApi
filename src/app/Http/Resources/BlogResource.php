@@ -21,8 +21,8 @@ class BlogResource extends JsonResource
             'Imagen' => $this->Imagen,
             'Descripcion' => $this->Descripcion,
             'vigente' => $this->vigente,
-            'fecha_creacion' => $this->created_at->format('d-m-Y'),
-            'fecha_actualizacion' => $this->updated_at->format('d-m-Y'),
+            'fecha_creacion' => $this->created_at ? $this->created_at->format('d-m-Y') : null,
+            'fecha_actualizacion' => $this->updated_at ? $this->updated_at->format('d-m-Y') : null,
         ];
     }
 }

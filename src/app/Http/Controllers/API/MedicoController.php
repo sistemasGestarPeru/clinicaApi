@@ -18,7 +18,7 @@ class MedicoController extends Controller
     {
 
         $tipo = $request->input('tipo'); // Obtener el parámetro 'tipo' de la solicitud
-    
+
         // Verificar si se proporcionó el parámetro 'tipo' y filtrar los médicos en consecuencia
         if ($tipo !== null) {
             $medicos = Medico::where('tipo', $tipo)->get();
@@ -29,6 +29,17 @@ class MedicoController extends Controller
 
         return MedicoResource::collection($medicos);
     }
+
+    public function listarGinecologos()
+    {
+        return MedicoResource::collection(Medico::where('tipo', 0)->get());
+    }
+
+    public function listarBiologos()
+    {
+        return MedicoResource::collection(Medico::where('tipo', 1)->get());
+    }
+
 
     /**
      * Store a newly created resource in storage.
