@@ -11,18 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('testimonios', function (Blueprint $table) {
+        Schema::create('blogs', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 31)->nullable();
-            $table->string('apellidoPaterno', 30)->nullable();
-            $table->string('apellidoMaterno', 30)->nullable();
-            $table->string('descripcion', 255);
-            $table->string('imagen', 500);
-            $table->unsignedBigInteger('sede_id');
-            $table->foreign('sede_id')->references('id')->on('sedes');
+            $table->string('Titulo', 120);
+            $table->string('Fecha', 10);
+            $table->string('Imagen', 500);
+            $table->mediumText('Descripcion');
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-
-
             $table->timestamps();
         });
     }
@@ -32,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('testimonios');
+        Schema::dropIfExists('blogs');
     }
 };
