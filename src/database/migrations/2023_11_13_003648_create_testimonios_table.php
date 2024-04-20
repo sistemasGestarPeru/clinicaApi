@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('testimonios', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 31)->nullable();
-            $table->string('apellidoPaterno', 30)->nullable();
-            $table->string('apellidoMaterno', 30)->nullable();
+            $table->string('nombre', 31)->nullable()->default('-');
+            $table->string('apellidoPaterno', 30)->nullable()->default('-');
+            $table->string('apellidoMaterno', 30)->nullable()->default('-');
             $table->string('descripcion', 255);
             $table->string('imagen', 500);
             $table->unsignedBigInteger('sede_id');

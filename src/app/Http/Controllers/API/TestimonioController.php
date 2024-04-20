@@ -42,6 +42,10 @@ class TestimonioController extends Controller
      */
     public function update(ActualizarTestimonioRequest $request, Testimonio $testimonio)
     {
+        $testimonio->nombre = $request->input('nombre') ?? '-';
+        $testimonio->apellidoPaterno = $request->input('apellidoPaterno') ?? '-';
+        $testimonio->apellidoMaterno = $request->input('apellidoMaterno') ?? '-';
+
         $testimonio->update($request->all());
         return (new TestimonioResource($testimonio))
             ->additional(['msg' => 'Testimonio actualizado correctamente']);

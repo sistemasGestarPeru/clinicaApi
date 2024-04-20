@@ -28,13 +28,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
 
+Route::apiResource("testimonio", TestimonioController::class);
+
+
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
     Route::apiResource("blog", BlogController::class);
     Route::apiResource("sede", SedeController::class);
     Route::apiResource("medico", MedicoController::class);
-    Route::apiResource("testimonio", TestimonioController::class);
+
     Route::get('listarGinecologos', [MedicoController::class, 'listarGinecologos']);
     Route::get('listarBiologos', [MedicoController::class, 'listarBiologos']);
 });
