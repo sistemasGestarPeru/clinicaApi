@@ -22,11 +22,14 @@ class ActualizarTestimonioRequest extends FormRequest
     public function rules(): array
     {
         return [
-
-            "descripcion" => "required|string",
-            "sede_id" => "required|integer",
-            "imagen" => "required|string",
-
+            "id" => "required|integer",
+            "nombre" => "nullable|string",
+            "apellidoPaterno" => "nullable|string",
+            "apellidoMaterno" => "nullable|string",
+            "descripcion" => "nullable|string",
+            "sede_id" => "nullable|integer",
+            "imagen" => "nullable|image",
+            "vigente" => "nullable|boolean",
         ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sede\RegistrarSedeRequest;
 use App\Http\Resources\SedeResource;
 use Illuminate\Http\Request;
 use App\Models\Sede;
@@ -14,15 +15,18 @@ class SedeController extends Controller
      */
     public function index()
     {
-        return SedeResource::collection(Sede::all());
+        $sedes = Sede::orderBy('nombre', 'asc')->get();
+        // Retornar la colección de sedes utilizando SedeResource
+        return SedeResource::collection($sedes);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(RegistrarSedeRequest $request)
     {
-        //
+        return (new SedeResource(Sede::create($request->all())))
+            ->additional(['msg' => 'Sede guardada correctamente']);
     }
 
     /**
@@ -38,7 +42,6 @@ class SedeController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
     }
 
     /**

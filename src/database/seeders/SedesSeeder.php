@@ -24,7 +24,11 @@ class SedesSeeder extends Seeder
                     'nombre' => 'Trujillo',
                     'vigente' => 1,
                 ],
-            ],            
+                [
+                    'nombre' => 'Piura',
+                    'vigente' => 1,
+                ],
+            ],
 
         );
     }

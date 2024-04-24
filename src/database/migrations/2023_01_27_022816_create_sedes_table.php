@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sedes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->boolean('vigente');
+            $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
             $table->timestamps();
         });
     }
