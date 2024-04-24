@@ -7,10 +7,59 @@ use App\Http\Requests\Medico\ActualizarMedicoRequest;
 use App\Http\Requests\Medico\GuardarMedicoRequest;
 use App\Http\Resources\MedicoResource;
 use App\Models\Medico;
+use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
 
 class MedicoController extends Controller
 {
+
+    private function getUploadConfig($request)
+    {
+        $file = $request->file('imagen');
+
+        return [
+            'file' => $file,
+            'projectId' => 'sitio-web-419317',
+            'bucketName' => 'gestar-peru',
+            'credentialsPath' => base_path('credentials.json')
+        ];
+    }
+
+    // Método para subir el archivo a Google Cloud Storage
+    private function uploadFile($config)
+    {
+        $storage = new StorageClient([
+            'projectId' => $config['projectId'],
+            'keyFilePath' => $config['credentialsPath']
+        ]);
+
+        $bucket = $storage->bucket($config['bucketName']);
+
+        $remoteFileName = 'imagenes/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+
+        $bucket->upload(fopen($config['file']->path(), 'r'), [
+            'name' => $remoteFileName
+        ]);
+
+        return $remoteFileName;
+    }
+
+    // Método para eliminar un archivo de Cloud Storage
+    private function deleteFile($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+
+        // Eliminar el archivo del bucket en Cloud Storage
+        $object = $bucket->object($fileName);
+        $object->delete();
+    }
+
+
     /**
      * Display a listing of the resource.
      */
@@ -46,8 +95,39 @@ class MedicoController extends Controller
      */
     public function store(GuardarMedicoRequest $request)
     {
-        return (new MedicoResource(Medico::create($request->all())))
-            ->additional(['msg' => 'Medico guardado correctamente']);
+        try {
+            $uploadConfig = $this->getUploadConfig($request);
+
+            // Subir el archivo a Google Cloud Storage
+            $url = $this->uploadFile($uploadConfig);
+
+            $medico = new Medico($request->all());
+            $medico->nombre = $request->input('nombre');
+            $medico->apellidoPaterno = $request->input('apellidoPaterno');
+            $medico->apellidoMaterno = $request->input('apellidoMaterno');
+            $medico->genero = $request->input('genero');
+            $medico->imagen = $url;
+            $medico->linkedin = $request->input('linkedin');
+            $medico->descripcion = $request->input('descripcion');
+            $medico->CMP = $request->input('CMP');
+            $medico->RNE = $request->input('RNE');
+            $medico->CBP = $request->input('CBP');
+            $medico->tipo = $request->input('tipo');
+            $medico->sede_id = $request->input('sede_id');
+
+            $medico->save();
+
+            return response()->json([
+                'msg' => 'Médico guardado correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Ocurrió un error al guardar el testimonio: ' . $e->getMessage()
+            ], 500);
+        }
+
+        // return (new MedicoResource(Medico::create($request->all())))
+        //     ->additional(['msg' => 'Medico guardado correctamente']);
     }
 
     /**
@@ -61,11 +141,92 @@ class MedicoController extends Controller
     /**
      * Update the specified resource in storage.
      */
+
+    public function updatePost(ActualizarMedicoRequest $request)
+    {
+
+        try {
+
+            $medico = Medico::find($request->input('id'));
+
+            if (!$medico) {
+                return response()->json([
+                    'error' => 'No se encontró el médico'
+                ], 404);
+            }
+
+            if ($request->hasFile('imagen')) {
+                $uploadConfig = $this->getUploadConfig($request);
+                $url = $this->uploadFile($uploadConfig);
+                $this->deleteFile($medico->imagen);
+                $medico->imagen = $url;
+            }
+
+            $medico->nombre = $request->input('nombre');
+            $medico->apellidoPaterno = $request->input('apellidoPaterno');
+            $medico->apellidoMaterno = $request->input('apellidoMaterno');
+            $medico->genero = $request->input('genero');
+            $medico->CMP = $request->input('CMP');
+            $medico->RNE = $request->input('RNE');
+            $medico->descripcion = $request->input('descripcion');
+            $medico->linkedin = $request->input('linkedin');
+            $medico->sede_id = $request->input('sede_id');
+
+            $medico->save();
+
+            return response()->json([
+                'msg' => 'Médico actualizado correctamente'
+            ]);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'error' => 'Ocurrió un error al actualizar el médico: ' . $e->getMessage()
+            ], 500);
+        }
+
+    }
+
+
+
     public function update(ActualizarMedicoRequest $request, Medico $medico)
     {
-        $medico->update($request->all());
-        return (new MedicoResource($medico))
-            ->additional(['msg' => 'Medico actualizado correctamente']);
+        try {
+            $medico = Medico::find($request->input('id'));
+
+            if (!$medico) {
+                return response()->json([
+                    'error' => 'No se encontró el médico'
+                ], 404);
+            }
+
+            if ($request->hasFile('imagen')) {
+                $uploadConfig = $this->getUploadConfig($request);
+                $url = $this->uploadFile($uploadConfig);
+                $this->deleteFile($medico->imagen);
+                $medico->imagen = $url;
+            }
+
+            $medico->nombre = $request->input('nombre');
+            $medico->apellidoPaterno = $request->input('apellidoPaterno');
+            $medico->apellidoMaterno = $request->input('apellidoMaterno');
+            $medico->genero = $request->input('genero');
+            $medico->CMP = $request->input('CMP');
+            $medico->RNE = $request->input('RNE');
+            $medico->descripcion = $request->input('descripcion');
+            $medico->linkedin = $request->input('linkedin');
+            $medico->sede_id = $request->input('sede_id');
+
+            $medico->save();
+
+            return response()->json([
+                'msg' => 'Médico actualizado correctamente'
+            ]);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'error' => 'Ocurrió un error al actualizar el médico: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -73,8 +234,16 @@ class MedicoController extends Controller
      */
     public function destroy(Medico $medico)
     {
-        $medico->delete();
-        return (new MedicoResource($medico))
-            ->additional(['msg' => 'Medico eliminado correctamente']);
+        try {
+            $this->deleteFile($medico->imagen);
+            $medico->delete();
+
+            return (new MedicoResource($medico))
+                ->additional(['msg' => 'Médico eliminado correctamente']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Ocurrió un error al eliminar el médico: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

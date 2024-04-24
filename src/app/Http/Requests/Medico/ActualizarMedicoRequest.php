@@ -22,16 +22,18 @@ class ActualizarMedicoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => "required",
-            'apellidoPaterno' => "required",
-            'apellidoMaterno' => "required",
-            'genero' => "required",
-            'imagen' => "required",
-            'descripcion' => "required",
-            'CMP' => "unique:medicos,CMP," . $this->route('medico')->id,
-            'RNE' => "unique:medicos,RNE," . $this->route('medico')->id,
-            'CBP' => "unique:medicos,CBP," . $this->route('medico')->id,
-            'tipo' => 'required|boolean',
+            "id" => "required|integer",
+            'nombre' => 'required|string|max:31',
+            'apellidoPaterno' => 'required|string|max:63',
+            'apellidoMaterno' => 'required|string|max:63',
+            'genero' => 'nullable|boolean',
+            'descripcion' => 'required|string|max:500',
+            // 'CMP' => "'nullable|unique:medicos,CMP," . $this->route('medico')->id,
+            // 'RNE' => "'nullable|unique:medicos,RNE," . $this->route('medico')->id,
+            // 'CBP' => "'nullable|unique:medicos,CBP," . $this->route('medico')->id,
+            'tipo' => 'nullable|boolean',
+            'sede_id' => 'nullable|integer|exists:sedes,id',
+            'vigen' => 'nullable|boolean',
         ];
     }
 }

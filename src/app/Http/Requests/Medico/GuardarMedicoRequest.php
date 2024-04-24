@@ -26,7 +26,7 @@ class GuardarMedicoRequest extends FormRequest
             'apellidoPaterno' => 'required|string|max:63',
             'apellidoMaterno' => 'required|string|max:63',
             'genero' => 'required|boolean',
-            'imagen' => 'required|string|max:250',
+            
             'descripcion' => 'required|string|max:500',
             'CMP' => 'nullable|string|max:10|unique:medicos',
             'RNE' => 'nullable|string|max:10|unique:medicos',

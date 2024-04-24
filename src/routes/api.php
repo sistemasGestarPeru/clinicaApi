@@ -30,6 +30,8 @@ Route::post('acceso', [UserController::class, 'acceso']);
 
 
 
+
+
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
@@ -45,6 +47,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /*********************** RUTAS ADICIONALES MEDICOS **************************/
     Route::get('listarGinecologos', [MedicoController::class, 'listarGinecologos']);
     Route::get('listarBiologos', [MedicoController::class, 'listarBiologos']);
+    Route::post('medico/update', [MedicoController::class, 'updatePost']);
 
     /***************************************************************************/
 });
