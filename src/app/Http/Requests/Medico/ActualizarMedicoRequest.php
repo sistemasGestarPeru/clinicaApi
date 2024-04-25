@@ -33,7 +33,7 @@ class ActualizarMedicoRequest extends FormRequest
             // 'CBP' => "'nullable|unique:medicos,CBP," . $this->route('medico')->id,
             'tipo' => 'nullable|boolean',
             'sede_id' => 'nullable|integer|exists:sedes,id',
-            'vigen' => 'nullable|boolean',
+            'vigente' => 'nullable|boolean',
         ];
     }
 }
