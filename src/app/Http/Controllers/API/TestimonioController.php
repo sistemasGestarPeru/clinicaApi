@@ -82,7 +82,7 @@ class TestimonioController extends Controller
             $testimonio->nombre = $request->input('nombre');
             $testimonio->apellidoPaterno = $request->input('apellidoPaterno');
             $testimonio->apellidoMaterno = $request->input('apellidoMaterno');
-            $testimonio->sede_id = $request->input('sede');
+            $testimonio->sede_id = $request->input('sede_id');
             $testimonio->descripcion = $request->input('descripcion');
 
             // Asignar la URL del archivo en Google Cloud Storage al campo 'imagen'

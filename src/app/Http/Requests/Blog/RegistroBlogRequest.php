@@ -23,8 +23,6 @@ class RegistroBlogRequest extends FormRequest
     {
         return [
             'Titulo' => "required|string",
-            'Fecha' => "required|string",
-            'Imagen' => "required|string",
             'Descripcion' => "required|string",
         ];
     }
