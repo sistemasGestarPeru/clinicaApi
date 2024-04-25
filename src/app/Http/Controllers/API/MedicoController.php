@@ -168,9 +168,11 @@ class MedicoController extends Controller
             $medico->genero = $request->input('genero');
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
+            // $medico->CBP = $request->input('CBP');
             $medico->descripcion = $request->input('descripcion');
             $medico->linkedin = $request->input('linkedin');
             $medico->sede_id = $request->input('sede_id');
+            $medico->vigente = $request->input('vigente');
 
             $medico->save();
 
@@ -183,7 +185,6 @@ class MedicoController extends Controller
                 'error' => 'Ocurrió un error al actualizar el médico: ' . $e->getMessage()
             ], 500);
         }
-
     }
 
 
