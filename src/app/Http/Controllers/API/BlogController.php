@@ -44,7 +44,6 @@ class BlogController extends Controller
         return $remoteFileName;
     }
 
-    // Método para eliminar un archivo de Cloud Storage
     private function deleteFile($fileName)
     {
         $storage = new StorageClient([
@@ -54,11 +53,15 @@ class BlogController extends Controller
 
         $bucket = $storage->bucket('gestar-peru');
 
-        // Eliminar el archivo del bucket en Cloud Storage
         $object = $bucket->object($fileName);
-        $object->delete();
+        if ($object->exists()) {
+            $object->delete();
+            echo "El archivo '$fileName' ha sido eliminado exitosamente.";
+        } else {
+            // El archivo no existe
+            echo "El archivo '$fileName' no existe en el bucket.";
+        }
     }
-
 
     /**
      * Display a listing of the resource.
@@ -159,8 +162,16 @@ class BlogController extends Controller
      */
     public function destroy(Blog $blog)
     {
-        $blog->delete();
-        return (new BlogResource($blog))
-            ->additional(['msg' => 'Blog eliminado correctamente']);
+        try {
+            $this->deleteFile($blog->Imagen);
+            $blog->delete();
+            return response()->json([
+                'msg' => 'Blog eliminado correctamente'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Ocurrió un error al eliminar el médico: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
