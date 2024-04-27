@@ -84,7 +84,7 @@ class BlogController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-
+    //Movi aqui xd
     public function updatePost(ActualizarBlogRequest $request)
     {
 
@@ -101,7 +101,11 @@ class BlogController extends Controller
 
                 $uploadConfig = $this->getUploadConfig($request);
                 $url = $this->uploadFile($uploadConfig);
-                $this->deleteFile($blog->Imagen);
+
+                if ($blog->Imagen != null && $this->fileExists($blog->Imagen)) {
+                    $this->deleteFile($blog->Imagen);
+                }
+
                 $blog->Imagen = $url;
             }
 
