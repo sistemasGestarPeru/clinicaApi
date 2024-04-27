@@ -44,6 +44,22 @@ class BlogController extends Controller
         return $remoteFileName;
     }
 
+    //Metdo para consultar un archivo del bucket en Google Cloud Storage
+    private function fileExists($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+        $object = $bucket->object($fileName);
+
+        return $object->exists();
+    }
+
+
+    // Método para eliminar un archivo del bucket en Google Cloud Storage
     private function deleteFile($fileName)
     {
         $storage = new StorageClient([
@@ -157,7 +173,11 @@ class BlogController extends Controller
     public function destroy(Blog $blog)
     {
         try {
-            $this->deleteFile($blog->Imagen);
+
+            if ($blog->Imagen != null && $this->fileExists($blog->Imagen)) {
+                $this->deleteFile($blog->Imagen);
+            }
+
             $blog->delete();
             return response()->json([
                 'msg' => 'Blog eliminado correctamente'
