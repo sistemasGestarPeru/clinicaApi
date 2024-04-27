@@ -53,16 +53,10 @@ class BlogController extends Controller
 
         $bucket = $storage->bucket('gestar-peru');
 
+        // Eliminar el archivo del bucket en Cloud Storage
         $object = $bucket->object($fileName);
-        if ($object->exists()) {
-            $object->delete();
-            echo "El archivo '$fileName' ha sido eliminado exitosamente.";
-        } else {
-            // El archivo no existe
-            echo "El archivo '$fileName' no existe en el bucket.";
-        }
+        $object->delete();
     }
-
     /**
      * Display a listing of the resource.
      */
