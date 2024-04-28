@@ -130,7 +130,10 @@ class TestimonioController extends Controller
                 $url = $this->uploadFile($uploadConfig);
 
                 // Eliminar la imagen anterior de Cloud Storage
-                $this->deleteFile($testimonio->imagen);
+
+                if ($testimonio->imagen != null && $this->fileExists($testimonio->imagen)) {
+                    $this->deleteFile($testimonio->imagen);
+                }
 
                 // Actualizar la URL del archivo en Google Cloud Storage
                 $testimonio->imagen = $url;
@@ -181,7 +184,9 @@ class TestimonioController extends Controller
     {
         try {
             // Eliminar la imagen asociada en Cloud Storage
-            $this->deleteFile($testimonio->imagen);
+            if ($testimonio->imagen != null && $this->fileExists($testimonio->imagen)) {
+                $this->deleteFile($testimonio->imagen);
+            }
 
             // Eliminar el testimonio de la base de datos
             $testimonio->delete();

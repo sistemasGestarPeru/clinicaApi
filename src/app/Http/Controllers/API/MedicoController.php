@@ -44,6 +44,20 @@ class MedicoController extends Controller
         return $remoteFileName;
     }
 
+    //Metdo para consultar un archivo del bucket en Google Cloud Storage
+    private function fileExists($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+        $object = $bucket->object($fileName);
+
+        return $object->exists();
+    }
+
     // Método para eliminar un archivo de Cloud Storage
     private function deleteFile($fileName)
     {
@@ -158,7 +172,11 @@ class MedicoController extends Controller
             if ($request->hasFile('imagen')) {
                 $uploadConfig = $this->getUploadConfig($request);
                 $url = $this->uploadFile($uploadConfig);
-                $this->deleteFile($medico->imagen);
+
+                if ($medico->imagen != null && $this->fileExists($medico->imagen)) {
+                    $this->deleteFile($medico->imagen);
+                }
+
                 $medico->imagen = $url;
             }
 
@@ -236,7 +254,11 @@ class MedicoController extends Controller
     public function destroy(Medico $medico)
     {
         try {
-            $this->deleteFile($medico->imagen);
+
+            if ($medico->imagen != null && $this->fileExists($medico->imagen)) {
+                $this->deleteFile($medico->imagen);
+            }
+
             $medico->delete();
 
             return (new MedicoResource($medico))
