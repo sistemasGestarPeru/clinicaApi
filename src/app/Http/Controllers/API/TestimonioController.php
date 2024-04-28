@@ -48,6 +48,20 @@ class TestimonioController extends Controller
         return $remoteFileName;
     }
 
+    //Metdo para consultar un archivo del bucket en Google Cloud Storage
+    private function fileExists($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+        $object = $bucket->object($fileName);
+
+        return $object->exists();
+    }
+
     // Método para eliminar un archivo de Cloud Storage
     private function deleteFile($fileName)
     {
