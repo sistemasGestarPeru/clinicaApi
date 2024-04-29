@@ -39,7 +39,7 @@ class TestimonioController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'imagenes/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Testimonios/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -212,5 +212,24 @@ class TestimonioController extends Controller
                 'error' => 'Ocurrió un error al eliminar el testimonio: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function listarUltimos()
+    {
+        $testimonios = Testimonio::where('vigente', true)
+            ->latest('created_at')
+            ->limit(3)
+            ->get();
+
+        return TestimonioResource::collection($testimonios);
+    }
+
+    public function listarVigente()
+    {
+        $testimonios = Testimonio::where('vigente', true)
+            ->latest('created_at')
+            ->get();
+
+        return TestimonioResource::collection($testimonios);
     }
 }

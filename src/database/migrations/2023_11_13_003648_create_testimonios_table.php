@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('testimonios', function (Blueprint $table) {
-            $table->id();
+
+            $table->smallIncrements('id');
             $table->string('nombre', 31)->nullable()->default('-');
             $table->string('apellidoPaterno', 30)->nullable()->default('-');
             $table->string('apellidoMaterno', 30)->nullable()->default('-');
-            $table->string('descripcion', 255);
+            $table->string('descripcion', 1000);
             $table->string('imagen', 500);
-            $table->unsignedBigInteger('sede_id');
+            $table->unsignedTinyInteger('sede_id');
             $table->foreign('sede_id')->references('id')->on('sedes');
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-
-
+            $table->string('user', 50)->nullable();
             $table->timestamps();
         });
     }

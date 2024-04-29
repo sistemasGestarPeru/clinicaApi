@@ -35,7 +35,7 @@ class MedicoController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'imagenes/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Medicos/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -110,24 +110,38 @@ class MedicoController extends Controller
     public function store(GuardarMedicoRequest $request)
     {
         try {
-            $uploadConfig = $this->getUploadConfig($request);
 
-            // Subir el archivo a Google Cloud Storage
-            $url = $this->uploadFile($uploadConfig);
 
             $medico = new Medico($request->all());
+
+            // Obtener el valor de linkedin del request
+            $linkedin = $request->input('linkedin');
+
+            // Verificar si el valor es 'undefined' o un espacio en blanco
+            if ($linkedin === 'undefined' || trim($linkedin) === '') {
+                $medico->linkedin = null; // Guardar null si el valor no es válido
+            } else {
+                $medico->linkedin = $linkedin; // Guardar el valor proporcionado
+            }
+
             $medico->nombre = $request->input('nombre');
             $medico->apellidoPaterno = $request->input('apellidoPaterno');
             $medico->apellidoMaterno = $request->input('apellidoMaterno');
             $medico->genero = $request->input('genero');
-            $medico->imagen = $url;
-            $medico->linkedin = $request->input('linkedin');
+
             $medico->descripcion = $request->input('descripcion');
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
             $medico->tipo = $request->input('tipo');
             $medico->sede_id = $request->input('sede_id');
+
+            $uploadConfig = $this->getUploadConfig($request);
+
+            // Subir el archivo a Google Cloud Storage
+            $url = $this->uploadFile($uploadConfig);
+            $medico->imagen = $url;
+
 
             $medico->save();
 
@@ -169,6 +183,28 @@ class MedicoController extends Controller
                 ], 404);
             }
 
+            $medico->nombre = $request->input('nombre');
+            $medico->apellidoPaterno = $request->input('apellidoPaterno');
+            $medico->apellidoMaterno = $request->input('apellidoMaterno');
+            $medico->genero = $request->input('genero');
+            $medico->CMP = $request->input('CMP');
+            $medico->RNE = $request->input('RNE');
+            // $medico->CBP = $request->input('CBP');
+            $medico->descripcion = $request->input('descripcion');
+
+            // Obtener el valor de linkedin del request
+            $linkedin = $request->input('linkedin');
+
+            // Verificar si el valor es 'undefined' o un espacio en blanco
+            if ($linkedin === 'undefined' || trim($linkedin) === '') {
+                $medico->linkedin = null; // Guardar null si el valor no es válido
+            } else {
+                $medico->linkedin = $linkedin; // Guardar el valor proporcionado
+            }
+
+            $medico->sede_id = $request->input('sede_id');
+            $medico->vigente = $request->input('vigente');
+
             if ($request->hasFile('imagen')) {
                 $uploadConfig = $this->getUploadConfig($request);
                 $url = $this->uploadFile($uploadConfig);
@@ -179,18 +215,6 @@ class MedicoController extends Controller
 
                 $medico->imagen = $url;
             }
-
-            $medico->nombre = $request->input('nombre');
-            $medico->apellidoPaterno = $request->input('apellidoPaterno');
-            $medico->apellidoMaterno = $request->input('apellidoMaterno');
-            $medico->genero = $request->input('genero');
-            $medico->CMP = $request->input('CMP');
-            $medico->RNE = $request->input('RNE');
-            // $medico->CBP = $request->input('CBP');
-            $medico->descripcion = $request->input('descripcion');
-            $medico->linkedin = $request->input('linkedin');
-            $medico->sede_id = $request->input('sede_id');
-            $medico->vigente = $request->input('vigente');
 
             $medico->save();
 
@@ -218,13 +242,6 @@ class MedicoController extends Controller
                 ], 404);
             }
 
-            if ($request->hasFile('imagen')) {
-                $uploadConfig = $this->getUploadConfig($request);
-                $url = $this->uploadFile($uploadConfig);
-                $this->deleteFile($medico->imagen);
-                $medico->imagen = $url;
-            }
-
             $medico->nombre = $request->input('nombre');
             $medico->apellidoPaterno = $request->input('apellidoPaterno');
             $medico->apellidoMaterno = $request->input('apellidoMaterno');
@@ -234,6 +251,13 @@ class MedicoController extends Controller
             $medico->descripcion = $request->input('descripcion');
             $medico->linkedin = $request->input('linkedin');
             $medico->sede_id = $request->input('sede_id');
+
+            if ($request->hasFile('imagen')) {
+                $uploadConfig = $this->getUploadConfig($request);
+                $url = $this->uploadFile($uploadConfig);
+                $this->deleteFile($medico->imagen);
+                $medico->imagen = $url;
+            }
 
             $medico->save();
 
@@ -268,5 +292,26 @@ class MedicoController extends Controller
                 'error' => 'Ocurrió un error al eliminar el médico: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+
+    public function listarGinecologosVigentes()
+    {
+        $ginecologo = Medico::where('tipo', 0)
+            ->where('vigente', 1)
+            ->latest('created_at')
+            ->get();
+
+        return MedicoResource::collection($ginecologo);
+    }
+
+    public function listarBiologosVigentes()
+    {
+        $biologo = Medico::where('tipo', 1)
+            ->where('vigente', 1)
+            ->latest('created_at')
+            ->get();
+
+        return MedicoResource::collection($biologo);
     }
 }

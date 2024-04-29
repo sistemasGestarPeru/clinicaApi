@@ -28,9 +28,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
 
+/* RUTAS PUBLICAS PARA EL INDEX */
+Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimos']);
+Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVigente']);
+Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
+Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
 
-Route::apiResource("blog", BlogController::class);
-Route::post('blog/update', [BlogController::class, 'updatePost']);
+/***************************************************************************/
 
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
@@ -39,10 +43,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::apiResource("sede", SedeController::class);
     Route::apiResource("medico", MedicoController::class);
+    Route::apiResource("blog", BlogController::class);
+    Route::apiResource("testimonio", TestimonioController::class);
 
     /******************** RUTAS ADICIONALES TESTIMONIO **********************/
-    Route::apiResource("testimonio", TestimonioController::class);
+
     Route::post('testimonio/update', [TestimonioController::class, 'updatePost']);
+
+
+
     /***************************************************************************/
 
     /*********************** RUTAS ADICIONALES MEDICOS **************************/
@@ -51,4 +60,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('medico/update', [MedicoController::class, 'updatePost']);
 
     /***************************************************************************/
+
+    /*********************** RUTAS ADICIONALES Blog **************************/
+    Route::post('blog/update', [BlogController::class, 'updatePost']);
 });

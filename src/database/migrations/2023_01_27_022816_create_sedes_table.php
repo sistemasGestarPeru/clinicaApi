@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sedes', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
+            $table->tinyIncrements('id');
+            $table->string('nombre',50);
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
             $table->timestamps();
         });
