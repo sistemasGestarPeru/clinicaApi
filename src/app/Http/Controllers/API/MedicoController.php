@@ -299,6 +299,7 @@ class MedicoController extends Controller
     {
         $ginecologo = Medico::where('tipo', 0)
             ->where('vigente', 1)
+            ->orderBy('id', 'asc')
             ->get();
 
         return MedicoResource::collection($ginecologo);
@@ -308,6 +309,7 @@ class MedicoController extends Controller
     {
         $biologo = Medico::where('tipo', 1)
             ->where('vigente', 1)
+            ->orderBy('id', 'asc')
             ->get();
 
         return MedicoResource::collection($biologo);
