@@ -33,7 +33,7 @@ Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimo
 Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVigente']);
 Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
 Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
-
+Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
 /***************************************************************************/
 
 

@@ -192,4 +192,15 @@ class BlogController extends Controller
             ], 500);
         }
     }
+
+
+    public function listarVigentes()
+    {
+        $blogs = Blog::where('vigente', true)
+            ->latest('created_at')
+            ->get();
+
+        return BlogResource::collection($blogs);
+    }
+
 }
