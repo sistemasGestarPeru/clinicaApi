@@ -34,6 +34,7 @@ Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVige
 Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
 Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
 Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
+Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
 /***************************************************************************/
 
 

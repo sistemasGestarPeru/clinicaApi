@@ -203,4 +203,18 @@ class BlogController extends Controller
         return BlogResource::collection($blogs);
     }
 
+    public function consultar($id) {
+        // Lógica para consultar el blog con el ID proporcionado
+        $blog = Blog::find($id);
+
+        // Verifica si el blog fue encontrado
+        if (!$blog) {
+            return response()->json(['error' => 'Blog no encontrado'], 404);
+        }
+
+        // Devuelve los detalles del blog como respuesta JSON
+        return response()->json($blog);
+        
+    }
+
 }
