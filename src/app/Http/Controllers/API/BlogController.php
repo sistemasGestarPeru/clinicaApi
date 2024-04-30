@@ -203,7 +203,8 @@ class BlogController extends Controller
         return BlogResource::collection($blogs);
     }
 
-    public function consultar($id) {
+    public function consultar($id)
+    {
         // Lógica para consultar el blog con el ID proporcionado
         $blog = Blog::find($id);
 
@@ -214,7 +215,14 @@ class BlogController extends Controller
 
         // Devuelve los detalles del blog como respuesta JSON
         return response()->json($blog);
-        
     }
 
+    public function buscarBlog(Request $request)
+    {
+        $termino = $request->input('termino');
+        $resultados = Blog::where('vigente', true)
+            ->where('Titulo', 'LIKE', '%' . $termino . '%')
+            ->get();
+        return BlogResource::collection($resultados);
+    }
 }

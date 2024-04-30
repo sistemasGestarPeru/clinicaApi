@@ -29,12 +29,19 @@ Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
 
 /* RUTAS PUBLICAS PARA EL INDEX */
+
+
+
 Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimos']);
 Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVigente']);
 Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
 Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
 Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
 Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
+Route::post('blog/buscar', [BlogController::class, 'buscarBlog']);
+
+
+
 /***************************************************************************/
 
 
@@ -50,8 +57,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /******************** RUTAS ADICIONALES TESTIMONIO **********************/
 
     Route::post('testimonio/update', [TestimonioController::class, 'updatePost']);
-
-
 
     /***************************************************************************/
 
