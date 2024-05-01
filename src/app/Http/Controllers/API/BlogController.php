@@ -78,7 +78,20 @@ class BlogController extends Controller
      */
     public function index()
     {
-        return BlogResource::collection(Blog::all());
+        $blogs = Blog::all(['id', 'Titulo', 'Imagen', 'vigente']);
+
+        $blogsArray = [];
+
+        foreach ($blogs as $blog) {
+            $blogsArray[] = [
+                'id' => $blog->id,
+                'Titulo' => $blog->Titulo,
+                'Imagen' => $blog->Imagen,
+                'vigente' => $blog->vigente
+            ];
+        }
+
+        return $blogsArray;
     }
 
     /**

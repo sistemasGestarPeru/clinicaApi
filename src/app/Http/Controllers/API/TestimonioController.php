@@ -179,8 +179,21 @@ class TestimonioController extends Controller
 
     public function index()
     {
-        return TestimonioResource::collection(Testimonio::all());
-        //
+        $testimonios = Testimonio::all(['id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'vigente']);
+
+        $testimoniosArray = [];
+        foreach ($testimonios as $testimonio) {
+            $testimoniosArray[] = [
+                'id' => $testimonio->id,
+                'nombre' => $testimonio->nombre,
+                'apellidoPaterno' => $testimonio->apellidoPaterno,
+                'apellidoMaterno' => $testimonio->apellidoMaterno,
+                'imagen' => $testimonio->imagen,
+                'vigente' => $testimonio->vigente
+            ];
+        }
+
+        return $testimoniosArray;
     }
 
     /**
@@ -216,20 +229,47 @@ class TestimonioController extends Controller
 
     public function listarUltimos()
     {
-        $testimonios = Testimonio::where('vigente', true)
-            ->latest('created_at')
+        $testimonios = Testimonio::with('sede')
+            ->where('vigente', true)
             ->limit(3)
+            ->select('id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'sede_id', 'descripcion')
+            ->orderBy('id', 'desc')
             ->get();
 
-        return TestimonioResource::collection($testimonios);
+        $testimoniosArray = [];
+        foreach ($testimonios as $testimonio) {
+            $testimoniosArray[] = [
+                'nombre' => $testimonio->nombre,
+                'apellidoPaterno' => $testimonio->apellidoPaterno,
+                'apellidoMaterno' => $testimonio->apellidoMaterno,
+                'imagen' => $testimonio->imagen,
+                'sede_id' => $testimonio->sede->nombre,
+                'descripcion' => $testimonio->descripcion
+            ];
+        }
+
+        return $testimoniosArray;
     }
 
     public function listarVigente()
     {
-        $testimonios = Testimonio::where('vigente', true)
-            ->latest('created_at')
+        $testimonios = Testimonio::with('sede')
+            ->where('vigente', true)
+            ->orderBy('id', 'desc')
             ->get();
 
-        return TestimonioResource::collection($testimonios);
+        $testimoniosArray = [];
+        foreach ($testimonios as $testimonio) {
+            $testimoniosArray[] = [
+                'nombre' => $testimonio->nombre,
+                'apellidoPaterno' => $testimonio->apellidoPaterno,
+                'apellidoMaterno' => $testimonio->apellidoMaterno,
+                'imagen' => $testimonio->imagen,
+                'sede_id' => $testimonio->sede->nombre,
+                'descripcion' => $testimonio->descripcion
+            ];
+        }
+
+        return $testimoniosArray;
     }
 }

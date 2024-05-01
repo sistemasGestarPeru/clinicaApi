@@ -90,17 +90,67 @@ class MedicoController extends Controller
             $medicos = Medico::all();
         }
 
-        return MedicoResource::collection($medicos);
+        $medicosArray = [];
+        foreach ($medicos as $medico) {
+            $medicosArray[] = [
+                'nombre' => $medico->nombre,
+                'apellidoPaterno' => $medico->apellidoPaterno,
+                'apellidoMaterno' => $medico->apellidoMaterno,
+                'genero' => $medico->genero,
+                'imagen' => $medico->imagen,
+                'vigente' => $medico->vigente,
+            ];
+        }
+
+        return $medicosArray;
     }
 
     public function listarGinecologos()
     {
-        return MedicoResource::collection(Medico::where('tipo', 0)->get());
+        $medicos = Medico::with('sede')
+            ->where('tipo', 0)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $medicosArray = [];
+
+        foreach ($medicos as $medico) {
+            $medicosArray[] = [
+                'id' => $medico->id,
+                'nombre' => $medico->nombre,
+                'apellidoPaterno' => $medico->apellidoPaterno,
+                'apellidoMaterno' => $medico->apellidoMaterno,
+                'genero' => $medico->genero,
+                'imagen' => $medico->imagen,
+                'vigente' => $medico->vigente,
+            ];
+        }
+
+        return $medicosArray;
     }
 
     public function listarBiologos()
     {
-        return MedicoResource::collection(Medico::where('tipo', 1)->get());
+        $medicos = Medico::with('sede')
+            ->where('tipo', 1)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $medicosArray = [];
+
+        foreach ($medicos as $medico) {
+            $medicosArray[] = [
+                'id' => $medico->id,
+                'nombre' => $medico->nombre,
+                'apellidoPaterno' => $medico->apellidoPaterno,
+                'apellidoMaterno' => $medico->apellidoMaterno,
+                'genero' => $medico->genero,
+                'imagen' => $medico->imagen,
+                'vigente' => $medico->vigente,
+            ];
+        }
+
+        return $medicosArray;
     }
 
 
@@ -118,7 +168,7 @@ class MedicoController extends Controller
             $linkedin = $request->input('linkedin');
 
             // Verificar si el valor es 'undefined' o un espacio en blanco
-            if ($linkedin === 'undefined' || trim($linkedin) === '') {
+            if ($linkedin === 'undefined' || trim($linkedin) === '' || $linkedin === 'null') {
                 $medico->linkedin = null; // Guardar null si el valor no es válido
             } else {
                 $medico->linkedin = $linkedin; // Guardar el valor proporcionado
@@ -141,7 +191,6 @@ class MedicoController extends Controller
             // Subir el archivo a Google Cloud Storage
             $url = $this->uploadFile($uploadConfig);
             $medico->imagen = $url;
-
 
             $medico->save();
 
@@ -196,7 +245,7 @@ class MedicoController extends Controller
             $linkedin = $request->input('linkedin');
 
             // Verificar si el valor es 'undefined' o un espacio en blanco
-            if ($linkedin === 'undefined' || trim($linkedin) === '') {
+            if ($linkedin === 'undefined' || trim($linkedin) === '' || $linkedin === 'null') {
                 $medico->linkedin = null; // Guardar null si el valor no es válido
             } else {
                 $medico->linkedin = $linkedin; // Guardar el valor proporcionado
@@ -297,21 +346,54 @@ class MedicoController extends Controller
 
     public function listarGinecologosVigentes()
     {
-        $ginecologo = Medico::where('tipo', 0)
+        $ginecologo = Medico::with('sede')
+            ->where('tipo', 0)
             ->where('vigente', 1)
             ->orderBy('id', 'asc')
             ->get();
 
-        return MedicoResource::collection($ginecologo);
+        $ginecologosArray = [];
+
+        foreach ($ginecologo as $medico) {
+            $ginecologosArray[] = [
+                'nombre' => $medico->nombre,
+                'apellidoPaterno' => $medico->apellidoPaterno,
+                'apellidoMaterno' => $medico->apellidoMaterno,
+                'genero' => $medico->genero,
+                'imagen' => $medico->imagen,
+                'CMP' => $medico->CMP,
+                'RNE' => $medico->RNE,
+                'sede_id' => $medico->sede->nombre,
+                'descripcion' => $medico->descripcion,
+            ];
+        }
+
+        return $ginecologosArray;
     }
 
     public function listarBiologosVigentes()
     {
-        $biologo = Medico::where('tipo', 1)
+        $biologo = Medico::with('sede')
+            ->where('tipo', 1)
             ->where('vigente', 1)
             ->orderBy('id', 'asc')
             ->get();
 
-        return MedicoResource::collection($biologo);
+        $biologosArray = [];
+
+        foreach ($biologo as $medico) {
+            $biologosArray[] = [
+                'nombre' => $medico->nombre,
+                'apellidoPaterno' => $medico->apellidoPaterno,
+                'apellidoMaterno' => $medico->apellidoMaterno,
+                'genero' => $medico->genero,
+                'imagen' => $medico->imagen,
+                'CBP' => $medico->CBP,
+                'sede_id' => $medico->sede->nombre,
+                'descripcion' => $medico->descripcion,
+            ];
+        }
+
+        return $biologosArray;
     }
 }
