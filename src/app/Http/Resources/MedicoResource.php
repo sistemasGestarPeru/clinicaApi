@@ -29,8 +29,6 @@ class MedicoResource extends JsonResource
             'tipo' => $this->tipo,
             'sede_id' => $this->sede,
             'vigente' => $this->vigente,
-            'fecha_creacion' => $this->created_at->format('d-m-Y'),
-            'fecha_actualizacion' => $this->updated_at->format('d-m-Y'),
         ];
     }
 }

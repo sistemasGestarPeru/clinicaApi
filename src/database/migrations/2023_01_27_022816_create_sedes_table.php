@@ -15,7 +15,7 @@ return new class extends Migration
             $table->tinyIncrements('id');
             $table->string('nombre',50);
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-            $table->timestamps();
+
         });
     }
 

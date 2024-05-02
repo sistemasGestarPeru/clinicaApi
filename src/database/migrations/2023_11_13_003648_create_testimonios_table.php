@@ -18,12 +18,12 @@ return new class extends Migration
             $table->string('apellidoPaterno', 30)->nullable()->default('-');
             $table->string('apellidoMaterno', 30)->nullable()->default('-');
             $table->string('descripcion', 1000);
-            $table->string('imagen', 500);
+            $table->string('imagen', 100);
             $table->unsignedTinyInteger('sede_id');
             $table->foreign('sede_id')->references('id')->on('sedes');
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
             $table->string('user', 50)->nullable();
-            $table->timestamps();
+
         });
     }
 

@@ -15,11 +15,11 @@ return new class extends Migration
             $table->smallIncrements('id');
             $table->string('Titulo', 120);
             $table->string('Fecha', 10);
-            $table->string('Imagen', 500);
+            $table->string('Imagen', 100);
             $table->mediumText('Descripcion');
             $table->string('user', 50)->nullable();
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-            $table->timestamps();
+
         });
     }
 

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('apellidoPaterno', 63);
             $table->string('apellidoMaterno', 63);
             $table->boolean('genero');
-            $table->string('imagen', 250);
+            $table->string('imagen', 100);
             $table->string('linkedin', 255)->nullable()->unique();
             $table->string('descripcion', 1000);
             $table->string('CMP', 10)->nullable()->unique();
@@ -29,8 +29,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('sede_id');
             $table->foreign('sede_id')->references('id')->on('sedes');
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-            
-            $table->timestamps();
+
         });
     }
 

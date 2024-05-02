@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BlogResource extends JsonResource
+class PromocionResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,10 +16,12 @@ class BlogResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'Titulo' => $this->Titulo,
-            'Fecha' => $this->Fecha,
-            'Imagen' => $this->Imagen,
-            'Descripcion' => $this->Descripcion,
+            'titulo' => $this->titulo,
+            'fecha_inicio' => $this->fecha_inicio,
+            'fecha_fin' => $this->fecha_fin,
+            'imagen' => $this->imagen,
+            'descripcion' => $this->descripcion,
+            'file' => $this->file,
             'vigente' => $this->vigente,
         ];
     }
