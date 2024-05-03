@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Promocion\ActualizacionRequest;
 use App\Http\Requests\Promocion\RegistroRequest;
 use App\Http\Resources\PromocionResource;
 use App\Models\Promocion;
@@ -144,12 +145,66 @@ class PromocionController extends Controller
         return new PromocionResource($promocion);
     }
 
+    public function updatePost(ActualizacionRequest $request)
+    {
+        try {
+
+            $promocion = Promocion::find($request->input('id'));
+
+            if (!$promocion) {
+                return response()->json([
+                    'error' => 'Promoción no encontrada'
+                ], 404);
+            }
+
+
+            if ($request->hasFile('imagen')) {
+                $uploadConfig = $this->getUploadConfig($request);
+                $url = $this->uploadFile($uploadConfig);
+
+                if ($promocion->imagen != null && $this->fileExists($promocion->imagen)) {
+                    $this->deleteFile($promocion->imagen);
+                }
+
+                $promocion->imagen = $url;
+            }
+
+
+            $urlFile = null;
+            if ($request->hasFile('file')) {
+                $uploadConfig['file'] = $request->file('file');
+                $urlFile = $this->uploadFile($uploadConfig);
+
+                if ($promocion->file != null && $this->fileExists($promocion->file)) {
+                    $this->deleteFile($promocion->file);
+                }
+
+                $promocion->file = $urlFile;
+            }
+
+            $promocion->titulo = $request->input('titulo');
+            $promocion->fecha_inicio = $request->input('fecha_inicio');
+            $promocion->fecha_fin = $request->input('fecha_fin');
+            $promocion->descripcion = $request->input('descripcion');
+            $promocion->vigente = $request->input('vigente');
+
+            $promocion->save();
+
+            return response()->json([
+                'message' => 'Promoción actualizada correctamente'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al actualizar la promoción' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
     {
-        //
     }
 
     /**

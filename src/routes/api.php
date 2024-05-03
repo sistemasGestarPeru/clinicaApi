@@ -46,7 +46,6 @@ Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']
 /***************************************************************************/
 
 
-Route::apiResource("promocion", PromocionController::class);
 
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
@@ -57,7 +56,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource("medico", MedicoController::class);
     Route::apiResource("blog", BlogController::class);
     Route::apiResource("testimonio", TestimonioController::class);
-
+    Route::apiResource("promocion", PromocionController::class);
 
     /******************** RUTAS ADICIONALES TESTIMONIO **********************/
 
@@ -74,4 +73,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /*********************** RUTAS ADICIONALES Blog **************************/
     Route::post('blog/update', [BlogController::class, 'updatePost']);
+
+
+    /***************************************************************************/
+
+    /*********************** RUTAS ADICIONALES PROMOCION **************************/
+
+    Route::post('promocion/update', [PromocionController::class, 'updatePost']);
+    
 });
