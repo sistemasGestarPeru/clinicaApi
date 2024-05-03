@@ -219,7 +219,9 @@ class BlogController extends Controller
     public function consultar($id)
     {
         // Lógica para consultar el blog con el ID proporcionado
-        $blog = Blog::find($id);
+        $blog = Blog::where('id', $id)
+            ->where('vigente', true)
+            ->first();
 
         // Verifica si el blog fue encontrado
         if (!$blog) {

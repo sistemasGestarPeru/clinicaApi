@@ -200,7 +200,9 @@ class PromocionController extends Controller
 
     public function consultar($id)
     {
-        $promocion = Promocion::find($id);
+        $promocion = Promocion::where('id', $id)
+            ->where('vigente', true)
+            ->first();
 
         if (!$promocion) {
             return response()->json([
