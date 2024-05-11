@@ -38,7 +38,7 @@ class PromocionController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Promocion/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'PromocionesP/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName

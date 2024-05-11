@@ -39,7 +39,7 @@ class TestimonioController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Testimonio/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Testimonios/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
