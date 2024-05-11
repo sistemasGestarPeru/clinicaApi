@@ -35,7 +35,7 @@ class MedicoController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Pruebas/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Medicos/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName

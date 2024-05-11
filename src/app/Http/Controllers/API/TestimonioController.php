@@ -39,7 +39,7 @@ class TestimonioController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Pruebas/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Testimonio/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -182,12 +182,15 @@ class TestimonioController extends Controller
     public function index()
     {
         $testimonios = Testimonio::all(
-            ['id', 
-            'nombre', 
-            'apellidoPaterno', 
-            'apellidoMaterno', 
-            'imagen', 
-            'vigente']);
+            [
+                'id',
+                'nombre',
+                'apellidoPaterno',
+                'apellidoMaterno',
+                'imagen',
+                'vigente'
+            ]
+        );
 
         $testimoniosArray = [];
         foreach ($testimonios as $testimonio) {
