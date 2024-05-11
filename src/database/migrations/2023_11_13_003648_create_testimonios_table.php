@@ -22,8 +22,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('sede_id');
             $table->foreign('sede_id')->references('id')->on('sedes');
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
-            $table->string('user', 50)->nullable();
-
+            $table->date('Fecha');
         });
     }
 

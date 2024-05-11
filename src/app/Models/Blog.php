@@ -7,16 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Blog extends Model
 {
+    use HasFactory;
+    public $timestamps = false;
+    
     protected $fillable = [
         'Titulo',
         'Fecha',
         'Imagen',
         'Descripcion',
         'vigente',
-    ];
-
-    protected $hidden = [
-        'created_at',
-        'updated_at',
     ];
 }

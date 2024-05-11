@@ -39,7 +39,7 @@ class TestimonioController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Testimonios/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Pruebas/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -98,6 +98,7 @@ class TestimonioController extends Controller
             $testimonio->apellidoMaterno = $request->input('apellidoMaterno');
             $testimonio->sede_id = $request->input('sede_id');
             $testimonio->descripcion = $request->input('descripcion');
+            $testimonio->fecha = $request->input('Fecha');
 
             // Asignar la URL del archivo en Google Cloud Storage al campo 'imagen'
             $testimonio->imagen = $url;
@@ -159,6 +160,7 @@ class TestimonioController extends Controller
             $testimonio->apellidoMaterno = $request->input('apellidoMaterno');
             $testimonio->sede_id = $request->input('sede_id');
             $testimonio->descripcion = $request->input('descripcion');
+            $testimonio->fecha = $request->input('Fecha');
             $testimonio->vigente = $request->input('vigente');
 
             // Guardar los cambios en la base de datos
@@ -179,7 +181,13 @@ class TestimonioController extends Controller
 
     public function index()
     {
-        $testimonios = Testimonio::all(['id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'vigente']);
+        $testimonios = Testimonio::all(
+            ['id', 
+            'nombre', 
+            'apellidoPaterno', 
+            'apellidoMaterno', 
+            'imagen', 
+            'vigente']);
 
         $testimoniosArray = [];
         foreach ($testimonios as $testimonio) {
@@ -232,7 +240,7 @@ class TestimonioController extends Controller
         $testimonios = Testimonio::with('sede')
             ->where('vigente', true)
             ->limit(3)
-            ->select('id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'sede_id', 'descripcion')
+            ->select('id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'sede_id', 'descripcion', 'fecha')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -266,7 +274,8 @@ class TestimonioController extends Controller
                 'apellidoMaterno' => $testimonio->apellidoMaterno,
                 'imagen' => $testimonio->imagen,
                 'sede_id' => $testimonio->sede->nombre,
-                'descripcion' => $testimonio->descripcion
+                'descripcion' => $testimonio->descripcion,
+                'fecha' => $testimonio->fecha
             ];
         }
 

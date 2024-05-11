@@ -24,7 +24,6 @@ return new class extends Migration
             $table->string('CMP', 10)->nullable()->unique();
             $table->string('RNE', 10)->nullable()->unique();
             $table->string('CBP', 10)->nullable()->unique();
-            $table->string('user', 50)->nullable();
             $table->boolean('tipo');
             $table->unsignedTinyInteger('sede_id');
             $table->foreign('sede_id')->references('id')->on('sedes');

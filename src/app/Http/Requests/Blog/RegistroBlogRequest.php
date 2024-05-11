@@ -24,6 +24,7 @@ class RegistroBlogRequest extends FormRequest
         return [
             'Titulo' => "required|string",
             'Descripcion' => "required|string",
+            'Fecha' => "required|date",
         ];
     }
 }

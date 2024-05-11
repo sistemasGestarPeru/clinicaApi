@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('imagen', 100);
             $table->mediumText('descripcion');
             $table->string('file', 100);
+            $table->string('sedes', 6);
             $table->boolean('vigente')->default(true);
         });
     }

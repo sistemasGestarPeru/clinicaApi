@@ -11,10 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sedes', function (Blueprint $table) {
+        Schema::create('portadas', function (Blueprint $table) {
             $table->tinyIncrements('id');
-            $table->string('nombre',50);
-            $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
+            $table->string('imagenEsc', 100);
+            $table->string('imagenCel', 100);
+            $table->string('TextoBtn', 50)->nullable();
+            $table->string('UrlBtn', 30)->nullable();
+            $table->boolean('vigente')->default(true);
         });
     }
 
@@ -23,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sedes');
+        Schema::dropIfExists('portadas');
     }
 };

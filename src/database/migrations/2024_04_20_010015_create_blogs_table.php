@@ -14,10 +14,9 @@ return new class extends Migration
         Schema::create('blogs', function (Blueprint $table) {
             $table->smallIncrements('id');
             $table->string('Titulo', 120);
-            $table->string('Fecha', 10);
+            $table->date('Fecha');
             $table->string('Imagen', 100);
             $table->mediumText('Descripcion');
-            $table->string('user', 50)->nullable();
             $table->boolean('vigente')->default(true)->comment('0: No Vigente, 1: Vigente');
 
         });

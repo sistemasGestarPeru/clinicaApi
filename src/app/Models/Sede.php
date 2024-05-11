@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Sede extends Model
 {
     use HasFactory;
-
+    public $timestamps = false;
     public function testimonios()
     {
         return $this->hasMany(Testimonio::class, 'id');
@@ -20,8 +20,4 @@ class Sede extends Model
 
     ];
 
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-    ];
 }

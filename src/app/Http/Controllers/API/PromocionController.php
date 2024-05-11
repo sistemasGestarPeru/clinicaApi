@@ -38,7 +38,7 @@ class PromocionController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'PromocionesP/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Pruebas/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -79,19 +79,30 @@ class PromocionController extends Controller
 
     public function index()
     {
-        $promociones = Promocion::all(['id', 'titulo', 'imagen', 'vigente']);
+        try {
+            Promocion
+                ::where('vigente', true)
+                ->whereDate('fecha_fin', '<', now())
+                ->update(['vigente' => false]);
 
-        $promocionesArray = [];
+            $promociones = Promocion::all(['id', 'titulo', 'imagen', 'vigente']);
 
-        foreach ($promociones as $promocion) {
-            $promocionesArray[] = [
-                'id' => $promocion->id,
-                'titulo' => $promocion->titulo,
-                'imagen' => $promocion->imagen,
-                'vigente' => $promocion->vigente
-            ];
+            $promocionesArray = [];
+
+            foreach ($promociones as $promocion) {
+                $promocionesArray[] = [
+                    'id' => $promocion->id,
+                    'titulo' => $promocion->titulo,
+                    'imagen' => $promocion->imagen,
+                    'vigente' => $promocion->vigente
+                ];
+            }
+            return $promocionesArray;
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener las promociones' . $e->getMessage()
+            ], 500);
         }
-        return $promocionesArray;
     }
 
     /**
@@ -119,6 +130,7 @@ class PromocionController extends Controller
             $promocion->fecha_inicio = $request->input('fecha_inicio');
             $promocion->fecha_fin = $request->input('fecha_fin');
             $promocion->descripcion = $request->input('descripcion');
+            $promocion->sedes = $request->input('sedes');
             $promocion->imagen = $urlImg; // URL de la imagen
             $promocion->file = $urlFile; // URL del archivo PDF
 
@@ -186,6 +198,7 @@ class PromocionController extends Controller
             $promocion->fecha_inicio = $request->input('fecha_inicio');
             $promocion->fecha_fin = $request->input('fecha_fin');
             $promocion->descripcion = $request->input('descripcion');
+            $promocion->sedes = $request->input('sedes');
             $promocion->vigente = $request->input('vigente');
 
             $promocion->save();
@@ -236,21 +249,37 @@ class PromocionController extends Controller
 
     public function listarVigentes()
     {
-        $promociones = Promocion
-            ::where('vigente', true)
-            ->orderBy('id', 'asc')
-            ->get();
-        $promocionesArray = [];
-        foreach ($promociones as $promocion) {
-            $promocionesArray[] = [
-                'id' => $promocion->id,
-                'titulo' => $promocion->titulo,
-                'imagen' => $promocion->imagen,
-                'file' => $promocion->file,
-            ];
-        }
+        try {
+            // Actualizar el estado de las promociones cuya fecha de finalización ha pasado
+            Promocion
+                ::where('vigente', true)
+                ->whereDate('fecha_fin', '<', now()) // Cambiado de '>' a '<'
+                ->update(['vigente' => false]);
 
-        return $promocionesArray;
+            // Obtener las promociones vigentes después de la actualización
+            $promocionesVigentes = Promocion
+                ::where('vigente', true)
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $promocionesArray = [];
+            foreach ($promocionesVigentes as $promocion) {
+                $promocionesArray[] = [
+                    'id' => $promocion->id,
+                    'titulo' => $promocion->titulo,
+                    'imagen' => $promocion->imagen,
+                    'file' => $promocion->file,
+                    'fecha_inicio' => $promocion->fecha_inicio,
+                    'fecha_fin' => $promocion->fecha_fin,
+                ];
+            }
+
+            return $promocionesArray;
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener las promociones' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function consultar($id)

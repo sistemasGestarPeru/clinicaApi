@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
+use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
@@ -38,25 +39,31 @@ Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVige
 Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
 Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
 Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
+
 Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
 Route::post('blog/buscar', [BlogController::class, 'buscarBlog']);
+
 Route::get('promocion/listarActivos', [PromocionController::class, 'listarVigentes']);
 Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']);
 
+Route::get('portadas/consultar/{id}', [PortadaController::class, 'consultar']);
+Route::get('portadas/listarActivos', [PortadaController::class, 'listarVigentes']);
 /***************************************************************************/
-
-
 
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
 
+
     Route::apiResource("sede", SedeController::class);
     Route::apiResource("medico", MedicoController::class);
     Route::apiResource("blog", BlogController::class);
     Route::apiResource("testimonio", TestimonioController::class);
     Route::apiResource("promocion", PromocionController::class);
+    Route::apiResource("portadas", PortadaController::class);
+
+
 
     /******************** RUTAS ADICIONALES TESTIMONIO **********************/
 
@@ -80,5 +87,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /*********************** RUTAS ADICIONALES PROMOCION **************************/
 
     Route::post('promocion/update', [PromocionController::class, 'updatePost']);
-    
+
+    /*********************** RUTAS ADICIONALES PORTADAS **************************/
+
+    Route::post('portadas/update', [PortadaController::class, 'updatePost']);
+    /*********************** RUTAS ADICIONALES PROMOCION **************************/
 });

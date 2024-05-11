@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Testimonio extends Model
 {
     use HasFactory;
-
+    public $timestamps = false;
     public function sede()
     {
         return $this->belongsTo(Sede::class, 'sede_id');
@@ -23,11 +23,6 @@ class Testimonio extends Model
         'descripcion',
         'imagen',
         'vigente',
-
-    ];
-
-    protected $hidden = [
-        'created_at',
-        'updated_at',
+        'fecha'
     ];
 }

@@ -9,6 +9,8 @@ class Medico extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     public function sede()
     {
         return $this->belongsTo(Sede::class, 'sede_id');
@@ -28,10 +30,5 @@ class Medico extends Model
         'tipo',
         'sede_id',
         'vigente',
-    ];
-
-    protected $hidden = [
-        'created_at',
-        'updated_at',
     ];
 }

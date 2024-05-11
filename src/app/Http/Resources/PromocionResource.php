@@ -23,6 +23,7 @@ class PromocionResource extends JsonResource
             'descripcion' => $this->descripcion,
             'file' => $this->file,
             'vigente' => $this->vigente,
+            'sedes' => $this->sedes,
         ];
     }
 }

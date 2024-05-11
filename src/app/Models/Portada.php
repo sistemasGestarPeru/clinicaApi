@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Promocion extends Model
+class Portada extends Model
 {
     use HasFactory;
 
@@ -13,13 +13,10 @@ class Promocion extends Model
 
     protected $fillable = [
 
-        'titulo',
-        'fecha_inicio',
-        'fecha_fin',
-        'imagen',
-        'descripcion',
-        'file',
-        'sedes',
+        'imagenEsc',
+        'imagenCel',
+        'TextoBtn',
+        'UrlBtn',
         'vigente',
 
     ];

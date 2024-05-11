@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Promocion;
+namespace App\Http\Requests\Portada;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ActualizacionRequest extends FormRequest
+class RegistroRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,12 +22,9 @@ class ActualizacionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "id" => "required|integer",
-            "titulo" => "required|string",
-            "fecha_inicio" => "required|date",
-            "fecha_fin" => "required|date",
-            "descripcion" => "nullable|string",
-            "sedes" => "required|string",
+
+            "TextoBtn" => "nullable|string",
+            "UrlBtn" => "nullable|string",
         ];
     }
 }

@@ -26,6 +26,7 @@ class RegistroRequest extends FormRequest
             "fecha_inicio" => "required|date",
             "fecha_fin" => "required|date",
             "descripcion" => "nullable|string",
+            "sedes" => "required|string",
         ];
     }
 }

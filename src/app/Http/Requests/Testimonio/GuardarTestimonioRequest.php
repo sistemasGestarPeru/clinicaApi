@@ -27,6 +27,7 @@ class GuardarTestimonioRequest extends FormRequest
             "apellidoMaterno" => "nullable|string",
             "descripcion" => "required|string",
             "sede_id" => "required|integer",
+            "Fecha" => "required|date",
         ];
     }
 }

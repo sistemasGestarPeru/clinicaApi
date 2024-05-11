@@ -23,6 +23,7 @@ class TestimonioResource extends JsonResource
             'sede_id' => $this->sede,
             'imagen' => $this->imagen,
             'vigente' => $this->vigente,
+            'Fecha' => $this->Fecha
         ];
     }
 }

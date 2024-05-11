@@ -30,6 +30,7 @@ class ActualizarTestimonioRequest extends FormRequest
             "sede_id" => "nullable|integer",
             "imagen" => "nullable|image",
             "vigente" => "nullable|boolean",
+            "Fecha" => "required|date",
         ];
     }
 }

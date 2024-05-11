@@ -35,7 +35,7 @@ class BlogController extends Controller
 
         $bucket = $storage->bucket($config['bucketName']);
 
-        $remoteFileName = 'Blog/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
+        $remoteFileName = 'Pruebas/' . uniqid() . '.' . $config['file']->getClientOriginalExtension();
 
         $bucket->upload(fopen($config['file']->path(), 'r'), [
             'name' => $remoteFileName
@@ -124,6 +124,7 @@ class BlogController extends Controller
 
             $blog->Titulo = $request->input('Titulo');
             $blog->Descripcion = $request->input('Descripcion');
+            $blog->Fecha = $request->input('Fecha');
             $blog->vigente = $request->input('vigente');
             $blog->save();
 
@@ -142,7 +143,6 @@ class BlogController extends Controller
     public function store(RegistroBlogRequest $request)
     {
         try {
-            $fechaActual = date('d/m/Y');
             $uploadConfig = $this->getUploadConfig($request);
 
             // Subir el archivo a Google Cloud Storage
@@ -150,7 +150,7 @@ class BlogController extends Controller
 
             $blog = new Blog($request->all());
             $blog->Titulo = $request->input('Titulo');
-            $blog->Fecha = $fechaActual;
+            $blog->Fecha = $request->input('Fecha');
             $blog->Imagen = $url;
             $blog->Descripcion = $request->input('Descripcion');
 
@@ -210,7 +210,7 @@ class BlogController extends Controller
     public function listarVigentes()
     {
         $blogs = Blog::where('vigente', true)
-            ->latest('created_at')
+            ->latest('id')
             ->get();
 
         return BlogResource::collection($blogs);
