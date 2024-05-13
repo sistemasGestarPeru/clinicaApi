@@ -23,10 +23,9 @@ class ActualizarRequest extends FormRequest
     {
         return [
             "id" => "required|integer",
-            "identificadorPadre" => "nullable|string",
-            "identificadorHijo" => "nullable|string",
             "TextoBtn" => "nullable|string",
             "UrlBtn" => "nullable|string",
+            "vigente" => "nullable|boolean",
         ];
     }
 }

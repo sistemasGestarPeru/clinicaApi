@@ -51,9 +51,6 @@ Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVige
 
 /***************************************************************************/
 
-
-
-
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
@@ -64,7 +61,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource("blog", BlogController::class);
     Route::apiResource("testimonio", TestimonioController::class);
     Route::apiResource("promocion", PromocionController::class);
-
+    Route::apiResource("portadas", PortadaController::class);
 
 
     /******************** RUTAS ADICIONALES TESTIMONIO **********************/
@@ -91,9 +88,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('promocion/update', [PromocionController::class, 'updatePost']);
 
     /*********************** RUTAS ADICIONALES PORTADAS **************************/
-
     Route::post('portadas/update', [PortadaController::class, 'updatePost']);
     Route::get('portadas/consultar/{id}', [PortadaController::class, 'consultarListado']);
-    Route::apiResource("portadas", PortadaController::class);
+
     /***************************************************************************/
 });

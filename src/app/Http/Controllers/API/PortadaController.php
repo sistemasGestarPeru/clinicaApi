@@ -225,8 +225,7 @@ class PortadaController extends Controller
             // Actualizar el texto del botón y la URL del botón
             $portada->TextoBtn = $request->input('TextoBtn');
             $portada->UrlBtn = $request->input('UrlBtn');
-            $portada->identificadorHijo = $request->input('identificadorHijo');
-            // Guardar los cambios en la base de datos
+            $portada->vigente = $request->input('vigente');
             $portada->save();
 
             return response()->json([
@@ -280,9 +279,9 @@ class PortadaController extends Controller
         try {
             // Obtener todas las portadas que coinciden con el identificadorPadre $id
             $portadas = Portada
-            ::where('identificadorPadre', $id)
-            ->where('vigente', 1)
-            ->get(['id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn']);
+                ::where('identificadorPadre', $id)
+                ->where('vigente', 1)
+                ->get(['id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn']);
 
             $portadasArray = [];
 
