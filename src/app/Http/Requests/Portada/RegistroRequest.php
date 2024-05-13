@@ -22,7 +22,8 @@ class RegistroRequest extends FormRequest
     public function rules(): array
     {
         return [
-
+            "identificadorPadre" => "nullable|string",
+            "identificadorHijo" => "nullable|string",
             "TextoBtn" => "nullable|string",
             "UrlBtn" => "nullable|string",
         ];

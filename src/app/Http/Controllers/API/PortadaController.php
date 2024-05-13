@@ -78,15 +78,16 @@ class PortadaController extends Controller
     public function index()
     {
         try {
-            $portada = Portada::all('id', 'imagenEsc', 'vigente');
+            $portada = Portada::where('identificadorHijo', 1)
+                ->get(['imagenEsc', 'identificadorPadre', 'TextoBtn']);
 
             $portadasArray = [];
 
             foreach ($portada as $item) {
                 $portadasArray[] = [
-                    'id' => $item->id,
                     'imagenEsc' => $item->imagenEsc,
-                    'vigente' => $item->vigente
+                    'identificadorPadre' => $item->identificadorPadre,
+                    'TextoBtn' => $item->TextoBtn
                 ];
             }
 
@@ -98,6 +99,34 @@ class PortadaController extends Controller
             ], 500);
         }
     }
+
+    public function consultarListado($id)
+    {
+        try {
+            // Obtener todas las portadas que coinciden con el identificadorPadre $id
+            $portadas = Portada::where('identificadorPadre', $id)->get(['id', 'imagenEsc']);
+
+            $portadasArray = [];
+
+            foreach ($portadas as $portada) {
+
+                if ($portada->id != $id) {
+                    $portadasArray[] = [
+                        'id' => $portada->id,
+                        'imagenEsc' => $portada->imagenEsc,
+                    ];
+                }
+            }
+
+            return $portadasArray;
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener las portadas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /**
      * Store a newly created resource in storage.
@@ -125,7 +154,8 @@ class PortadaController extends Controller
             $portada->imagenCel = $urlCel;
             $portada->TextoBtn = $request->input('TextoBtn');
             $portada->UrlBtn = $request->input('UrlBtn');
-
+            $portada->identificadorPadre = $request->input('identificadorPadre');
+            $portada->identificadorHijo = $request->input('identificadorHijo');
             $portada->save();
 
             return response()->json([
@@ -195,7 +225,7 @@ class PortadaController extends Controller
             // Actualizar el texto del botón y la URL del botón
             $portada->TextoBtn = $request->input('TextoBtn');
             $portada->UrlBtn = $request->input('UrlBtn');
-
+            $portada->identificadorHijo = $request->input('identificadorHijo');
             // Guardar los cambios en la base de datos
             $portada->save();
 
@@ -245,47 +275,36 @@ class PortadaController extends Controller
         }
     }
 
-    public function listarVigentes()
+    public function listarVigentes($id)
     {
         try {
-
-            $portadaVigente = Portada
-                ::where('vigente', true)
-                ->orderBy('id', 'asc')
-                ->get();
+            // Obtener todas las portadas que coinciden con el identificadorPadre $id
+            $portadas = Portada
+            ::where('identificadorPadre', $id)
+            ->where('vigente', 1)
+            ->get(['id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn']);
 
             $portadasArray = [];
 
-            foreach ($portadaVigente as $item) {
-                $portadasArray[] = [
-                    'id' => $item->id,
-                    'imagen' => $item->imagenEsc,
-                    'TextoBtn' => $item->TextoBtn,
-                    'UrlBtn' => $item->UrlBtn
-                ];
+            foreach ($portadas as $portada) {
+
+                if ($portada->id != $id) {
+                    $portadasArray[] = [
+                        'id' => $portada->id,
+                        'imagenEsc' => $portada->imagenEsc,
+                        'imagenCel' => $portada->imagenCel,
+                        'TextoBtn' => $portada->TextoBtn,
+                        'UrlBtn' => $portada->UrlBtn
+                    ];
+                }
             }
 
             return $portadasArray;
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al obtener las portadas vigentes',
+                'message' => 'Error al obtener las portadas',
                 'error' => $e->getMessage()
             ], 500);
         }
-    }
-
-    public function consultar($id)
-    {
-        $portada = Portada::where('id', $id)
-            ->where('vigente', true)
-            ->first();
-
-        if (!$portada) {
-            return response()->json([
-                'message' => 'Portada no encontrada'
-            ], 404);
-        }
-
-        return new PortadaResource($portada);
     }
 }

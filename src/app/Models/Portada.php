@@ -18,6 +18,7 @@ class Portada extends Model
         'TextoBtn',
         'UrlBtn',
         'vigente',
-
+        'identificadorPadre',
+        'identificadorHijo'
     ];
 }

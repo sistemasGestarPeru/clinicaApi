@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('imagenEsc', 100);
             $table->string('imagenCel', 100);
             $table->string('TextoBtn', 50)->nullable();
-            $table->string('UrlBtn', 30)->nullable();
+            $table->string('UrlBtn', 50)->nullable();
+            $table->tinyInteger('identificadorPadre');
+            $table->tinyInteger('identificadorHijo');
             $table->boolean('vigente')->default(true);
         });
     }
