@@ -127,7 +127,6 @@ class PortadaController extends Controller
         }
     }
 
-
     /**
      * Store a newly created resource in storage.
      */
@@ -152,8 +151,13 @@ class PortadaController extends Controller
 
             $portada->imagenEsc = $urlImgE;
             $portada->imagenCel = $urlCel;
-            $portada->TextoBtn = $request->input('TextoBtn');
-            $portada->UrlBtn = $request->input('UrlBtn');
+
+            $textoBtn = $request->input('TextoBtn');
+            $UrlBtn = $request->input('UrlBtn');
+
+            $portada->UrlBtn = ($UrlBtn === 'undefined' || $UrlBtn === 'null') ? null : $UrlBtn;
+            $portada->TextoBtn = ($textoBtn === 'undefined' || $textoBtn === 'null') ? null : $textoBtn;
+
             $portada->identificadorPadre = $request->input('identificadorPadre');
             $portada->identificadorHijo = $request->input('identificadorHijo');
             $portada->save();
@@ -223,8 +227,13 @@ class PortadaController extends Controller
             }
 
             // Actualizar el texto del botón y la URL del botón
-            $portada->TextoBtn = $request->input('TextoBtn');
-            $portada->UrlBtn = $request->input('UrlBtn');
+
+            $textoBtn = $request->input('TextoBtn');
+            $UrlBtn = $request->input('UrlBtn');
+
+            $portada->UrlBtn = ($UrlBtn === 'undefined' || $UrlBtn === 'null') ? null : $UrlBtn;
+            $portada->TextoBtn = ($textoBtn === 'undefined' || $textoBtn === 'null') ? null : $textoBtn;
+
             $portada->vigente = $request->input('vigente');
             $portada->save();
 
