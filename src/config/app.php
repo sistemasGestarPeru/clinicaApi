@@ -98,6 +98,9 @@ return [
 
     'fallback_locale' => 'en',
 
+    /*Tiempo de respuesta de la aplicación*/
+    'timeout' => 60,
+
     /*
     |--------------------------------------------------------------------------
     | Faker Locale
