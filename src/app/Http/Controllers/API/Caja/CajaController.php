@@ -110,9 +110,25 @@ class CajaController extends Controller
                 ->where('CodigoSede', $codigoSede)
                 ->orderByDesc('Codigo')
                 ->select('Estado', 'Codigo')
-                ->first(); // Get the first record
+                ->first();
 
-            return response()->json(['resp' => $caja], 200);
+            if ($caja) {
+                $result = DB::table('ingresodinero as i')
+                    ->select(
+                        'c.FechaInicio',
+                        DB::raw('SUM(i.Monto) AS TotalMonto'),
+                        DB::raw('SUM(CASE WHEN i.Tipo = "A" THEN i.Monto ELSE 0 END) AS MontoApertura')
+                    )
+                    ->join('caja as c', 'c.Codigo', '=', 'i.CodigoCaja')
+                    ->where('i.CodigoCaja', $caja->Codigo)
+                    ->where('c.Estado', 'A')
+                    ->groupBy('i.CodigoCaja')
+                    ->first();
+            }
+
+
+
+            return response()->json(['caja' => $caja, 'result' => $result], 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
