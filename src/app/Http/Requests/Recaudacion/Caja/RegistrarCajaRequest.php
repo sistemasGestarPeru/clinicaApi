@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\Recaudacion\Caja;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AccesoRequest extends FormRequest
+class RegistrarCajaRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,9 @@ class AccesoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => 'required', //|min:8
+            'Estado' => 'required|string',
+            'CodigoSede' => 'required|integer',
+            'CodigoTrabajador' => 'required|integer'
         ];
     }
 }

@@ -18,6 +18,7 @@ class UserController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = bcrypt($request->password);
+        $user->CodigoPersona = $request->CodigoPersona;
         $user->save();
         return response()->json([
             'res' => true,
@@ -27,7 +28,9 @@ class UserController extends Controller
 
     public function acceso(AccesoRequest $request)
     {
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->identifier)
+            ->orWhere('name', $request->identifier)
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -35,12 +38,13 @@ class UserController extends Controller
             ]);
         }
         $expiresAt = now()->addHour(2); // Fecha de vencimiento a 10 minutos en el futuro
-        $token = $user->createToken($request->email, ['*'], $expiresAt)->plainTextToken;
-        
+        $token = $user->createToken($user->email, ['*'], $expiresAt)->plainTextToken;
+
         $mensaje = 'Acceso Correcto';
-        return response()->json([   
+        return response()->json([
             'res' => true,
-            'token' => $token, 
+            'token' => $token,
+            'userCod' => $user->CodigoPersona,
             'token_expired' => $expiresAt->toIso8601String(),
             'mensaje' => $mensaje
         ], 200);
@@ -53,5 +57,26 @@ class UserController extends Controller
             'res' => true,
             'msg' => 'Sesion Cerrada'
         ], 200);
+    }
+
+    public function getUserDetails($codigoPersona)
+    {
+        // Obtener los detalles del usuario
+        $userDetails = User::where('CodigoPersona', $codigoPersona)
+            ->with(['persona.trabajador'])
+            ->first(['id', 'CodigoPersona']);
+
+        if (!$userDetails) {
+            return response()->json(['message' => 'Usuario no encontrado'], 404);
+        }
+
+        $response = [
+            'id' => $userDetails->id,
+            'CorreoCorporativo' => $userDetails->persona->trabajador->CorreoCorporativo,
+            'Nombres' => $userDetails->persona->Nombres,
+            'Apellidos' => $userDetails->persona->Apellidos,
+        ];
+
+        return response()->json($response);
     }
 }

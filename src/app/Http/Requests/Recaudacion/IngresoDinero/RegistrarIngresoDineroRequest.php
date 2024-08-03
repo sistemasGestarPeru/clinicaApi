@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\Recaudacion\IngresoDinero;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AccesoRequest extends FormRequest
+class RegistrarIngresoDineroRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,7 @@ class AccesoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => 'required', //|min:8
+            'Monto' => 'required|numeric',
         ];
     }
 }

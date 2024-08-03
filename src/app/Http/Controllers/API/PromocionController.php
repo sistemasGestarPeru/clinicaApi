@@ -251,14 +251,15 @@ class PromocionController extends Controller
     {
         try {
             // Actualizar el estado de las promociones cuya fecha de finalización ha pasado
-            Promocion
-                ::where('vigente', true)
-                ->whereDate('fecha_fin', '<', now()) // Cambiado de '>' a '<'
-                ->update(['vigente' => false]);
+            // Promocion
+            //     ::where('vigente', true)
+            //     ->whereDate('fecha_fin', '<', now()) // Cambiado de '>' a '<'
+            //     ->update(['vigente' => false]);
 
             // Obtener las promociones vigentes después de la actualización
             $promocionesVigentes = Promocion
                 ::where('vigente', true)
+                ->whereDate('fecha_fin', '<', now())
                 ->orderBy('id', 'asc')
                 ->get();
 
