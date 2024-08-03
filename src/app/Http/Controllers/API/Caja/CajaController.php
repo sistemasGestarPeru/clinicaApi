@@ -108,6 +108,7 @@ class CajaController extends Controller
             $caja = DB::table('clinica_db.caja')
                 ->where('CodigoTrabajador', $codigoTrabajador)
                 ->where('CodigoSede', $codigoSede)
+                ->where('Estado', 'A')
                 ->orderByDesc('Codigo')
                 ->select('Estado', 'Codigo')
                 ->first();
@@ -124,11 +125,10 @@ class CajaController extends Controller
                     ->where('c.Estado', 'A')
                     ->groupBy('i.CodigoCaja')
                     ->first();
+                return response()->json(['caja' => $caja, 'result' => $result], 200);
+            } else {
+                return response()->json(['message' => 'No se encontró caja abierta'], 200);
             }
-
-
-
-            return response()->json(['caja' => $caja, 'result' => $result], 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
