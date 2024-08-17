@@ -23,6 +23,7 @@ use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
+use App\Http\Controllers\API\Venta\VentaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +111,9 @@ Route::apiResource("caja", CajaController::class);
 Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
 Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
 
+
+/********************************* VENTA *********************************/
+Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);

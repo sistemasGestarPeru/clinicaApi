@@ -5,23 +5,24 @@ namespace App\Models\Recaudacion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ContratoProducto extends Model
+class DetalleVenta extends Model
 {
     use HasFactory;
 
     public $timestamps = false;
 
-    protected $table = 'contratoProducto';
+    protected $table = 'DetalleDocumentoVenta';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [
-        'NumContrato',
-        'Fecha',
-        'Total',
-        'TotalPagado',
-        'CodigoPaciente',
-        'CodigoSede',
-        'CodigoTrabajador',
-        'Vigente'
+        'Numero',
+        'Descripcion',
+        'Cantidad',
+        'TipoGravado',
+        'MontoTotal',
+        'MontoIGV',
+        'CodigoVenta',
+        'CodigoProducto'
+
     ];
 }

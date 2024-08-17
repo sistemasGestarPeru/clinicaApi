@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Recaudacion\ClienteEmpresa;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RegistrarRequest extends FormRequest
 {
@@ -23,9 +24,17 @@ class RegistrarRequest extends FormRequest
     {
         return [
             'RazonSocial' => 'required|string',
-            'RUC' => 'required|string',
+            'RUC' => [
+                'required',
+                'string',
+                'min:8',
+                Rule::unique('clienteempresa')
+                    ->where(function ($query) {
+                        return $query->where('vigente', 1);
+                    }),
+            ],
             'Direccion' => 'required|string',
-            'CodigoDepartamento' =>'required|integer'
+            'CodigoDepartamento' => 'required|integer'
         ];
     }
 }

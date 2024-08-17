@@ -78,17 +78,25 @@ class ContratoProductoeController extends Controller
 
         $detallesContrato = $request->input('detalleContrato');
         $contratoProductoData = $request->input('contratoProducto');
+
+        // Obtener el CódigoSede desde los datos del contrato
+        $codigoSede = $contratoProductoData['CodigoSede'];
+
+        // Obtener el último NumContrato para la sede específica y sumarle 1
+        $ultimoNumContrato = ContratoProducto::where('CodigoSede', $codigoSede)
+            ->max('NumContrato');
+        $contratoProductoData['NumContrato'] = $ultimoNumContrato ? $ultimoNumContrato + 1 : 1;
+
         $contratoProductoData['Fecha'] = $fecha;
-        //revisar como trae la data
+
         DB::beginTransaction();
         try {
             // Crear el ContratoProducto
-            ContratoProducto::create($contratoProductoData);
+            $Contrato = ContratoProducto::create($contratoProductoData);
 
-            $ultimoRegistroContratoP = ContratoProducto::orderBy('Codigo', 'desc')->first();
             // Crear los DetalleContrato
             foreach ($detallesContrato as $detalle) {
-                $detalle['CodigoContrato'] = $ultimoRegistroContratoP['Codigo'];
+                $detalle['CodigoContrato'] = $Contrato->Codigo;
                 DetalleContrato::create($detalle);
             }
 

@@ -11,6 +11,8 @@ use App\Models\Personal\Persona;
 use App\Models\Personal\Trabajador;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class TrabajadorController extends Controller
 {
@@ -253,6 +255,24 @@ class TrabajadorController extends Controller
         $trabajadorData = $request->input('trabajador');
         $personaData = $request->input('persona');
 
+        $trabajadorRules = [
+            'CorreoCoorporativo' => [
+                'required',
+                'email',
+                Rule::unique('trabajadors')->where(function ($query) {
+                    return $query->where('vigente', 1);
+                }),
+            ],
+        ];
+
+
+        // Validate trabajador data
+        $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
+        if ($trabajadorValidator->fails()) {
+            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
+        }
+
+
         DB::beginTransaction();
         try {
             // Crear la persona y obtener el ID del último registro insertado
@@ -277,6 +297,23 @@ class TrabajadorController extends Controller
     {
         $trabajadorData = $request->input('trabajador');
         $personaData = $request->input('persona');
+
+        $trabajadorRules = [
+            'CorreoCoorporativo' => [
+                'required',
+                'email',
+                Rule::unique('trabajadors')->where(function ($query) {
+                    return $query->where('vigente', 1);
+                }),
+            ],
+        ];
+
+        // Validate trabajador data
+        $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
+        if ($trabajadorValidator->fails()) {
+            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
+        }
+
         DB::beginTransaction();
         try {
             $persona = Persona::find($personaData['Codigo']);
@@ -296,6 +333,40 @@ class TrabajadorController extends Controller
     {
         $trabajadorData = $request->input('trabajador');
         $personaData = $request->input('persona');
+
+
+        $personaRules = [
+            'NumeroDocumento' => [
+                'required',
+                'string',
+                Rule::unique('personas')
+                    ->where('CodigoTipoDocumento', $personaData['CodigoTipoDocumento'])
+                    ->ignore($personaData['Codigo'], 'Codigo')
+            ],
+            'CodigoTipoDocumento' => 'required|integer',
+
+        ];
+
+        $trabajadorRules = [
+            'CorreoCoorporativo' => [
+                'required',
+                'email',
+                Rule::unique('trabajadors')->ignore($personaData['Codigo'], 'Codigo')
+            ],
+        ];
+
+        // Validate persona data
+        $personaValidator = Validator::make($personaData, $personaRules);
+        if ($personaValidator->fails()) {
+            return response()->json(['errors' => $personaValidator->errors()], 400);
+        }
+
+        // Validate trabajador data
+        $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
+        if ($trabajadorValidator->fails()) {
+            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
+        }
+
         DB::beginTransaction();
         try {
             $persona = Persona::find($personaData['Codigo']);
@@ -364,7 +435,7 @@ class TrabajadorController extends Controller
             if ($persona) {
                 $trabajador = DB::table('trabajadors')
                     ->select(
-                        'CorreoCorporativo',
+                        'CorreoCoorporativo',
                         'FechaNacimiento'
                     )
                     ->where('Codigo', $persona->Codigo)
@@ -415,7 +486,7 @@ class TrabajadorController extends Controller
         // Consultar los datos de trabajador
         $trabajador = DB::table('clinica_db.trabajadors')
             ->select(
-                'CorreoCorporativo',
+                'CorreoCoorporativo',
                 'FechaNacimiento',
                 'Vigente'
             )

@@ -12,6 +12,8 @@ use App\Models\Recaudacion\ClienteEmpresa as RecaudacionClienteEmpresa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+
 
 class ClienteController extends Controller
 {
@@ -77,30 +79,97 @@ class ClienteController extends Controller
 
     public function actualizarCliente(Request $request)
     {
-        $cliente = $request->input('cliente');
+        $clienteData = $request->input('cliente');
+
+        // Find the cliente by its Codigo
+        $cliente = Persona::find($clienteData['Codigo']);
+
+        if (!$cliente) {
+            return response()->json(['msg' => 'Cliente no encontrado'], 404);
+        }
+
+        // Define validation rules
+        $rules = [
+            'NumeroDocumento' => [
+                'required',
+                'string',
+                Rule::unique('personas')
+                    ->where('CodigoTipoDocumento', $clienteData['CodigoTipoDocumento'])
+                    ->ignore($cliente->Codigo, 'Codigo') // Ignore current record
+            ],
+            'CodigoTipoDocumento' => 'required|integer',
+            
+        ];
+
+        // Validate the request
+        $validator = Validator::make($clienteData, $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
 
         try {
-            $cliente = Persona::find($cliente['Codigo']);
-            $cliente->update($request->input('cliente'));
+            // Update the cliente
+            $cliente->update($clienteData);
 
-            return response()->json(['msg' => 'Cliente actualizado correctamente', 'data' => $cliente]);
+            return response()->json(['msg' => 'Cliente actualizado correctamente']);
         } catch (\Exception $e) {
             return response()->json('Error al actualizar el cliente', 400);
         }
     }
 
+    // public function actualizarClienteEmpresa(Request $request)
+    // {
+    //     $cliente = $request->input('cliente');
+
+    //     try {
+    //         $cliente = RecaudacionClienteEmpresa::find($cliente['Codigo']);
+
+    //         $cliente->update($request->input('cliente'));
+
+    //         return response()->json(['msg' => 'Cliente actualizado correctamente', 'data' => $cliente]);
+    //     } catch (\Illuminate\Database\QueryException $e) {
+    //         return response()->json('Error en la consulta: ' . $e->getMessage());
+    //     }
+    // }
+
     public function actualizarClienteEmpresa(Request $request)
     {
-        $cliente = $request->input('cliente');
+        $clienteData = $request->input('cliente');
+
+        // Find the cliente by its Codigo
+        $cliente = RecaudacionClienteEmpresa::find($clienteData['Codigo']);
+
+        if (!$cliente) {
+            return response()->json(['msg' => 'Cliente no encontrado'], 404);
+        }
+
+        $rules = [
+            'RUC' => [
+                'required',
+                'string',
+                'min:8',
+                Rule::unique('clienteempresa')
+                    ->where(function ($query) {
+                        return $query->where('vigente', 1);
+                    }),
+            ],
+        ];
+
+        // Validate the request
+        $validator = Validator::make($clienteData, $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
 
         try {
-            $cliente = RecaudacionClienteEmpresa::find($cliente['Codigo']);
+            // Update the cliente
+            $cliente->update($clienteData);
 
-            $cliente->update($request->input('cliente'));
-
-            return response()->json(['msg' => 'Cliente actualizado correctamente', 'data' => $cliente]);
+            return response()->json(['msg' => 'Cliente Empresa actualizado correctamente']);
         } catch (\Illuminate\Database\QueryException $e) {
-            return response()->json('Error en la consulta: ' . $e->getMessage());
+            return response()->json('Error en la consulta: ' . $e->getMessage(), 500);
         }
     }
 
