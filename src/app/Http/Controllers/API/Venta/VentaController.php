@@ -199,11 +199,21 @@ class VentaController extends Controller
     }
 
 
-    public function listarVentas()
+    public function buscarVenta(Request $request)
     {
         try {
+            $fecha = $request->input('fecha');
+            $codigoSede = $request->input('codigoSede');
+
+            $venta = DB::table('clinica_db.documentoventa')
+                ->where(DB::raw("DATE(Fecha)"), $fecha)
+                ->where('CodigoSede', $codigoSede)
+                ->where('Vigente', 1)
+                ->select('Codigo', 'Serie', 'Numero', DB::raw("DATE(Fecha) as Fecha"))
+                ->get();
+            return response()->json($venta);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => $e->getMessage(), 'msg' => 'Error al buscar Venta'], 500);
         }
     }
 }

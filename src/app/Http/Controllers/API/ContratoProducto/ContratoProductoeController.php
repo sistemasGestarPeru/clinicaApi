@@ -128,16 +128,18 @@ class ContratoProductoeController extends Controller
     public function buscarContratoProducto(Request $request)
     {
         $fecha = $request->input('fecha');
-    
+        $codigoSede = $request->input('codigoSede');
+
         try {
             $contratos = DB::table('clinica_db.contratoproducto as cp')
                 ->leftJoin('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
                 ->leftJoin('clinica_db.clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
                 ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
+                ->where('cp.CodigoSede', $codigoSede)
                 ->where('cp.Vigente', 1)
                 ->select(
-                    'cp.Codigo as Codigo', 
-                    DB::raw("DATE(cp.Fecha) as Fecha"), 
+                    'cp.Codigo as Codigo',
+                    DB::raw("DATE(cp.Fecha) as Fecha"),
                     'cp.Total as Total',
                     DB::raw("
                         CASE 
@@ -147,7 +149,7 @@ class ContratoProductoeController extends Controller
                         END as NombrePaciente")
                 )
                 ->get();
-    
+
             return response()->json($contratos);
         } catch (\Exception $e) {
             return response()->json([
@@ -156,5 +158,4 @@ class ContratoProductoeController extends Controller
             ], 500);
         }
     }
-    
 }

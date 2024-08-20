@@ -117,7 +117,7 @@ Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstado
 Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
 Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
 Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
-
+Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
