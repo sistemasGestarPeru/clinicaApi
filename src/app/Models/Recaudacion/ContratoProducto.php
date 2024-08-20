@@ -20,6 +20,7 @@ class ContratoProducto extends Model
         'Total',
         'TotalPagado',
         'CodigoPaciente',
+        'CodigoClienteEmpresa',
         'CodigoSede',
         'CodigoTrabajador',
         'Vigente'

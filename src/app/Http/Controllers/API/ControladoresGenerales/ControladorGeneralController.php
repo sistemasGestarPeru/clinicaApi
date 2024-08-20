@@ -136,6 +136,16 @@ class ControladorGeneralController extends Controller
         return response()->json($departamentos);
     }
 
+    public function listarTiposDocVenta()
+    {
+        $docVentas = DB::table('clinica_db.tipodocumentoventa')
+            ->where('Vigente', 1)
+            ->select('Codigo as Codigo', 'Nombre as Nombre')
+            ->get();
+
+        return response()->json($docVentas);
+    }
+
 
     // SELECT s.CodigoDepartamento 
     // FROM sedesrec as s

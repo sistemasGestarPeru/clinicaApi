@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Personal;
 use App\Http\Controllers\Controller;
 use App\Models\Personal\TipoDocumento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TipoDocumentoController extends Controller
 {
@@ -13,7 +14,13 @@ class TipoDocumentoController extends Controller
      */
     public function index()
     {
-        return TipoDocumento::all();
+
+        $documentos = DB::table('clinica_db.tipo_documentos')
+            ->where('Vigente', 1)
+            ->select('Codigo as Codigo', 'Siglas as Nombre')
+            ->get();
+
+        return response()->json($documentos);
     }
 
     /**

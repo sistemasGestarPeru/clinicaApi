@@ -133,4 +133,22 @@ class CajaController extends Controller
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
     }
+
+    public function consultarEstadoCaja(Request $request)
+    {
+        $codigoTrabajador = $request->input('CodigoTrabajador');
+        $codigoSede = $request->input('CodigoSede');
+        try {
+            $caja = DB::table('clinica_db.caja')
+                ->where('CodigoTrabajador', $codigoTrabajador)
+                ->where('CodigoSede', $codigoSede)
+                ->where('Estado', 'A')
+                ->orderByDesc('Codigo')
+                ->select('Codigo')
+                ->first();
+            return response()->json(['caja' => $caja], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
+        }
+    }
 }

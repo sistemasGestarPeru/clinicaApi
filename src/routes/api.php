@@ -65,6 +65,7 @@ Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorControll
 Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
 /********************************* COMBOS *********************************/
+Route::get('combos/listarTiposDocVenta', [ControladorGeneralController::class, 'listarTiposDocVenta']);
 Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
 Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
 Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general
@@ -110,10 +111,13 @@ Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeControl
 Route::apiResource("caja", CajaController::class);
 Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
 Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
-
+Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
 
 /********************************* VENTA *********************************/
 Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
+Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
+Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
+
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);

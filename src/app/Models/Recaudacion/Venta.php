@@ -11,7 +11,7 @@ class Venta extends Model
 
     public $timestamps = false;
 
-    protected $table = 'Venta';
+    protected $table = 'DocumentoVenta';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [
@@ -24,7 +24,7 @@ class Venta extends Model
         'Fecha',
         'CodigoTrabajador',
         'CodigoPersona',
-        'CodigoEmpresa',
+        'CodigoClienteEmpresa',
         'TotalGravado',
         'TotalExonerado',
         'TotalInafecto',
@@ -32,8 +32,8 @@ class Venta extends Model
         'MontoTotal',
         'MontoPagado',
         'Estado',
-        'EstadoFacturacion',
-        'CodigoContrato',
+        'EstadoFactura',
+        'CodigoContratoProducto',
         'CodigoCaja',
         'Vigente'
 

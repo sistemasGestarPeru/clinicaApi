@@ -79,6 +79,14 @@ class ContratoProductoeController extends Controller
         $detallesContrato = $request->input('detalleContrato');
         $contratoProductoData = $request->input('contratoProducto');
 
+        if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
+            $contratoProductoData['CodigoPaciente'] = null;
+        }
+
+        if (isset($contratoProductoData['CodigoClienteEmpresa']) && $contratoProductoData['CodigoClienteEmpresa'] == 0) {
+            $contratoProductoData['CodigoClienteEmpresa'] = null;
+        }
+
         // Obtener el CódigoSede desde los datos del contrato
         $codigoSede = $contratoProductoData['CodigoSede'];
 
@@ -120,16 +128,27 @@ class ContratoProductoeController extends Controller
     public function buscarContratoProducto(Request $request)
     {
         $fecha = $request->input('fecha');
-
+    
         try {
-            $contrato = DB::table('clinica_db.contratoproducto as cp')
-                ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+            $contratos = DB::table('clinica_db.contratoproducto as cp')
+                ->leftJoin('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+                ->leftJoin('clinica_db.clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
                 ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
                 ->where('cp.Vigente', 1)
-                ->select('cp.Codigo as Codigo', DB::raw("DATE(cp.Fecha) as Fecha"), 'cp.Total as Total', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombrePaciente"))
+                ->select(
+                    'cp.Codigo as Codigo', 
+                    DB::raw("DATE(cp.Fecha) as Fecha"), 
+                    'cp.Total as Total',
+                    DB::raw("
+                        CASE 
+                            WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                            WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                            ELSE 'No identificado'
+                        END as NombrePaciente")
+                )
                 ->get();
-
-            return response()->json($contrato);
+    
+            return response()->json($contratos);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al buscar contrato producto',
@@ -137,4 +156,5 @@ class ContratoProductoeController extends Controller
             ], 500);
         }
     }
+    
 }
