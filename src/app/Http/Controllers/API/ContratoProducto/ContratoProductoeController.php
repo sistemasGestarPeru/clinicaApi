@@ -158,4 +158,40 @@ class ContratoProductoeController extends Controller
             ], 500);
         }
     }
+
+    public function anularContrato(Request $request)
+    {
+        $codigo = $request->input('codigoContrato');
+
+        try {
+            // Verificar si no hay ventas asociadas
+            $documentoVenta = DB::table('documentoventa as dv')
+                ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
+                ->where('cp.Codigo', $codigo)
+                ->select('dv.Codigo')
+                ->first();
+
+            // Si no hay ventas asociadas, actualizar el contrato
+            if ($documentoVenta === null) {
+                DB::table('contratoproducto')
+                    ->where('Codigo', $codigo)
+                    ->update(['Vigente' => 0]);
+
+                return response()->json([
+                    'message' => 'Contrato anulado correctamente',
+                    'id' => 1
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'No se puede anular el contrato porque tiene ventas asociadas',
+                    'id' => 2
+                ], 200);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al anular contrato',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

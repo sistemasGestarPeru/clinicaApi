@@ -105,6 +105,7 @@ Route::post('trabajador/actualizarAsignacionSede', [TrabajadorController::class,
 Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::class, 'buscarProducto']);
 Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
 Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
+Route::post('contratoProducto/anularContrato', [ContratoProductoeController::class, 'anularContrato']);
 
 
 /********************************* CAJA *********************************/
