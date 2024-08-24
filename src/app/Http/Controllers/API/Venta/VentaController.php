@@ -4,6 +4,9 @@ namespace App\Http\Controllers\API\Venta;
 
 use App\Http\Controllers\Controller;
 use App\Models\Recaudacion\DetalleVenta;
+use App\Models\Recaudacion\IngresoDinero;
+use App\Models\Recaudacion\Pago;
+use App\Models\Recaudacion\PagoDocumentoVenta;
 use App\Models\Recaudacion\Venta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +60,25 @@ class VentaController extends Controller
 
         $detallesVentaData = $request->input('detalleVenta');
         $ventaData = $request->input('venta');
+        $pagoData = $request->input('pago');
+
+        if (!$detallesVentaData) {
+            return response()->json(['error' => 'No se han enviado los detalles de la venta'], 400);
+        }
+
+        if (!$ventaData) {
+            return response()->json(['error' => 'No se han enviado los datos de la venta'], 400);
+        }
+
+        if (!$pagoData) {
+            return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
+        }
+
+
+
+        if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+            $pagoData['CodigoCuentaBancaria'] = null;
+        }
 
         if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
             $ventaData['CodigoPersona'] = null;
@@ -74,6 +96,7 @@ class VentaController extends Controller
         $ventaData['Fecha'] = $fecha;
         $ventaData['Estado'] = 'C';
         $ventaData['EstadoFactura'] = 'M';
+        $pagoData['Fecha'] = $fecha;
 
         DB::beginTransaction();
         try {
@@ -86,11 +109,29 @@ class VentaController extends Controller
                 DetalleVenta::create($detalle);
             }
 
+            $pago = Pago::create($pagoData);
+            $codigoPago = $pago->Codigo;
+
+            PagoDocumentoVenta::create([
+                'CodigoPago' => $codigoPago,
+                'CodigoDocumentoVenta' => $codigoVenta,
+                'Monto' => $pagoData['Monto'],
+            ]);
+
+            if ($pago['CodigoMedioPago'] == 1) {
+                IngresoDinero::create([
+                    'CodigoCaja' => $pagoData['CodigoCaja'],
+                    'Fecha' => $fecha,
+                    'Monto' => $pagoData['Monto'],
+                    'Tipo' => 'I',
+                ]);
+            }
+
             DB::commit();
-            return response()->json(['message' => 'Venta registrada correctamente', 'codigo' => $codigoVenta], 201);
+            return response()->json(['message' => 'Venta registrada correctamente.', 'codigo' => $codigoVenta], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage(), 'data' => $ventaData, 'detalle' => $detallesVentaData], 500);
+            return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar la Venta.'], 500);
         }
     }
 

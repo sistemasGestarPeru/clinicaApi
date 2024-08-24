@@ -72,6 +72,8 @@ Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [Contro
 Route::get('combos/empresasDisponibles/{codigoTrabajador}', [ControladorGeneralController::class, 'cboEmpresasDisponibles']); //Cambiar si se usa de manera general
 Route::get('combos/departamentoSede/{sede}', [ControladorGeneralController::class, 'listarDepartamentos']); //Cambiar si se usa de manera general
 Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
+Route::get('combos/listarMedioPago', [ControladorGeneralController::class, 'listarMedioPago']);
+Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
 /***************************************************************************/
 /********************************* CLIENTES *********************************/
 Route::apiResource("cliente", ClienteController::class);

@@ -66,22 +66,30 @@ class ControladorGeneralController extends Controller
     //Listar Combo Empresas
     public function listarEmpresas()
     {
-        $empresas = DB::table('clinica_db.empresas')
-            ->where('Vigente', 1)
-            ->select('Codigo as id', 'Nombre as nombre')
-            ->get();
+        try {
+            $empresas = DB::table('clinica_db.empresas')
+                ->where('Vigente', 1)
+                ->select('Codigo as id', 'Nombre as nombre')
+                ->get();
 
-        return response()->json($empresas);
+            return response()->json($empresas);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
     }
     //Listar Combo Sedes - Empresas
     public function listarSedesEmpresas($codigoEmpresa)
     {
-        $sedes = DB::table('clinica_db.sedesrec')
-            ->where('CodigoEmpresa', $codigoEmpresa)
-            ->select('Codigo as id', 'Nombre as nombre')
-            ->get();
+        try {
+            $sedes = DB::table('clinica_db.sedesrec')
+                ->where('CodigoEmpresa', $codigoEmpresa)
+                ->select('Codigo as id', 'Nombre as nombre')
+                ->get();
 
-        return response()->json($sedes);
+            return response()->json($sedes);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
     }
 
     public function cboSedesDisponibles($codigoEmpresa, $codigoTrabajador)
@@ -125,34 +133,63 @@ class ControladorGeneralController extends Controller
 
     public function listarDepartamentos($sede)
     {
-        $departamentos = DB::table('clinica_db.sedesrec as s')
-            ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
-            ->where('s.Codigo', $sede)
-            ->where('s.Vigente', 1)
-            ->where('d.Vigente', 1)
-            ->select('s.CodigoDepartamento as CodigoDepartamento')
-            ->get();
+        try {
+            $departamentos = DB::table('clinica_db.sedesrec as s')
+                ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
+                ->where('s.Codigo', $sede)
+                ->where('s.Vigente', 1)
+                ->where('d.Vigente', 1)
+                ->select('s.CodigoDepartamento as CodigoDepartamento')
+                ->get();
 
-        return response()->json($departamentos);
+            return response()->json($departamentos);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
     }
 
     public function listarTiposDocVenta()
     {
-        $docVentas = DB::table('clinica_db.tipodocumentoventa')
-            ->where('Vigente', 1)
-            ->select('Codigo as Codigo', 'Nombre as Nombre')
-            ->get();
+        try {
+            $docVentas = DB::table('clinica_db.tipodocumentoventa')
+                ->where('Vigente', 1)
+                ->select('Codigo as Codigo', 'Nombre as Nombre')
+                ->get();
 
-        return response()->json($docVentas);
+            return response()->json($docVentas);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarMedioPago()
+    {
+        try {
+            $medioPago = DB::table('clinica_db.mediopago')
+                ->where('Vigente', 1)
+                ->select('Codigo as Codigo', 'Nombre as Nombre')
+                ->get();
+
+            return response()->json($medioPago);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
     }
 
 
-    // SELECT s.CodigoDepartamento 
-    // FROM sedesrec as s
-    // INNER JOIN departamentos as d ON d.Codigo = s.CodigoDepartamento
-    // WHERE s.Codigo = 1;
-
-    //Listar Tipo de Documento
-    //Listar Nacionalidad
-    //Listar Departamento
+    public function listarCuentasBancariasEmpresa($empresa)
+    {
+        try {
+            $result = DB::table('clinica_db.cuentabancaria as cb')
+                ->join('clinica_db.EntidadBancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
+                ->where('cb.CodigoEmpresa', $empresa)
+                ->where('cb.Vigente', 1)
+                ->where('eb.Vigente', 1)
+                ->select('cb.Codigo as Codigo', 'eb.Siglas', 'cb.Numero')
+                ->get();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
 }

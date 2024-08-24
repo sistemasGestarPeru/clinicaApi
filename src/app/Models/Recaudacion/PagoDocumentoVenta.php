@@ -5,18 +5,17 @@ namespace App\Models\Recaudacion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class IngresoDinero extends Model
+class PagoDocumentoVenta extends Model
 {
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'ingresodinero';
+    protected $table = 'pagoDocumentoVenta';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
-        'Fecha',
+        'CodigoPago',
+        'CodigoDocumentoVenta',
         'Monto',
-        'Tipo',
-        'CodigoCaja',
         'Vigente'
     ];
 }
