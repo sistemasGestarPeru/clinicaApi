@@ -192,4 +192,17 @@ class ControladorGeneralController extends Controller
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
+
+    public function listarMotivosAnulacion()
+    {
+        try {
+            $result = DB::table('clinica_db.motivoanulacion')
+                ->where('Vigente', 1)
+                ->select('Codigo as Codigo', 'Nombre as Nombre', 'Descripcion as Descripcion')
+                ->get();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
 }

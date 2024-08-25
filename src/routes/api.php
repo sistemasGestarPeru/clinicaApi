@@ -74,6 +74,7 @@ Route::get('combos/departamentoSede/{sede}', [ControladorGeneralController::clas
 Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
 Route::get('combos/listarMedioPago', [ControladorGeneralController::class, 'listarMedioPago']);
 Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
+Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
 /***************************************************************************/
 /********************************* CLIENTES *********************************/
 Route::apiResource("cliente", ClienteController::class);
@@ -122,6 +123,8 @@ Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
 Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
 Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
 Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
+Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
+
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);

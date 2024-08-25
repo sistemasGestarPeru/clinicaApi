@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Venta;
 
 use App\Http\Controllers\Controller;
+use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\IngresoDinero;
 use App\Models\Recaudacion\Pago;
@@ -250,7 +251,7 @@ class VentaController extends Controller
                 ->where(DB::raw("DATE(Fecha)"), $fecha)
                 ->where('CodigoSede', $codigoSede)
                 ->where('Vigente', 1)
-                ->select('Codigo', 'Serie', 'Numero', DB::raw("DATE(Fecha) as Fecha"))
+                ->select('Codigo', 'Serie', 'Numero', 'CodigoTipoDocumentoVenta as TipoDoc', DB::raw("DATE(Fecha) as Fecha"))
                 ->get();
             return response()->json($venta);
         } catch (\Exception $e) {
@@ -291,6 +292,38 @@ class VentaController extends Controller
                 'Serie' => $nuevaSerie,
                 'Numero' => $nuevoNumero
             ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function anularVenta(Request $request)
+    {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
+        $anulacionData = $request->input('Anulacion');
+        $anulacionData['Fecha'] = $fecha;
+
+        $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
+
+        if (!$codigoVenta || $codigoVenta == 0) {
+            return response()->json(['error' => 'No se ha encontrado la venta a anular.'], 404);
+        }
+
+        try {
+            
+            Anulacion::create($anulacionData);
+            $venta = Venta::find($codigoVenta);
+
+            if (!$venta) {
+                return response()->json(['error' => 'Venta no encontrada.'], 404);
+            }
+
+            $venta->Vigente = 0;
+            $venta->save();
+
+            return response()->json(['message' => 'Venta anulada correctamente.'], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
