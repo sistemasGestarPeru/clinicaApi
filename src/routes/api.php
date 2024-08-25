@@ -121,6 +121,7 @@ Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'co
 Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
 Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
 Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
+Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);

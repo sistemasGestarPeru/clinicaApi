@@ -257,4 +257,42 @@ class VentaController extends Controller
             return response()->json(['error' => $e->getMessage(), 'msg' => 'Error al buscar Venta'], 500);
         }
     }
+
+    public function consultaNumDocumentoVenta(Request $request)
+    {
+        $sede = $request->input('sede');
+        $tipoDocumento = $request->input('tipoDocumento');
+
+        try {
+            // Obtener el último documento de venta
+            $documentoVenta = DB::table('clinica_db.documentoventa')
+                ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
+                ->where('CodigoSede', $sede)
+                ->orderBy('Codigo', 'desc')
+                ->first(['Serie', 'Numero']);
+
+            if ($documentoVenta) {
+                // Incrementar el número y ajustar la serie si es necesario
+                $nuevoNumero = $documentoVenta->Numero + 1;
+                $nuevaSerie = $documentoVenta->Serie;
+
+                if ($nuevoNumero > 9999) {
+                    $nuevoNumero = 1;
+                    $nuevaSerie = $documentoVenta->Serie + 1;
+                }
+            } else {
+                // Si no hay registros previos, inicializar la serie y número
+                $nuevoNumero = 1;
+                $nuevaSerie = 1;
+            }
+
+            // Retornar la nueva serie y número
+            return response()->json([
+                'Serie' => $nuevaSerie,
+                'Numero' => $nuevoNumero
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
