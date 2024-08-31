@@ -9,8 +9,12 @@ use App\Models\Recaudacion\IngresoDinero;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
 use App\Models\Recaudacion\Venta;
+use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response;
+
+use TCPDF;
 
 class VentaController extends Controller
 {
@@ -54,6 +58,69 @@ class VentaController extends Controller
         //
     }
 
+    private function getUploadConfig($pdfContent)
+    {
+        return [
+            'fileContent' => $pdfContent,
+            'projectId' => 'sitio-web-419317',
+            'bucketName' => 'gestar-peru',
+            'credentialsPath' => base_path('credentials.json')
+        ];
+    }
+
+    // Método para subir el archivo a Google Cloud Storage
+    private function uploadFile($config)
+    {
+        $storage = new StorageClient([
+            'projectId' => $config['projectId'],
+            'keyFilePath' => $config['credentialsPath']
+        ]);
+
+        $bucket = $storage->bucket($config['bucketName']);
+
+        // Nombre del archivo remoto
+        $remoteFileName = 'DocumentosVenta/' . uniqid() . '.pdf';
+
+        // Subir el archivo a Google Cloud Storage usando el contenido binario directamente
+        $bucket->upload($config['fileContent'], [
+            'name' => $remoteFileName,
+            'metadata' => [
+                'contentType' => 'application/pdf'
+            ]
+        ]);
+
+        return $remoteFileName;
+    }
+
+
+    //Metdo para consultar un archivo del bucket en Google Cloud Storage
+    private function fileExists($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+        $object = $bucket->object($fileName);
+
+        return $object->exists();
+    }
+
+    // Método para eliminar un archivo del bucket en Google Cloud Storage
+    private function deleteFile($fileName)
+    {
+        $storage = new StorageClient([
+            'projectId' => 'sitio-web-419317',
+            'keyFilePath' => base_path('credentials.json')
+        ]);
+
+        $bucket = $storage->bucket('gestar-peru');
+
+        $object = $bucket->object($fileName);
+        $object->delete();
+    }
+
     public function registrarVenta(Request $request)
     {
         date_default_timezone_set('America/Lima');
@@ -95,7 +162,7 @@ class VentaController extends Controller
         }
 
         $ventaData['Fecha'] = $fecha;
-        $ventaData['Estado'] = 'C';
+
         $ventaData['EstadoFactura'] = 'M';
         $pagoData['Fecha'] = $fecha;
 
@@ -128,8 +195,10 @@ class VentaController extends Controller
                 ]);
             }
 
+            //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
+
             DB::commit();
-            return response()->json(['message' => 'Venta registrada correctamente.', 'codigo' => $codigoVenta], 201);
+            return response()->json(['message' => 'Venta registrada correctamente.'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar la Venta.'], 500);
@@ -312,7 +381,7 @@ class VentaController extends Controller
         }
 
         try {
-            
+
             Anulacion::create($anulacionData);
             $venta = Venta::find($codigoVenta);
 
@@ -327,5 +396,109 @@ class VentaController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function generarPDF()
+    {
+        // Crear una nueva instancia de TCPDF
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+
+        // Establecer información del documento
+        $pdf->SetCreator(PDF_CREATOR);
+        $pdf->SetAuthor('Tu Empresa');
+        $pdf->SetTitle('Boleta de Venta Electrónica');
+        $pdf->SetSubject('Boleta de Venta');
+        $pdf->SetKeywords('TCPDF, PDF, boleta, venta, electronica');
+
+        // Establecer márgenes
+        $pdf->SetMargins(15, 20, 15);
+        $pdf->SetHeaderMargin(10);
+        $pdf->SetFooterMargin(10);
+
+        // Deshabilitar el encabezado y pie de página automáticos
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        // Agregar una página
+        $pdf->AddPage();
+
+        // Configurar la fuente
+        $pdf->SetFont('helvetica', '', 10);
+
+        // Agregar encabezado
+        $pdf->Cell(0, 10, 'BOLETA DE VENTA ELECTRONICA', 0, 1, 'C');
+
+        // Información del Cliente
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 10, 'DNSYSTEMS', 0, 1, 'L');
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 6, 'OBLITAS MEZA SUSANA', 0, 1, 'L');
+        $pdf->Cell(0, 6, 'CAL. SANJOSE 375 INT. 2 URB. CERCADO DE CHICLAYO', 0, 1, 'L');
+        $pdf->Cell(0, 6, 'CHICLAYO - CHICLAYO - LAMBAYEQUE', 0, 1, 'L');
+        $pdf->Ln(5);
+
+        // Fecha y otros detalles
+        $pdf->Cell(40, 6, 'Fecha de Emision:', 0, 0, 'L');
+        $pdf->Cell(40, 6, '10/10/2022', 0, 1, 'L');
+
+        $pdf->Cell(40, 6, 'Señor(es):', 0, 0, 'L');
+        $pdf->Cell(40, 6, 'DEMETRIO REYES INOÑAN', 0, 1, 'L');
+
+        $pdf->Cell(40, 6, 'DNI:', 0, 0, 'L');
+        $pdf->Cell(40, 6, '75193860', 0, 1, 'L');
+        $pdf->Ln(10);
+
+        // Encabezado de tabla
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(20, 6, 'Cantidad', 1, 0, 'C');
+        $pdf->Cell(40, 6, 'Descripcion', 1, 0, 'C');
+        $pdf->Cell(40, 6, 'Valor Unitario', 1, 0, 'C');
+        $pdf->Cell(30, 6, 'Importe de Venta', 1, 0, 'C');
+        $pdf->Cell(30, 6, 'ICBPER', 1, 1, 'C');
+
+        // Detalles del Producto
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(20, 6, '1.00', 1, 0, 'C');
+        $pdf->Cell(40, 6, 'LAPTOP LENOVO IDEAPAD', 1, 0, 'L');
+        $pdf->Cell(40, 6, '2927.9661', 1, 0, 'R');
+        $pdf->Cell(30, 6, '3454.9998', 1, 0, 'R');
+        $pdf->Cell(30, 6, '0.00', 1, 1, 'R');
+
+        // Otros totales y cargos
+        $pdf->Ln(10);
+        $pdf->Cell(40, 6, 'Op. Gravada:', 0, 0, 'L');
+        $pdf->Cell(40, 6, 'S/ 2927.97', 0, 1, 'R');
+
+        $pdf->Cell(40, 6, 'IGV:', 0, 0, 'L');
+        $pdf->Cell(40, 6, 'S/ 527.03', 0, 1, 'R');
+
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(40, 6, 'Importe Total:', 0, 0, 'L');
+        $pdf->Cell(40, 6, 'S/ 3455.00', 0, 1, 'R');
+        // Detalles adicionales del PDF...
+
+
+
+
+
+        /************************************ NO MOVER NADA DESDE AQUI ************************************/
+        // Guardar el PDF en una variable como cadena binaria
+        $pdfContent = $pdf->Output('documento_venta.pdf', 'S'); // 'S' para devolverlo como cadena
+
+        //PARA VER EL PDF EN EL POSTMAN  --- ELIMINAR ESTE RETURN LUEGO
+        return Response::make($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="boleta_de_venta.pdf"'
+        ]);
+
+        //DESCOMENTAR LUEGO
+        // // Configuración para subir el archivo a Google Cloud Storage
+        // $uploadConfig = $this->getUploadConfig($pdfContent);
+
+        // // Subir el archivo a Google Cloud Storage
+        // $remoteFileName = $this->uploadFile($uploadConfig);
+
+        // // Crear respuesta HTTP con el PDF
+        // return $remoteFileName;
     }
 }

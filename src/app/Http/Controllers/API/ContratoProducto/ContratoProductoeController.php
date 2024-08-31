@@ -54,12 +54,25 @@ class ContratoProductoeController extends Controller
     public function buscarProducto(Request $request)
     {
         $nombreProducto = $request->input('nombreProducto');
+        $sede = $request->input('sede');
+
+
+
+        // $producto = DB::table('clinica_db.producto')
+        // ->where('Vigente', 1)
+        // ->where('Nombre', 'like', '%' . $nombreProducto . '%')
+        // ->select('Codigo as Codigo', 'Nombre as Nombre', 'Monto as Monto', 'Tipo as Tipo', 'TipoGravado as TipoGravado')
+        // ->get();
+
+
 
         try {
-            $producto = DB::table('clinica_db.producto')
-                ->where('Vigente', 1)
-                ->where('Nombre', 'like', '%' . $nombreProducto . '%')
-                ->select('Codigo as Codigo', 'Nombre as Nombre', 'Monto as Monto', 'Tipo as Tipo', 'TipoGravado as TipoGravado')
+            $producto = DB::table('sedeproducto as sp')
+                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado')
+                ->where('p.Vigente', 1)
+                ->where('p.Nombre', 'like', '%' . $nombreProducto . '%')
+                ->where('sp.CodigoSede', $sede)
                 ->get();
 
             return response()->json($producto);
@@ -68,6 +81,31 @@ class ContratoProductoeController extends Controller
                 'message' => 'Error al buscar producto',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+
+    public function consultarDeuda(Request $request)
+    {
+        $codigoContrato = $request->input('codigoContrato');
+
+        try {
+            $result = DB::table('contratoproducto as cp')
+                ->leftJoin('documentoventa as dv', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
+                ->select(DB::raw('
+                CASE 
+                    WHEN SUM(dv.MontoPagado) IS NULL THEN cp.Total
+                    WHEN SUM(dv.MontoPagado) = cp.Total THEN 1
+                    ELSE cp.Total - SUM(dv.MontoPagado)
+                END AS EstadoPago
+            '))
+                ->where('cp.Codigo', $codigoContrato)
+                ->groupBy('cp.Total')
+                ->first();
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

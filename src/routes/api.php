@@ -109,7 +109,7 @@ Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::cla
 Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
 Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
 Route::post('contratoProducto/anularContrato', [ContratoProductoeController::class, 'anularContrato']);
-
+Route::post('contratoProducto/consultarDeuda', [ContratoProductoeController::class, 'consultarDeuda']);
 
 /********************************* CAJA *********************************/
 Route::apiResource("caja", CajaController::class);
@@ -124,7 +124,7 @@ Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
 Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
 Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
 Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
-
+Route::get('venta/generarPDF', [VentaController::class, 'generarPDF']);
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
