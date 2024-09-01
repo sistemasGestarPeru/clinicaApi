@@ -90,20 +90,21 @@ class ContratoProductoeController extends Controller
         $codigoContrato = $request->input('codigoContrato');
 
         try {
-            $result = DB::table('contratoproducto as cp')
+
+            $estadoPago = DB::table('contratoproducto as cp')
                 ->leftJoin('documentoventa as dv', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
-                ->select(DB::raw('
+                ->select(DB::raw("
                 CASE 
-                    WHEN SUM(dv.MontoPagado) IS NULL THEN cp.Total
-                    WHEN SUM(dv.MontoPagado) = cp.Total THEN 1
-                    ELSE cp.Total - SUM(dv.MontoPagado)
+                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) IS NULL THEN cp.Total
+                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) = cp.Total THEN 1
+                    ELSE cp.Total - SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END)
                 END AS EstadoPago
-            '))
+            "))
                 ->where('cp.Codigo', $codigoContrato)
                 ->groupBy('cp.Total')
                 ->first();
 
-            return response()->json($result);
+            return response()->json($estadoPago);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

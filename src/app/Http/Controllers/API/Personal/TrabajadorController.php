@@ -19,9 +19,7 @@ class TrabajadorController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-    }
+    public function index() {}
 
     /**
      * Store a newly created resource in storage.
@@ -402,6 +400,7 @@ class TrabajadorController extends Controller
                 ->where('p.NumeroDocumento', 'like', '%' . $numDocumento . '%')
                 ->where('p.Nombres', 'like', '%' . $nombre . '%')
                 ->where('p.Vigente', '=', 1)
+                ->where('t.Vigente', '=', 1)
                 ->get();
 
             return response()->json($personas, 200);

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\IngresoDinero;
+use App\Models\Recaudacion\LocalDocumentoVenta;
+use App\Models\Recaudacion\LocalMedioPago;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
 use App\Models\Recaudacion\Venta;
@@ -142,8 +144,6 @@ class VentaController extends Controller
             return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
         }
 
-
-
         if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
             $pagoData['CodigoCuentaBancaria'] = null;
         }
@@ -156,7 +156,6 @@ class VentaController extends Controller
             $ventaData['CodigoClienteEmpresa'] = null;
         }
 
-
         if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto'] == 0) {
             $ventaData['CodigoContratoProducto'] = null;
         }
@@ -165,6 +164,11 @@ class VentaController extends Controller
 
         $ventaData['EstadoFactura'] = 'M';
         $pagoData['Fecha'] = $fecha;
+        $MedioPago = $pagoData['CodigoMedioPago'];
+
+        $CodigoTipoDocumentoVenta = $ventaData['CodigoTipoDocumentoVenta'];
+        $sede = $ventaData['CodigoSede'];
+
 
         DB::beginTransaction();
         try {
@@ -194,6 +198,19 @@ class VentaController extends Controller
                     'Tipo' => 'I',
                 ]);
             }
+
+            LocalDocumentoVenta::create([
+                'CodigoSede' => $sede,
+                'Serie' => $ventaData['Serie'],
+                'CodigoTipoDocumentoVenta' => $CodigoTipoDocumentoVenta,
+                'Vigente' => 1
+            ]);
+
+            LocalMedioPago::create([
+                'CodigoSede' => $sede,
+                'CodigoMedioPago' => $MedioPago,
+                'Vigente' => 1
+            ]);
 
             //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
 
@@ -379,7 +396,7 @@ class VentaController extends Controller
         if (!$codigoVenta || $codigoVenta == 0) {
             return response()->json(['error' => 'No se ha encontrado la venta a anular.'], 404);
         }
-
+        DB::beginTransaction();
         try {
 
             Anulacion::create($anulacionData);
@@ -392,8 +409,28 @@ class VentaController extends Controller
             $venta->Vigente = 0;
             $venta->save();
 
+            $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
+
+            if (!$pagoDocVenta) {
+                return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
+            }
+
+            $pagoDocVenta->Vigente = 0;
+            $pagoDocVenta->save();
+
+            $pago = Pago::find($pagoDocVenta->CodigoPago);
+
+            if (!$pago) {
+                return response()->json(['error' => 'Pago no encontrado.'], 404);
+            }
+            $pago->Vigente = 0;
+            $pago->save();
+
+            DB::commit();
+
             return response()->json(['message' => 'Venta anulada correctamente.'], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
