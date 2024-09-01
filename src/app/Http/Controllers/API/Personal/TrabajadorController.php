@@ -104,30 +104,43 @@ class TrabajadorController extends Controller
     public function listarAsignaciones($codTrab, $codEmpresa)
     {
         try {
+            date_default_timezone_set('America/Lima');
+            $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
+
             $resultados = DB::table('clinica_db.trabajadors as t')
                 ->join('clinica_db.asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
                 ->join('clinica_db.sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
                 ->join('clinica_db.empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('t.Codigo', $codTrab)
+                ->where('s.Vigente', 1)
+                ->where('e.Vigente', 1)
                 ->where('e.Codigo', $codEmpresa)
                 ->select(
                     'ase.Codigo',
                     's.Nombre',
                     'ase.FechaInicio',
                     'ase.FechaFin',
-                    'ase.Vigente'
+                    'ase.Vigente',
+                    DB::raw("CASE 
+                                WHEN '$fecha' BETWEEN ase.FechaInicio AND IFNULL(ase.FechaFin, '$fecha') THEN 1 
+                                ELSE 0 
+                             END as EstadoAsignacion")
                 )
                 ->get();
 
             return response()->json($resultados);
         } catch (\Exception $e) {
-
             return response()->json('Error al obtener datos', 400);
         }
     }
+
+
     public function listarContratos($codTrab)
     {
         try {
+            date_default_timezone_set('America/Lima');
+            $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
+
             $results = DB::table('contrato_laborals as cl')
                 ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
                 ->select(
@@ -135,16 +148,24 @@ class TrabajadorController extends Controller
                     'e.Nombre',
                     'cl.CodigoEmpresa',
                     'cl.FechaInicio',
-                    'cl.FechaFin'
+                    'cl.FechaFin',
+                    DB::raw("CASE 
+                                WHEN '$fecha' BETWEEN cl.FechaInicio AND IFNULL(cl.FechaFin, '$fecha') THEN 1 
+                                ELSE 0 
+                             END as VigenciaContrato")
                 )
                 ->where('cl.CodigoTrabajador', $codTrab)
+                ->where('cl.Vigente', 1)
+                ->where('e.Vigente', 1)
+                ->orderBy('cl.FechaFin', 'desc')
                 ->get();
             return response()->json($results, 200);
         } catch (\Exception $e) {
-
             return response()->json('Error al obtener datos', 400);
         }
     }
+
+
 
     public function consultarContrato($codContratoLab)
     {
