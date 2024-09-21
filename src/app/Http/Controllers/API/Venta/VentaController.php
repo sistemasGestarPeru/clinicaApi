@@ -465,8 +465,11 @@ class VentaController extends Controller
         }
     }
 
-    public function generarPDF()
+    public function generarPDF(Request $request)
     {
+        $codigoVenta = $request->input('codigoVenta');
+        $codigoSede = $request->input('codigoSede');
+
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d H:i:s');
 
@@ -500,8 +503,8 @@ class VentaController extends Controller
                 WHEN p.Codigo IS NOT NULL THEN p.NumeroDocumento 
             END as NumDocumento')
             )
-            ->where('sr.Codigo', 1)
-            ->where('dv.Codigo', 44)
+            ->where('sr.Codigo', $codigoSede)
+            ->where('dv.Codigo', $codigoVenta)
             ->first();  // Usamos first() para obtener un solo registro, o get() si se esperan múltiples
 
         // Para ver el resultado
@@ -509,7 +512,7 @@ class VentaController extends Controller
 
         $detalleDocumentoVenta = DB::table('detalledocumentoventa')
             ->select('Numero', 'Descripcion', 'Cantidad', 'MontoTotal')
-            ->where('CodigoVenta', 44)
+            ->where('CodigoVenta', $codigoVenta)
             ->get();  // Usamos get() ya que puede haber múltiples registros
 
         // Para ver el resultado
