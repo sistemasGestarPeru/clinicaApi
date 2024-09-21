@@ -435,107 +435,84 @@ class VentaController extends Controller
         }
     }
 
+    public function consultarVenta(Request $request)
+    {
+        $codigo = $request->input('codigoVenta');
+        try {
+            $resultados = DB::table('documentoventa as dv')
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+                ->where('dv.Codigo', $codigo)
+                ->where('dv.Vigente', 1)
+                ->select(
+
+
+                    'dv.Codigo',
+                    'dv.Numero',
+                    DB::raw('CAST(dv.Fecha AS DATE) as fechaVenta'),
+                    DB::raw('CASE 
+                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, \' \', p.Apellidos)
+                    WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                    ELSE \'No disponible\'
+                END AS nombreCliente'),
+                    'dv.MontoPagado as montoPagado',
+                )
+                ->first();
+
+            return $resultados;
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function generarPDF()
     {
-        // Crear una nueva instancia de TCPDF
-        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
 
-        // Establecer información del documento
-        $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('Tu Empresa');
-        $pdf->SetTitle('Boleta de Venta Electrónica');
-        $pdf->SetSubject('Boleta de Venta');
-        $pdf->SetKeywords('TCPDF, PDF, boleta, venta, electronica');
+        $documentoVenta = DB::table('documentoventa as dv')
+            ->join('sedesrec as sr', 'sr.Codigo', '=', 'dv.CodigoSede')
+            ->join('empresas as e', 'e.Codigo', '=', 'sr.CodigoEmpresa')
+            ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
+            ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
+            ->select(
+                'e.Nombre as NombreEmpresa',
+                'e.RazonSocial',
+                'e.Ruc',
+                'e.Direccion as DireccionEmpresa',
+                'sr.Nombre as NombreSede',
+                'sr.Direccion as DireccionSede',
+                'dv.Serie',
+                'dv.Numero',
+                'dv.MontoTotal',
+                'dv.MontoPagado',
+                'dv.IGVTotal',
+                'dv.TotalExonerado',
+                'dv.TotalGravado',
+                'dv.TotalInafecto',
+                DB::raw('CASE 
+                WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial 
+                WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, " ", p.Apellidos) 
+                ELSE "Desconocido" 
+            END as NombresCliente'),
+                DB::raw('CASE 
+                WHEN ce.Codigo IS NOT NULL THEN ce.RUC 
+                WHEN p.Codigo IS NOT NULL THEN p.NumeroDocumento 
+            END as NumDocumento')
+            )
+            ->where('sr.Codigo', 1)
+            ->where('dv.Codigo', 44)
+            ->first();  // Usamos first() para obtener un solo registro, o get() si se esperan múltiples
 
-        // Establecer márgenes
-        $pdf->SetMargins(15, 20, 15);
-        $pdf->SetHeaderMargin(10);
-        $pdf->SetFooterMargin(10);
-
-        // Deshabilitar el encabezado y pie de página automáticos
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-
-        // Agregar una página
-        $pdf->AddPage();
-
-        // Configurar la fuente
-        $pdf->SetFont('helvetica', '', 10);
-
-        // Agregar encabezado
-        $pdf->Cell(0, 10, 'BOLETA DE VENTA ELECTRONICA', 0, 1, 'C');
-
-        // Información del Cliente
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 10, 'DNSYSTEMS', 0, 1, 'L');
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 6, 'OBLITAS MEZA SUSANA', 0, 1, 'L');
-        $pdf->Cell(0, 6, 'CAL. SANJOSE 375 INT. 2 URB. CERCADO DE CHICLAYO', 0, 1, 'L');
-        $pdf->Cell(0, 6, 'CHICLAYO - CHICLAYO - LAMBAYEQUE', 0, 1, 'L');
-        $pdf->Ln(5);
-
-        // Fecha y otros detalles
-        $pdf->Cell(40, 6, 'Fecha de Emision:', 0, 0, 'L');
-        $pdf->Cell(40, 6, '10/10/2022', 0, 1, 'L');
-
-        $pdf->Cell(40, 6, 'Señor(es):', 0, 0, 'L');
-        $pdf->Cell(40, 6, 'DEMETRIO REYES INOÑAN', 0, 1, 'L');
-
-        $pdf->Cell(40, 6, 'DNI:', 0, 0, 'L');
-        $pdf->Cell(40, 6, '75193860', 0, 1, 'L');
-        $pdf->Ln(10);
-
-        // Encabezado de tabla
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(20, 6, 'Cantidad', 1, 0, 'C');
-        $pdf->Cell(40, 6, 'Descripcion', 1, 0, 'C');
-        $pdf->Cell(40, 6, 'Valor Unitario', 1, 0, 'C');
-        $pdf->Cell(30, 6, 'Importe de Venta', 1, 0, 'C');
-        $pdf->Cell(30, 6, 'ICBPER', 1, 1, 'C');
-
-        // Detalles del Producto
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(20, 6, '1.00', 1, 0, 'C');
-        $pdf->Cell(40, 6, 'LAPTOP LENOVO IDEAPAD', 1, 0, 'L');
-        $pdf->Cell(40, 6, '2927.9661', 1, 0, 'R');
-        $pdf->Cell(30, 6, '3454.9998', 1, 0, 'R');
-        $pdf->Cell(30, 6, '0.00', 1, 1, 'R');
-
-        // Otros totales y cargos
-        $pdf->Ln(10);
-        $pdf->Cell(40, 6, 'Op. Gravada:', 0, 0, 'L');
-        $pdf->Cell(40, 6, 'S/ 2927.97', 0, 1, 'R');
-
-        $pdf->Cell(40, 6, 'IGV:', 0, 0, 'L');
-        $pdf->Cell(40, 6, 'S/ 527.03', 0, 1, 'R');
-
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(40, 6, 'Importe Total:', 0, 0, 'L');
-        $pdf->Cell(40, 6, 'S/ 3455.00', 0, 1, 'R');
-        // Detalles adicionales del PDF...
+        // Para ver el resultado
 
 
+        $detalleDocumentoVenta = DB::table('detalledocumentoventa')
+            ->select('Numero', 'Descripcion', 'Cantidad', 'MontoTotal')
+            ->where('CodigoVenta', 44)
+            ->get();  // Usamos get() ya que puede haber múltiples registros
 
-
-
-        /************************************ NO MOVER NADA DESDE AQUI ************************************/
-        // Guardar el PDF en una variable como cadena binaria
-        $pdfContent = $pdf->Output('documento_venta.pdf', 'S'); // 'S' para devolverlo como cadena
-
-        //PARA VER EL PDF EN EL POSTMAN  --- ELIMINAR ESTE RETURN LUEGO
-        return Response::make($pdfContent, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="boleta_de_venta.pdf"'
-        ]);
-
-        //DESCOMENTAR LUEGO
-        // // Configuración para subir el archivo a Google Cloud Storage
-        // $uploadConfig = $this->getUploadConfig($pdfContent);
-
-        // // Subir el archivo a Google Cloud Storage
-        // $remoteFileName = $this->uploadFile($uploadConfig);
-
-        // // Crear respuesta HTTP con el PDF
-        // return $remoteFileName;
+        // Para ver el resultado
+        return response()->json(['documentoVenta' => $documentoVenta, 'detalleDocumentoVenta' => $detalleDocumentoVenta, 'fecha' => $fecha], 200);
     }
 }

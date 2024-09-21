@@ -96,7 +96,7 @@ class ContratoProductoeController extends Controller
                 ->select(DB::raw("
                 CASE 
                     WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) IS NULL THEN cp.Total
-                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) = cp.Total THEN 1
+                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) = cp.Total THEN 0
                     ELSE cp.Total - SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END)
                 END AS EstadoPago
             "))

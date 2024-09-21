@@ -113,6 +113,7 @@ class TrabajadorController extends Controller
                 ->join('clinica_db.empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('t.Codigo', $codTrab)
                 ->where('s.Vigente', 1)
+                ->where('ase.Vigente', 1)
                 ->where('e.Vigente', 1)
                 ->where('e.Codigo', $codEmpresa)
                 ->select(

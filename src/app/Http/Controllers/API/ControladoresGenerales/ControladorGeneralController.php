@@ -97,12 +97,26 @@ class ControladorGeneralController extends Controller
 
         try {
             $sedes = DB::table('clinica_db.sedesrec as sr')
-                ->leftJoin('clinica_db.asignacion_sedes as asg', function ($join) use ($codigoTrabajador) {
+                ->leftJoin('clinica_db.asignacion_sedes as asg', function ($join) {
                     $join->on('sr.Codigo', '=', 'asg.CodigoSede')
-                        ->where('asg.CodigoTrabajador', '=', $codigoTrabajador);
+                        ->where('asg.CodigoTrabajador', 2);
                 })
-                ->where('sr.CodigoEmpresa', $codigoEmpresa)
-                ->whereNull('asg.CodigoSede')
+                ->where('sr.CodigoEmpresa', 5)
+                ->where(function ($query) {
+                    $query->whereNull('asg.CodigoSede')
+                        ->orWhere(function ($query) {
+                            $query->where('asg.Codigo', function ($subQuery) {
+                                $subQuery->select('asg2.Codigo')
+                                    ->from('clinica_db.asignacion_sedes as asg2')
+                                    ->whereColumn('asg2.CodigoSede', 'sr.Codigo')
+                                    ->where('asg2.CodigoTrabajador', 2)
+                                    ->orderBy('asg2.Codigo', 'desc')
+                                    ->limit(1);
+                            })
+                                ->where('asg.Vigente', 0);
+                        });
+                })
+                ->orderBy('asg.Codigo', 'desc')
                 ->select('sr.Codigo as id', 'sr.Nombre as nombre')
                 ->get();
 

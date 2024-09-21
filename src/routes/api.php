@@ -124,7 +124,8 @@ Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
 Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
 Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
 Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
-Route::get('venta/generarPDF', [VentaController::class, 'generarPDF']);
+Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
+Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
