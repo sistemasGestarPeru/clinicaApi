@@ -222,7 +222,7 @@ class ContratoProductoeController extends Controller
                 ], 200);
             } else {
                 return response()->json([
-                    'message' => 'No se puede anular el contrato porque tiene ventas asociadas',
+                    'message' => 'No se puede anular contrato porque tiene documentos asociados.',
                     'id' => 2
                 ], 200);
             }

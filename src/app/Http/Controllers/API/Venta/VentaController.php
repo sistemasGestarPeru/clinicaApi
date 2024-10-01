@@ -160,14 +160,19 @@ class VentaController extends Controller
             $ventaData['CodigoContratoProducto'] = null;
         }
 
+        if ($pagoData['CodigoMedioPago'] == 1) {
+
+            $pagoData['Fecha'] = $fecha;
+        }
+
         $ventaData['Fecha'] = $fecha;
 
         $ventaData['EstadoFactura'] = 'M';
-        $pagoData['Fecha'] = $fecha;
-        $MedioPago = $pagoData['CodigoMedioPago'];
 
-        $CodigoTipoDocumentoVenta = $ventaData['CodigoTipoDocumentoVenta'];
-        $sede = $ventaData['CodigoSede'];
+        // $MedioPago = $pagoData['CodigoMedioPago'];
+
+        // $CodigoTipoDocumentoVenta = $ventaData['CodigoTipoDocumentoVenta'];
+        // $sede = $ventaData['CodigoSede'];
 
 
         DB::beginTransaction();
@@ -188,28 +193,6 @@ class VentaController extends Controller
                 'CodigoPago' => $codigoPago,
                 'CodigoDocumentoVenta' => $codigoVenta,
                 'Monto' => $pagoData['Monto'],
-            ]);
-
-            if ($pago['CodigoMedioPago'] == 1) {
-                IngresoDinero::create([
-                    'CodigoCaja' => $pagoData['CodigoCaja'],
-                    'Fecha' => $fecha,
-                    'Monto' => $pagoData['Monto'],
-                    'Tipo' => 'I',
-                ]);
-            }
-
-            LocalDocumentoVenta::create([
-                'CodigoSede' => $sede,
-                'Serie' => $ventaData['Serie'],
-                'CodigoTipoDocumentoVenta' => $CodigoTipoDocumentoVenta,
-                'Vigente' => 1
-            ]);
-
-            LocalMedioPago::create([
-                'CodigoSede' => $sede,
-                'CodigoMedioPago' => $MedioPago,
-                'Vigente' => 1
             ]);
 
             //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
@@ -292,6 +275,90 @@ class VentaController extends Controller
         }
     }
 
+
+
+    public function consultarDatosVenta(Request $request)
+    {
+        $idVenta = $request->input('idVenta');
+        try {
+            $documentoVenta = DB::table('documentoventa as dv')
+                ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
+                ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
+                ->leftJoin('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
+                ->where('dv.Codigo', $idVenta)
+                ->select(
+                    'dv.Codigo',
+                    DB::raw("
+                    CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                        ELSE 'No identificado'
+                    END as NombreCompleto
+                "),
+                    DB::raw("
+                    CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(td.Siglas, ': ', p.NumeroDocumento)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.Ruc
+                        ELSE 'Documento no disponible'
+                    END as DocumentoCompleto
+                "),
+                    DB::raw('COALESCE(p.Codigo, 0) as CodigoPaciente'),
+                    DB::raw('COALESCE(ce.Codigo, 0) as CodigoEmpresa'),
+                    DB::raw("
+                    CASE
+                        WHEN p.Codigo IS NOT NULL THEN p.CodigoTipoDocumento
+                        ELSE -1
+                    END as CodTipoDoc
+                ")
+                )
+                ->first();
+
+
+            // Consulta del detalle del contrato
+            $detalle = DB::table('detalledocumentoventa as ddc')
+                ->join('producto as p', 'p.Codigo', '=', 'ddc.CodigoProducto')
+                ->where('ddc.CodigoVenta', $idVenta)
+                ->select(
+                    'ddc.MontoTotal',
+                    'ddc.Cantidad',
+                    'ddc.Descripcion',
+                    'ddc.CodigoProducto',
+                    'p.TipoGravado',
+                    DB::raw("
+                    CASE 
+                        WHEN p.TipoGravado = 'A' THEN ROUND(ddc.MontoTotal - (ddc.MontoTotal / (1 + 0.18)), 2)
+                        ELSE 0
+                    END as MontoIGV
+                ")
+                )
+                ->get();
+
+
+            $estadoPago = DB::table('documentoventa')
+                ->select(DB::raw("
+                    CASE 
+                        WHEN SUM(CASE WHEN Vigente = 1 THEN MontoPagado ELSE 0 END) IS NULL THEN MontoTotal
+                        WHEN SUM(CASE WHEN Vigente = 1 THEN MontoPagado ELSE 0 END) = MontoTotal THEN 0
+                        ELSE MontoTotal - SUM(CASE WHEN Vigente = 1 THEN MontoPagado ELSE 0 END)
+                    END AS EstadoPago
+                "))
+                ->where('Codigo', $idVenta)
+                ->groupBy('MontoTotal') // Añadir GROUP BY
+                ->first();
+
+            // Convertir los valores a números en lugar de cadenas
+            $detalle = $detalle->map(function ($item) {
+                $item->MontoTotal = (float) $item->MontoTotal;
+                $item->MontoIGV = (float) $item->MontoIGV;
+                return $item;
+            });
+
+            return response()->json(['venta' => $documentoVenta, 'detalle' => $detalle, 'estadoPago' => $estadoPago], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function buscarCliente(Request $request)
     {
         $tipoDocumento = $request->input('tipoDocumento');
@@ -337,8 +404,19 @@ class VentaController extends Controller
                 ->where(DB::raw("DATE(Fecha)"), $fecha)
                 ->where('CodigoSede', $codigoSede)
                 ->where('Vigente', 1)
-                ->select('Codigo', 'Serie', 'Numero', 'CodigoTipoDocumentoVenta as TipoDoc', DB::raw("DATE(Fecha) as Fecha"))
+                ->select(
+                    'Codigo',
+                    'Serie',
+                    'Numero',
+                    'CodigoTipoDocumentoVenta as TipoDoc',
+                    DB::raw("DATE(Fecha) as Fecha"),
+                    DB::raw("CASE 
+                            WHEN MontoTotal = MontoPagado THEN 0
+                            WHEN MontoTotal != MontoPagado THEN 1
+                         END AS PagoCompleto")
+                )
                 ->get();
+
             return response()->json($venta);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage(), 'msg' => 'Error al buscar Venta'], 500);
