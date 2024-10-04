@@ -99,6 +99,23 @@ class CajaController extends Controller
         }
     }
 
+    public function registrarIngreso(Request $request)
+    {
+        try {
+            $IngresoDineroData = $request->input('IngresoDinero');
+
+            date_default_timezone_set('America/Lima');
+            $fecha = date('Y-m-d H:i:s');
+
+            $IngresoDineroData['Fecha'] = $fecha;
+            $IngresoDineroData['Tipo'] = 'I';
+
+            IngresoDinero::create($IngresoDineroData);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al registrar el ingreso', 'error' => $e->getMessage()], 400);
+        }
+    }
+
     public function consultarCaja(Request $request)
     {
         try {
@@ -117,7 +134,7 @@ class CajaController extends Controller
                 $result = DB::table('ingresodinero as i')
                     ->select(
                         'c.FechaInicio',
-                        DB::raw('SUM(i.Monto) AS TotalMonto'),
+                        DB::raw('SUM(CASE WHEN i.Tipo = "I" THEN i.Monto ELSE 0 END) AS TotalMonto'),
                         DB::raw('SUM(CASE WHEN i.Tipo = "A" THEN i.Monto ELSE 0 END) AS MontoApertura')
                     )
                     ->join('caja as c', 'c.Codigo', '=', 'i.CodigoCaja')

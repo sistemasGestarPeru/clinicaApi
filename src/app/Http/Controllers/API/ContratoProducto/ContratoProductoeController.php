@@ -117,6 +117,7 @@ class ContratoProductoeController extends Controller
 
         $detallesContrato = $request->input('detalleContrato');
         $contratoProductoData = $request->input('contratoProducto');
+        $compromisoContrato = $request->input('compromisoContrato');
 
         if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
             $contratoProductoData['CodigoPaciente'] = null;
@@ -145,6 +146,12 @@ class ContratoProductoeController extends Controller
             foreach ($detallesContrato as $detalle) {
                 $detalle['CodigoContrato'] = $Contrato->Codigo;
                 DetalleContrato::create($detalle);
+            }
+
+            if ($compromisoContrato && $compromisoContrato['Fecha'] && $compromisoContrato['Monto']) {
+                $compromisoContrato['CodigoContrato'] = $Contrato->Codigo;
+                $compromisoContrato['Vigente'] = 1;
+                DB::table('compromisocontrato')->insert($compromisoContrato);
             }
 
             // Confirmar la transacción

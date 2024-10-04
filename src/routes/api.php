@@ -116,7 +116,7 @@ Route::apiResource("caja", CajaController::class);
 Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
 Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
 Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
-
+Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
 /********************************* VENTA *********************************/
 Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
 Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
@@ -126,6 +126,7 @@ Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consult
 Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
 Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
 Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
+Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 
 
 

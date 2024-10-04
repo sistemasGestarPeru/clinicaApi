@@ -198,7 +198,7 @@ class VentaController extends Controller
             //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
 
             DB::commit();
-            return response()->json(['message' => 'Venta registrada correctamente.'], 201);
+            return response()->json(['message' => 'Venta registrada correctamente.', 'venta' => $venta->Codigo], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar la Venta.'], 500);
@@ -314,7 +314,6 @@ class VentaController extends Controller
                 ->first();
 
 
-            // Consulta del detalle del contrato
             $detalle = DB::table('detalledocumentoventa as ddc')
                 ->join('producto as p', 'p.Codigo', '=', 'ddc.CodigoProducto')
                 ->where('ddc.CodigoVenta', $idVenta)
@@ -328,11 +327,9 @@ class VentaController extends Controller
                     CASE 
                         WHEN p.TipoGravado = 'A' THEN ROUND(ddc.MontoTotal - (ddc.MontoTotal / (1 + 0.18)), 2)
                         ELSE 0
-                    END as MontoIGV
-                ")
+                    END as MontoIGV")
                 )
                 ->get();
-
 
             $estadoPago = DB::table('documentoventa')
                 ->select(DB::raw("
