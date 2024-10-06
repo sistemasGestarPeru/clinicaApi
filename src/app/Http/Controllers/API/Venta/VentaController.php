@@ -247,20 +247,74 @@ class VentaController extends Controller
                 )
                 ->first();
 
+            //Consultar si tiene ventas realizadas
 
-            // Consulta del detalle del contrato
-            $detalle = DB::table('detallecontrato as dc')
-                ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-                ->select(
-                    'dc.MontoTotal',
-                    'dc.Cantidad',
-                    'dc.Descripcion',
-                    'dc.CodigoProducto',
-                    'p.TipoGravado',
-                    DB::raw("(CASE WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2) ELSE 0 END) as MontoIGV")
-                )
-                ->where('dc.CodigoContrato', $idContrato)
-                ->get();
+            $documento = DB::table('documentoventa')->where('CodigoContratoProducto', $idContrato)->first();
+
+            if ($documento) {
+                // Crear una tabla temporal para los montos por producto
+                DB::statement("CREATE TEMPORARY TABLE TempProductoMontos (
+                    CodigoProducto INT,
+                    MontoTotal DECIMAL(10,2)
+                )");
+
+                // Obtener los datos agrupados por CodigoProducto y con la suma de MontoTotal, si hay ventas
+                $productos = DB::table('documentoventa as dv')
+                    ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                    ->select('ddv.CodigoProducto', DB::raw('SUM(ddv.MontoTotal) as MontoTotal'))
+                    ->where('dv.CodigoContratoProducto', $idContrato)
+                    ->groupBy('ddv.CodigoProducto')
+                    ->get();
+
+                // Convertir los resultados a un arreglo de pares clave-valor para la inserción
+                $insertData = $productos->map(function ($producto) {
+                    return [
+                        'CodigoProducto' => $producto->CodigoProducto,
+                        'MontoTotal' => $producto->MontoTotal
+                    ];
+                })->toArray();
+
+                // Insertar los datos en la tabla temporal
+                DB::table('TempProductoMontos')->insert($insertData);
+
+                // Realizar la consulta principal
+                $detalle = DB::table('detallecontrato as d')
+                    ->leftJoin('TempProductoMontos as t', 'd.CodigoProducto', '=', 't.CodigoProducto')
+                    ->join('producto as p', 'p.Codigo', '=', 'd.CodigoProducto')
+                    ->select(
+                        DB::raw('(d.MontoTotal - COALESCE(t.MontoTotal, 0)) as MontoTotal'),
+                        'd.Cantidad',
+                        'd.Descripcion',
+                        'd.CodigoProducto',
+                        'p.TipoGravado',
+                        DB::raw("CASE 
+                            WHEN p.TipoGravado = 'A' 
+                            THEN ROUND(d.MontoTotal - (d.MontoTotal / (1 + 0.18)), 2) 
+                            ELSE 0 
+                        END as MontoIGV")
+                    )
+                    ->where('d.CodigoContrato', $idContrato)
+                    ->whereRaw('(d.MontoTotal - COALESCE(t.MontoTotal, 0)) != 0')
+                    ->get();
+
+                // Eliminar la tabla temporal después de usarla
+                DB::statement('DROP TEMPORARY TABLE IF EXISTS TempProductoMontos');
+            } else {
+
+                // Consulta del detalle del contrato
+                $detalle = DB::table('detallecontrato as dc')
+                    ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+                    ->select(
+                        'dc.MontoTotal',
+                        'dc.Cantidad',
+                        'dc.Descripcion',
+                        'dc.CodigoProducto',
+                        'p.TipoGravado',
+                        DB::raw("(CASE WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2) ELSE 0 END) as MontoIGV")
+                    )
+                    ->where('dc.CodigoContrato', $idContrato)
+                    ->get();
+            }
 
             // Convertir los valores a números en lugar de cadenas
             $detalle = $detalle->map(function ($item) {
