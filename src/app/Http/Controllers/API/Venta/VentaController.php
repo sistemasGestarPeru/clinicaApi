@@ -538,15 +538,17 @@ class VentaController extends Controller
             $venta->Vigente = 0;
             $venta->save();
 
+            $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
+
+            if (!$pagoDocVenta) {
+                return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
+            }
+
+            $pagoDocVenta->Vigente = 0;
+            $pagoDocVenta->save();
+
+
             if ($anularPago == 1) {
-                $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
-
-                if (!$pagoDocVenta) {
-                    return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
-                }
-
-                $pagoDocVenta->Vigente = 0;
-                $pagoDocVenta->save();
 
                 $pago = Pago::find($pagoDocVenta->CodigoPago);
 

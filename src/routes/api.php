@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
+use App\Http\Controllers\API\Pago\PagoController;
 use App\Http\Controllers\API\Personal\AsignacionSedeController;
 use App\Http\Controllers\API\Personal\ContratoLaboralController;
 use App\Http\Controllers\API\Personal\DepartamentoController;
@@ -128,6 +129,8 @@ Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
 Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
 Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 
+/********************************* PAGOS *********************************/
+Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
 
 
 /********************************* PRUEBAS *********************************/
