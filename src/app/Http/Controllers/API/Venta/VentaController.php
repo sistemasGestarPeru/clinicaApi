@@ -263,6 +263,7 @@ class VentaController extends Controller
                     ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                     ->select('ddv.CodigoProducto', DB::raw('SUM(ddv.MontoTotal) as MontoTotal'))
                     ->where('dv.CodigoContratoProducto', $idContrato)
+                    ->where('dv.Vigente', 1)
                     ->groupBy('ddv.CodigoProducto')
                     ->get();
 
@@ -516,10 +517,9 @@ class VentaController extends Controller
     {
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d H:i:s');
-
         $anulacionData = $request->input('Anulacion');
         $anulacionData['Fecha'] = $fecha;
-
+        $anularPago = ['Confirmacion'];
         $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
 
         if (!$codigoVenta || $codigoVenta == 0) {
@@ -538,22 +538,24 @@ class VentaController extends Controller
             $venta->Vigente = 0;
             $venta->save();
 
-            $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
+            if ($anularPago == 1) {
+                $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
 
-            if (!$pagoDocVenta) {
-                return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
+                if (!$pagoDocVenta) {
+                    return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
+                }
+
+                $pagoDocVenta->Vigente = 0;
+                $pagoDocVenta->save();
+
+                $pago = Pago::find($pagoDocVenta->CodigoPago);
+
+                if (!$pago) {
+                    return response()->json(['error' => 'Pago no encontrado.'], 404);
+                }
+                $pago->Vigente = 0;
+                $pago->save();
             }
-
-            $pagoDocVenta->Vigente = 0;
-            $pagoDocVenta->save();
-
-            $pago = Pago::find($pagoDocVenta->CodigoPago);
-
-            if (!$pago) {
-                return response()->json(['error' => 'Pago no encontrado.'], 404);
-            }
-            $pago->Vigente = 0;
-            $pago->save();
 
             DB::commit();
 
