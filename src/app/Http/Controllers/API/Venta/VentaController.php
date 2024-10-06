@@ -519,7 +519,7 @@ class VentaController extends Controller
         $fecha = date('Y-m-d H:i:s');
         $anulacionData = $request->input('Anulacion');
         $anulacionData['Fecha'] = $fecha;
-        $anularPago = ['Confirmacion'];
+        $anularPago = $anulacionData['Confirmacion'];
         $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
 
         if (!$codigoVenta || $codigoVenta == 0) {
