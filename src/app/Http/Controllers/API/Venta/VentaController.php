@@ -140,13 +140,11 @@ class VentaController extends Controller
             return response()->json(['error' => 'No se han enviado los datos de la venta'], 400);
         }
 
-        if (!$pagoData) {
-            return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
-        }
+        // if (!$pagoData) {
+        //     return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
+        // }
 
-        if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
-            $pagoData['CodigoCuentaBancaria'] = null;
-        }
+
 
         if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
             $ventaData['CodigoPersona'] = null;
@@ -160,9 +158,15 @@ class VentaController extends Controller
             $ventaData['CodigoContratoProducto'] = null;
         }
 
-        if ($pagoData['CodigoMedioPago'] == 1) {
+        if (!empty($pagoData)) {
+            if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+                $pagoData['CodigoCuentaBancaria'] = null;
+            }
 
-            $pagoData['Fecha'] = $fecha;
+            if ($pagoData['CodigoMedioPago'] == 1) {
+
+                $pagoData['Fecha'] = $fecha;
+            }
         }
 
         $ventaData['Fecha'] = $fecha;
@@ -186,15 +190,17 @@ class VentaController extends Controller
                 DetalleVenta::create($detalle);
             }
 
-            $pago = Pago::create($pagoData);
-            $codigoPago = $pago->Codigo;
 
-            PagoDocumentoVenta::create([
-                'CodigoPago' => $codigoPago,
-                'CodigoDocumentoVenta' => $codigoVenta,
-                'Monto' => $pagoData['Monto'],
-            ]);
+            if (!empty($pagoData)) {
+                $pago = Pago::create($pagoData);
+                $codigoPago = $pago->Codigo;
 
+                PagoDocumentoVenta::create([
+                    'CodigoPago' => $codigoPago,
+                    'CodigoDocumentoVenta' => $codigoVenta,
+                    'Monto' => $pagoData['Monto'],
+                ]);
+            }
             //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
 
             DB::commit();

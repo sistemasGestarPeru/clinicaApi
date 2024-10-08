@@ -132,8 +132,11 @@ Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 
 /********************************* PAGOS *********************************/
 Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
-
-
+Route::post('pago/buscarVentas', [PagoController::class, 'buscarVentas']);
+Route::post('pago/registrarPagoDocumentoVenta', [PagoController::class, 'registrarPagoDocumentoVenta']);
+Route::post('pago/anularPago', [PagoController::class, 'anularPago']);
+Route::post('pago/consultarPago', [PagoController::class, 'consultarPago']);
+Route::post('pago/editarPago', [PagoController::class, 'editarPago']);
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 Route::get('tipodocumento/listar', [TipoDocumentoController::class, 'index']);

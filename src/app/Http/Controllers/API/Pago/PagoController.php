@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API\Pago;
 
 use App\Http\Controllers\Controller;
+use App\Models\Recaudacion\Pago;
+use App\Models\Recaudacion\PagoDocumentoVenta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -48,6 +50,26 @@ class PagoController extends Controller
         //
     }
 
+    public function registrarPagoDocumentoVenta(Request $request)
+    {
+
+        $pagoDocData = $request->input('pagoDocVenta');
+        try {
+            DB::table('pagodocumentoventa')->insert([
+                'CodigoPago' => $pagoDocData['CodigoPago'],
+                'CodigoDocumentoVenta' =>  $pagoDocData['CodigoDocumentoVenta'],
+                'Monto' => $pagoDocData['Monto']
+            ]);
+            return response()->json([
+                'message' => 'Pago Asociado correctamente',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function buscarPago(Request $request)
     {
 
@@ -73,6 +95,98 @@ class PagoController extends Controller
                 ->get();
 
             return response()->json($pagos, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function buscarVentas(Request $request)
+    {
+        $fecha = $request->input('fecha');
+        $codigoSede = $request->input('codigoSede');
+
+        try {
+
+            $ventas = DB::table('documentoventa as dv')
+                ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->whereNull('pdv.Codigo')
+                ->where('dv.Vigente', 1)
+                ->select('dv.Codigo', 'dv.CodigoTipoDocumentoVenta', 'dv.Serie', 'dv.Numero', DB::raw("DATE(dv.Fecha) as Fecha"), 'dv.MontoTotal', 'dv.MontoPagado')
+                ->where(DB::raw("DATE(dv.Fecha)"), $fecha)  // Reemplaza esto con el valor de $fecha
+                ->where('dv.CodigoSede', $codigoSede)
+                ->get();
+
+            return response()->json($ventas, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function anularPago(Request $request)
+    {
+        $codigoPago = $request->input('codigoPago');
+        $codigoTrabajador = $request->input('codigoTrabajador');
+        try {
+
+            DB::table('pago')
+                ->where('Codigo', $codigoPago)
+                ->update([
+                    'CodigoTrabajador' => $codigoTrabajador,
+                    'Vigente' => 0
+                ]);
+
+            return response()->json([
+                'message' => 'Pago anulado correctamente',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function consultarPago(Request $request)
+    {
+        $codigoPago = $request->input('codigoPago');
+
+        try {
+            $pago = DB::table('Pago')
+                ->select('Codigo', 'CodigoMedioPago', 'CodigoCuentaBancaria', 'NumeroOperacion', DB::raw("DATE(Fecha) as Fecha"), 'Monto', 'CodigoBilleteraDigital')
+                ->where('Vigente', 1)
+                ->where('Codigo', $codigoPago)
+                ->first(); // Obtiene el primer registro que cumple con la condición
+            return response()->json($pago, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function editarPago(Request $request)
+    {
+        $pagoData = $request->input('pago');
+
+        try {
+            DB::table('pago')
+                ->where('Codigo', $pagoData['Codigo'])
+                ->update([
+                    'CodigoMedioPago' => $pagoData['CodigoMedioPago'],
+                    'CodigoCuentaBancaria' => $pagoData['CodigoCuentaBancaria'],
+                    'NumeroOperacion' => $pagoData['NumeroOperacion'],
+                    'Fecha' => $pagoData['Fecha'],
+                    'Monto' => $pagoData['Monto'],
+                    'CodigoBilleteraDigital' => $pagoData['CodigoBilleteraDigital'],
+                    'CodigoTrabajador' => $pagoData['CodigoTrabajador']
+                ]);
+
+            return response()->json([
+                'message' => 'Pago actualizado correctamente',
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
