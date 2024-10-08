@@ -214,6 +214,7 @@ class ContratoProductoeController extends Controller
             $documentoVenta = DB::table('documentoventa as dv')
                 ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
                 ->where('cp.Codigo', $codigo)
+                ->where('dv.Vigente', 1)
                 ->select('dv.Codigo')
                 ->first();
 

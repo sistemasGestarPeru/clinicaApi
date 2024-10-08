@@ -651,4 +651,75 @@ class VentaController extends Controller
         // Para ver el resultado
         return response()->json(['documentoVenta' => $documentoVenta, 'detalleDocumentoVenta' => $detalleDocumentoVenta, 'fecha' => $fecha], 200);
     }
+
+
+    public function canjearDocumentoVenta(Request $request)
+    {
+        $canjeData = $request->input('Canje');
+
+        $NumSerieDoc = $this->consultaNumDocumentoVenta(new Request([
+            'sede' =>  $canjeData['CodigoSede'],
+            'tipoDocumento' =>  $canjeData['CodigoTipoDocumentoVenta']
+        ]));
+
+        $data = $NumSerieDoc->getData();
+
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            // 1. Obtener el registro original
+            $venta = DB::table('documentoventa')
+                ->where('Codigo', $canjeData['CodigoVenta'])
+                ->where('CodigoTipoDocumentoVenta', 3)
+                ->first();
+
+            if ($venta) {
+                // 2. Insertar en documentoventa con los valores obtenidos
+                $nuevoCodigoDocumentoVenta = DB::table('documentoventa')->insertGetId([
+                    'CodigoDocumentoReferencia' => $venta->Codigo,
+                    'CodigoTipoDocumentoVenta' => $canjeData['CodigoTipoDocumentoVenta'], // variableTipoDocumentoVenta
+                    'CodigoSede' => $venta->CodigoSede,
+                    'Serie' =>  $data->Serie, // variableSerie
+                    'Numero' => $data->Numero, // variableNumero
+                    'Fecha' => $fecha, // variableFecha
+                    'CodigoTrabajador' => $canjeData['CodigoTrabajador'], // variableCodigoTrabajador
+                    'CodigoPersona' => $venta->CodigoPersona,
+                    'CodigoClienteEmpresa' => $venta->CodigoClienteEmpresa,
+                    'TotalGravado' => $venta->TotalGravado,
+                    'TotalExonerado' => $venta->TotalExonerado,
+                    'TotalInafecto' => $venta->TotalInafecto,
+                    'IGVTotal' => $venta->IGVTotal,
+                    'MontoTotal' => $venta->MontoTotal,
+                    'MontoPagado' => $venta->MontoPagado,
+                    'Estado' => $venta->Estado,
+                    'EstadoFactura' => $venta->EstadoFactura,
+                    'CodigoContratoProducto' => $venta->CodigoContratoProducto,
+                    'CodigoCaja' => $canjeData['CodigoCaja'] // variableCaja
+                ]);
+
+                // 3. Actualizar el campo Vigente en documentoventa
+                DB::table('documentoventa')
+                    ->where('Codigo', $canjeData['CodigoVenta'])
+                    ->update(['Vigente' => 0]);
+
+                // 4. Actualizar el pagodocumentoventa con el nuevo código generado
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $canjeData['CodigoVenta'])
+                    ->update(['CodigoDocumentoVenta' => $nuevoCodigoDocumentoVenta]);
+
+                // 5. Actualizar el detallecontrato con el nuevo código generado
+                DB::table('detalledocumentoventa')
+                    ->where('CodigoVenta', $canjeData['CodigoVenta'])
+                    ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
+                DB::commit();
+                return response()->json(['message' => 'Documento de venta canjeado correctamente.'], 201);
+            } else {
+                DB::rollBack();
+                return response()->json(['message' => 'No se encontró el documento de venta a canjear.'], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage(), 'message' => 'Ocurrió un error al canjear documento de venta'], 500);
+        }
+    }
 }
