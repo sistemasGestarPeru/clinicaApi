@@ -85,13 +85,16 @@ class PagoController extends Controller
                     'p.Codigo',
                     'p.NumeroOperacion',
                     'mp.Nombre',
-                    DB::raw("DATE(p.Fecha) as Fecha"),
+                    DB::raw('DATE(p.Fecha) as Fecha'),
                     'p.Monto'
                 )
                 ->where('p.Vigente', 1)
                 ->where('pdv.Vigente', 0)
-                ->where(DB::raw("DATE(p.Fecha)"), $fecha)  // Reemplaza esto con el valor de $fecha
-                ->where('d.CodigoSede', $codigoSede)                       // Reemplaza esto con el valor de $codigoSede
+                ->where(DB::raw('DATE(p.Fecha)'), $fecha)
+                ->where('d.CodigoSede', $codigoSede)
+                ->where(function ($query) {
+                    $query->whereRaw('pdv.Codigo = (SELECT pdv_sub.Codigo FROM pagodocumentoventa pdv_sub WHERE pdv_sub.CodigoPago = p.Codigo ORDER BY pdv_sub.Codigo DESC LIMIT 1)');
+                })
                 ->get();
 
             return response()->json($pagos, 200);
