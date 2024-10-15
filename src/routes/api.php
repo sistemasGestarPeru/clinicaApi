@@ -129,6 +129,7 @@ Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
 Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
 Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
 Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
+Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
 
 /********************************* PAGOS *********************************/
 Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);

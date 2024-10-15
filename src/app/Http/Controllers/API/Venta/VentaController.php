@@ -123,6 +123,63 @@ class VentaController extends Controller
         $object->delete();
     }
 
+    public function registrarPagoVenta(Request $request)
+    {
+
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
+        $codigoVenta = $request->input('venta');
+        $pagoData = $request->input('pago');
+
+        if (!$codigoVenta) {
+            return response()->json(['error' => 'No se ha encontrado el comprobante de pago'], 400);
+        }
+
+        if (!$pagoData) {
+            return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
+        }
+
+        if (!empty($pagoData)) {
+            if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+                $pagoData['CodigoCuentaBancaria'] = null;
+            }
+
+            if ($pagoData['CodigoMedioPago'] == 1) {
+
+                $pagoData['Fecha'] = $fecha;
+            }
+        }
+
+        $ventaData['Fecha'] = $fecha;
+
+        $ventaData['EstadoFactura'] = 'M';
+
+        DB::beginTransaction();
+
+        try {
+
+            $pago = Pago::create($pagoData);
+            $codigoPago = $pago->Codigo;
+
+            PagoDocumentoVenta::create([
+                'CodigoPago' => $codigoPago,
+                'CodigoDocumentoVenta' => $codigoVenta,
+                'Monto' => $pagoData['Monto'],
+            ]);
+
+            DB::table('documentoventa')
+                ->where('Codigo', $codigoVenta)
+                ->increment('MontoPagado', $pagoData['Monto']);
+
+            DB::commit();
+            return response()->json(['message' => 'Pago registrada correctamente.'], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar el pago.'], 500);
+        }
+    }
+
     public function registrarVenta(Request $request)
     {
         date_default_timezone_set('America/Lima');
