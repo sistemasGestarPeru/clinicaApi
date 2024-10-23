@@ -258,6 +258,13 @@ class VentaController extends Controller
                     'Monto' => $pagoData['Monto'],
                 ]);
             }
+
+            if ($ventaData['CodigoContratoProducto']) {
+                DB::table('contratoproducto')
+                    ->where('Codigo', $ventaData['CodigoContratoProducto'])
+                    ->increment('TotalPagado', $pagoData['Monto']);
+            }
+
             //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
 
             DB::commit();
