@@ -66,14 +66,14 @@ Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorControll
 Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
 /********************************* COMBOS *********************************/
-Route::get('combos/listarTiposDocVenta', [ControladorGeneralController::class, 'listarTiposDocVenta']);
+Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
 Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
 Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
 Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general
 Route::get('combos/empresasDisponibles/{codigoTrabajador}', [ControladorGeneralController::class, 'cboEmpresasDisponibles']); //Cambiar si se usa de manera general
 Route::get('combos/departamentoSede/{sede}', [ControladorGeneralController::class, 'listarDepartamentos']); //Cambiar si se usa de manera general
 Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
-Route::get('combos/listarMedioPago', [ControladorGeneralController::class, 'listarMedioPago']);
+Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class, 'listarMedioPago']);
 Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
 Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
 /***************************************************************************/

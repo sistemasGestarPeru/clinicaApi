@@ -162,12 +162,18 @@ class ControladorGeneralController extends Controller
         }
     }
 
-    public function listarTiposDocVenta()
+    public function listarTiposDocVenta($sede)
     {
         try {
-            $docVentas = DB::table('clinica_db.tipodocumentoventa')
-                ->where('Vigente', 1)
-                ->select('Codigo as Codigo', 'Nombre as Nombre')
+
+            $docVentas = DB::table('localdocumentoventa as ldv')
+                ->join('sedesrec as s', 's.Codigo', '=', 'ldv.CodigoSede')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
+                ->select('tdv.Codigo', 'tdv.Nombre')
+                ->where('ldv.CodigoSede', $sede)
+                ->where('tdv.Vigente', 1)
+                ->where('s.Vigente', 1)
+                ->where('ldv.Vigente', 1)
                 ->get();
 
             return response()->json($docVentas);
@@ -176,14 +182,18 @@ class ControladorGeneralController extends Controller
         }
     }
 
-    public function listarMedioPago()
+    public function listarMedioPago($sede)
     {
         try {
-            $medioPago = DB::table('clinica_db.mediopago')
-                ->where('Vigente', 1)
-                ->select('Codigo as Codigo', 'Nombre as Nombre')
+            $medioPago = DB::table('localmediopago as lmp')
+                ->join('sedesrec as s', 's.Codigo', '=', 'lmp.CodigoSede')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'lmp.CodigoMedioPago')
+                ->select('mp.Codigo', 'mp.Nombre')
+                ->where('lmp.CodigoSede', $sede)
+                ->where('mp.Vigente', 1)
+                ->where('s.Vigente', 1)
+                ->where('lmp.Vigente', 1)
                 ->get();
-
             return response()->json($medioPago);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
