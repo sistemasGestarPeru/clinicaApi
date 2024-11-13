@@ -201,8 +201,6 @@ class VentaController extends Controller
         //     return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
         // }
 
-
-
         if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
             $ventaData['CodigoPersona'] = null;
         }
@@ -535,7 +533,7 @@ class VentaController extends Controller
                     DB::raw("CASE 
                             WHEN MontoTotal = MontoPagado THEN 0
                             WHEN MontoTotal != MontoPagado THEN 1
-                         END AS PagoCompleto")
+                        END AS PagoCompleto")
                 )
                 ->get();
 
@@ -545,37 +543,54 @@ class VentaController extends Controller
         }
     }
 
+
+    public function consultarSerie(Request $request)
+    {
+
+        $sede = $request->input('sede');
+        $tipoDocumento = $request->input('tipoDocumento');
+
+        try {
+
+            $result = DB::table('localdocumentoventa as ldv')
+                ->select('Codigo', 'Serie')
+                ->where('ldv.CodigoSede', $sede)
+                ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
+                ->where('ldv.Vigente', 1)
+                ->get();
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
     public function consultaNumDocumentoVenta(Request $request)
     {
         $sede = $request->input('sede');
         $tipoDocumento = $request->input('tipoDocumento');
+        $serie = $request->input('serie');
 
         try {
             // Obtener el último documento de venta
             $documentoVenta = DB::table('clinica_db.documentoventa')
                 ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
                 ->where('CodigoSede', $sede)
+                ->where('Serie', $serie)
                 ->orderBy('Codigo', 'desc')
-                ->first(['Serie', 'Numero']);
+                ->first(['Numero']);
 
             if ($documentoVenta) {
                 // Incrementar el número y ajustar la serie si es necesario
                 $nuevoNumero = $documentoVenta->Numero + 1;
-                $nuevaSerie = $documentoVenta->Serie;
-
-                if ($nuevoNumero > 9999) {
-                    $nuevoNumero = 1;
-                    $nuevaSerie = $documentoVenta->Serie + 1;
-                }
             } else {
                 // Si no hay registros previos, inicializar la serie y número
                 $nuevoNumero = 1;
-                $nuevaSerie = 1;
             }
 
             // Retornar la nueva serie y número
             return response()->json([
-                'Serie' => $nuevaSerie,
                 'Numero' => $nuevoNumero
             ]);
         } catch (\Exception $e) {
@@ -722,7 +737,7 @@ class VentaController extends Controller
         return response()->json(['documentoVenta' => $documentoVenta, 'detalleDocumentoVenta' => $detalleDocumentoVenta, 'fecha' => $fecha], 200);
     }
 
-
+    //revisar el canjear
     public function canjearDocumentoVenta(Request $request)
     {
         $canjeData = $request->input('Canje');

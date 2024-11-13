@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\ContratoProducto;
 
 use App\Http\Controllers\Controller;
+use App\Models\Recaudacion\CompromisoContrato;
 use App\Models\Recaudacion\ContratoProducto;
 use App\Models\Recaudacion\DetalleContrato;
 use Illuminate\Http\Request;
@@ -148,11 +149,18 @@ class ContratoProductoeController extends Controller
                 DetalleContrato::create($detalle);
             }
 
-            if ($compromisoContrato && $compromisoContrato['Fecha'] && $compromisoContrato['Monto']) {
-                $compromisoContrato['CodigoContrato'] = $Contrato->Codigo;
-                $compromisoContrato['Vigente'] = 1;
-                DB::table('compromisocontrato')->insert($compromisoContrato);
+            if ($compromisoContrato) {
+                foreach ($compromisoContrato as $compromiso) {
+                    $compromiso['CodigoContrato'] = $Contrato->Codigo;
+                    CompromisoContrato::create($compromiso);
+                }
             }
+
+            // if ($compromisoContrato && $compromisoContrato['Fecha'] && $compromisoContrato['Monto']) {
+            //     $compromisoContrato['CodigoContrato'] = $Contrato->Codigo;
+            //     $compromisoContrato['Vigente'] = 1;
+            //     DB::table('compromisocontrato')->insert($compromisoContrato);
+            // }
 
             // Confirmar la transacción
             DB::commit();

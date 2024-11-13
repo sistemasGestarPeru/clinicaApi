@@ -131,6 +131,8 @@ Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocu
 Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
 
+Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);
+
 /********************************* PAGOS *********************************/
 Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
 Route::post('pago/buscarVentas', [PagoController::class, 'buscarVentas']);

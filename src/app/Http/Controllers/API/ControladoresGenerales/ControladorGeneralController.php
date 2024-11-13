@@ -174,6 +174,7 @@ class ControladorGeneralController extends Controller
                 ->where('tdv.Vigente', 1)
                 ->where('s.Vigente', 1)
                 ->where('ldv.Vigente', 1)
+                ->distinct()
                 ->get();
 
             return response()->json($docVentas);
