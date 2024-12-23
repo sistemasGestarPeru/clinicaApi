@@ -1,24 +1,25 @@
 <?php
 
-namespace App\Models\Personal;
+namespace App\Models\Recaudacion;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ContratoLaboral extends Model
+class Proveedor extends Model
 {
     use HasFactory;
 
     public $timestamps = false;
+
+    protected $table = 'proveedor';
+
     protected $primaryKey = 'Codigo';
+
     protected $fillable = [
-        'FechaInicio',
-        'FechaFin',
-        'Tipo',
-        'Tiempo',
-        'CodigoEmpresa',
-        'CodigoTrabajador',
-        'SueldoBase',
+        'RazonSocial',
+        'RUC',
+        'Celular',
+        'Correo',
         'Vigente'
     ];
 }

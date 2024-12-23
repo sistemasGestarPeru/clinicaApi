@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
 use App\Http\Controllers\API\Cliente\ClienteController;
+use App\Http\Controllers\API\Compra\CompraController;
 use App\Http\Controllers\API\Consultas\ConsultasTrabajadorController;
 use App\Http\Controllers\API\ContratoProducto\ContratoProductoeController;
 use App\Http\Controllers\API\ControladoresGenerales\ControladorGeneralController;
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
 use App\Http\Controllers\API\Pago\PagoController;
+use App\Http\Controllers\API\PagoServicio\PagoProveedorController;
+use App\Http\Controllers\API\PagoServicio\PagoServicioController;
+use App\Http\Controllers\API\PagoTrabajadores\PagoTrabajadoresController;
 use App\Http\Controllers\API\Personal\AsignacionSedeController;
 use App\Http\Controllers\API\Personal\ContratoLaboralController;
 use App\Http\Controllers\API\Personal\DepartamentoController;
@@ -76,6 +80,8 @@ Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralCo
 Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class, 'listarMedioPago']);
 Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
 Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
+Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
+
 /***************************************************************************/
 /********************************* CLIENTES *********************************/
 Route::apiResource("cliente", ClienteController::class);
@@ -130,8 +136,8 @@ Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDato
 Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
 Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
 Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
-
 Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);
+Route::post('venta/consultarTipoProducto', [VentaController::class, 'consultarTipoProducto']);
 
 /********************************* PAGOS *********************************/
 Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
@@ -140,6 +146,24 @@ Route::post('pago/registrarPagoDocumentoVenta', [PagoController::class, 'registr
 Route::post('pago/anularPago', [PagoController::class, 'anularPago']);
 Route::post('pago/consultarPago', [PagoController::class, 'consultarPago']);
 Route::post('pago/editarPago', [PagoController::class, 'editarPago']);
+
+/********************************** PAGO SERVICIOS **********************************/
+Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
+Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
+
+/********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
+Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
+/********************************* Compras *********************************/
+Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
+Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
+Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
+Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
+
+/********************************** PAGO PROVEEDOR **********************************/
+
+Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
+Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);
+
 /********************************* PRUEBAS *********************************/
 Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 Route::get('tipodocumento/listar', [TipoDocumentoController::class, 'index']);
@@ -148,7 +172,7 @@ Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
 Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
 Route::get('empresa/listar', [EmpresaController::class, 'index']);
 Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
-/***************************************************************************/
+
 /***************************************************************************/
 
 

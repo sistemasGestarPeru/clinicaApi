@@ -188,6 +188,7 @@ class VentaController extends Controller
         $detallesVentaData = $request->input('detalleVenta');
         $ventaData = $request->input('venta');
         $pagoData = $request->input('pago');
+        $detraccion = $request->input('detraccion');
 
         if (!$detallesVentaData) {
             return response()->json(['error' => 'No se han enviado los detalles de la venta'], 400);
@@ -255,6 +256,11 @@ class VentaController extends Controller
                     'CodigoDocumentoVenta' => $codigoVenta,
                     'Monto' => $pagoData['Monto'],
                 ]);
+            }
+
+            if (!empty($detraccion)) {
+                $detraccion['Fecha'] = $fecha;;
+                Pago::create($detraccion);
             }
 
             if ($ventaData['CodigoContratoProducto']) {
@@ -558,6 +564,38 @@ class VentaController extends Controller
                 ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
                 ->where('ldv.Vigente', 1)
                 ->get();
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarTipoProducto(Request $request)
+    {
+
+        $codigo = $request->input('codigo');
+        try {
+
+            $result = DB::table('localdocumentoventa as ldv')
+                ->select([
+                    'ldv.Codigo as Codigo',
+                    DB::raw("
+                CASE 
+                    WHEN ldv.TipoProducto = 'B' THEN 'Bien'
+                    WHEN ldv.TipoProducto = 'S' THEN 'Servicio'
+                    WHEN ldv.TipoProducto = 'T' THEN 'Todo'
+                    ELSE 'Desconocido'
+                END AS TipoProducto
+            ")
+                ])
+                ->join('sedesrec as s', 's.Codigo', '=', 'ldv.CodigoSede')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
+                ->where('ldv.Vigente', 1)
+                ->where('s.Vigente', 1)
+                ->where('tdv.Vigente', 1)
+                ->where('ldv.Codigo', $codigo)
+                ->first();
 
             return response()->json($result);
         } catch (\Exception $e) {

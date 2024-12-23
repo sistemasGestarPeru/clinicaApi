@@ -210,6 +210,7 @@ class ControladorGeneralController extends Controller
                 ->where('cb.CodigoEmpresa', $empresa)
                 ->where('cb.Vigente', 1)
                 ->where('eb.Vigente', 1)
+                ->where('cb.Detraccion', 0)
                 ->select('cb.Codigo as Codigo', 'eb.Siglas', 'cb.Numero')
                 ->get();
             return response()->json($result);
@@ -226,6 +227,28 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as Codigo', 'Nombre as Nombre', 'Descripcion as Descripcion')
                 ->get();
             return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function cuentaDetraccion($empresa)
+    {
+
+        try {
+
+            $resultado = DB::table('cuentabancaria as cb')
+                ->select('cb.Codigo', 'eb.Nombre', 'eb.Siglas', 'cb.Numero', 'cb.CCI')
+                ->join('empresas as e', 'e.Codigo', '=', 'cb.CodigoEmpresa') // Relación con empresas
+                ->join('entidadbancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria') // Relación con entidad bancaria
+                ->where('cb.Detraccion', 1) // Filtro por Detracción
+                ->where('cb.Vigente', 1) // Filtro por Vigencia de cuenta bancaria
+                ->where('e.Codigo', $empresa) // Filtro por Código de Empresa
+                ->where('e.Vigente', 1) // Filtro por Vigencia de Empresa
+                ->where('eb.Vigente', 1) // Filtro por Vigencia de Entidad Bancaria
+                ->first();
+
+            return response()->json($resultado);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }

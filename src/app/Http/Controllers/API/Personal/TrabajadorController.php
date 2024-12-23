@@ -241,7 +241,7 @@ class TrabajadorController extends Controller
 
             ContratoLaboral::create($contratoData);
 
-            return (['msg' => 'Contrato Laboral registrados correctamente']);
+            return (['msg' => 'Contrato Laboral registrado correctamente']);
         } catch (\Exception $e) {
 
             return response()->json('Error al registrar al Contrato Laboral', 400);

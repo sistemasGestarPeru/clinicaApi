@@ -56,25 +56,38 @@ class ContratoProductoeController extends Controller
     {
         $nombreProducto = $request->input('nombreProducto');
         $sede = $request->input('sede');
-
-
-
-        // $producto = DB::table('clinica_db.producto')
-        // ->where('Vigente', 1)
-        // ->where('Nombre', 'like', '%' . $nombreProducto . '%')
-        // ->select('Codigo as Codigo', 'Nombre as Nombre', 'Monto as Monto', 'Tipo as Tipo', 'TipoGravado as TipoGravado')
-        // ->get();
-
-
+        $tipo = $request->input('tipo');; // Este es el valor que se recibe como parámetro
 
         try {
+
             $producto = DB::table('sedeproducto as sp')
+                ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado', 'sp.Stock')
                 ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-                ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado')
-                ->where('p.Vigente', 1)
-                ->where('p.Nombre', 'like', '%' . $nombreProducto . '%')
-                ->where('sp.CodigoSede', $sede)
+                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+                ->where('sp.Vigente', 1) // Filtro por Vigente
+                ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
+                ->where(function ($query) use ($tipo) {
+                    $query->where('p.Tipo', $tipo) // Filtro por Tipo
+                        ->orWhereNotExists(function ($subquery) use ($tipo) {
+                            $subquery->select(DB::raw(1))
+                                ->from('producto')
+                                ->where('Tipo', $tipo)
+                                ->where('Vigente', 1); // Verificación de existencia
+                        });
+                })
                 ->get();
+
+
+            // $producto = DB::table('sedeproducto as sp')
+            //     ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+            //     ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado')
+            //     ->where('p.Vigente', 1)
+            //     ->where('p.Nombre', 'like', '%' . $nombreProducto . '%')
+            //     ->where('sp.CodigoSede', $sede)
+            //     ->get();
+
+
+
 
             return response()->json($producto);
         } catch (\Exception $e) {
