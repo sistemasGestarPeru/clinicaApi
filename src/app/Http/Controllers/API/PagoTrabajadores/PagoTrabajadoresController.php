@@ -52,10 +52,15 @@ class PagoTrabajadoresController extends Controller
         //
     }
 
+
     public function registrarPlanilla(Request $request)
     {
         $planillas = $request->input('planilla');
         $egreso = $request->input('egreso');
+
+        if (empty($planillas) || empty($egreso)) {
+            return response()->json(['mensaje' => 'No se han enviado datos'], 400);
+        }
 
         foreach($egreso as $index => $egresos){
             $egresoValidator = Validator::make($egresos, [
