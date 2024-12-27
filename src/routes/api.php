@@ -153,6 +153,11 @@ Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarP
 
 /********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
 Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
+Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
+Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
+
+
+
 /********************************* Compras *********************************/
 Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
 Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);

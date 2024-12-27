@@ -19,7 +19,6 @@ class Egreso extends Model
         'CodigoCaja',
         'CodigoTrabajador',
         'CodigoMedioPago',
-        'CodigoCuentaOrigen',
-        'Vigente',
+        'CodigoCuentaOrigen'
     ];
 }
