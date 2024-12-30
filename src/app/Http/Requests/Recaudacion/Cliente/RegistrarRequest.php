@@ -26,13 +26,18 @@ class RegistrarRequest extends FormRequest
             'Nombres' => 'required|string',
             'Apellidos' => 'required|string',
             'Direccion' => 'required|string',
-            'Celular' => 'required|string|max:9|min:9',
+            'Celular' => [
+                'required',
+                'string',
+                'size:9', // Esto asegura que tenga exactamente 9 caracteres
+                'regex:/^9\d{8}$/' // Esto asegura que empiece con 9 y tenga 8 dígitos adicionales
+            ],
             'Correo' => 'required|email',
             'NumeroDocumento' => [
                 'required',
                 'string',
-                'min:5',
-                Rule::unique('personas') 
+                'min:8',
+                Rule::unique('personas')
                     ->where(function ($query) {
                         return $query->where('CodigoTipoDocumento', $this->input('CodigoTipoDocumento'))
                             ->where('vigente', 1);

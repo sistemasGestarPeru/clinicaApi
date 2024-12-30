@@ -44,9 +44,7 @@ class ClienteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Persona $cliente)
-    {
-    }
+    public function update(Request $request, Persona $cliente) {}
 
     /**
      * Remove the specified resource from storage.
@@ -60,8 +58,8 @@ class ClienteController extends Controller
     public function registrarCliente(RegistrarRequest $request)
     {
         try {
-            return (new Cliente(Persona::create($request->all())))
-                ->additional(['msg' => 'Cliente registrado correctamente']);
+            new Cliente(Persona::create($request->all()));
+            return response()->json(['msg' => 'Cliente registrado correctamente']);
         } catch (\Exception $e) {
             return response()->json('Error al registrar el cliente', 400);
         }
@@ -98,7 +96,7 @@ class ClienteController extends Controller
                     ->ignore($cliente->Codigo, 'Codigo') // Ignore current record
             ],
             'CodigoTipoDocumento' => 'required|integer',
-            
+
         ];
 
         // Validate the request
