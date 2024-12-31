@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\API\Cliente;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Portada\ActualizarRequest;
 use App\Http\Requests\Recaudacion\Cliente\RegistrarRequest;
+use App\Http\Requests\Recaudacion\Cliente\ActualizarRequest as ClienteActualizarRequest;
 use App\Http\Requests\Recaudacion\ClienteEmpresa\RegistrarRequest as ClienteEmpresaRegistrarRequest;
+use App\Http\Requests\Recaudacion\ClienteEmpresa\ActualizarRequest as ClienteEmpresaActualizarRequest;
 use App\Http\Resources\Recaudacion\Cliente\Cliente;
 use App\Http\Resources\Recaudacion\Cliente\ClienteEmpresa;
 use App\Models\Personal\Persona;
@@ -65,6 +68,22 @@ class ClienteController extends Controller
         }
     }
 
+    public function actualizarCliente(ClienteActualizarRequest $request){
+        
+        
+        try {
+             // Update the cliente
+            $cliente = Persona::find($request->input('Codigo'));
+            $cliente->update($request->all());
+            return response()->json(['msg' => 'Cliente actualizado correctamente'],200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al actualizar el cliente' ], 400);
+        }
+    }
+
+
+
     public function registrarClienteEmpresa(ClienteEmpresaRegistrarRequest $request)
     {
         try {
@@ -75,99 +94,20 @@ class ClienteController extends Controller
         }
     }
 
-    public function actualizarCliente(Request $request)
+    public function actualizarClienteEmpresa(ClienteEmpresaActualizarRequest $request)
     {
-        $clienteData = $request->input('cliente');
-
-        // Find the cliente by its Codigo
-        $cliente = Persona::find($clienteData['Codigo']);
-
-        if (!$cliente) {
-            return response()->json(['msg' => 'Cliente no encontrado'], 404);
-        }
-
-        // Define validation rules
-        $rules = [
-            'NumeroDocumento' => [
-                'required',
-                'string',
-                Rule::unique('personas')
-                    ->where('CodigoTipoDocumento', $clienteData['CodigoTipoDocumento'])
-                    ->ignore($cliente->Codigo, 'Codigo') // Ignore current record
-            ],
-            'CodigoTipoDocumento' => 'required|integer',
-
-        ];
-
-        // Validate the request
-        $validator = Validator::make($clienteData, $rules);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
-        }
-
         try {
-            // Update the cliente
-            $cliente->update($clienteData);
-
-            return response()->json(['msg' => 'Cliente actualizado correctamente']);
+            $cliente = RecaudacionClienteEmpresa::find($request->input('Codigo'));
+    
+            if (!$cliente) {
+                return response()->json(['msg' => 'Cliente no encontrado'], 404);
+            }
+    
+            $cliente->update($request->all());
+            return response()->json(['msg' => 'Cliente actualizado correctamente'], 200);
+    
         } catch (\Exception $e) {
-            return response()->json('Error al actualizar el cliente', 400);
-        }
-    }
-
-    // public function actualizarClienteEmpresa(Request $request)
-    // {
-    //     $cliente = $request->input('cliente');
-
-    //     try {
-    //         $cliente = RecaudacionClienteEmpresa::find($cliente['Codigo']);
-
-    //         $cliente->update($request->input('cliente'));
-
-    //         return response()->json(['msg' => 'Cliente actualizado correctamente', 'data' => $cliente]);
-    //     } catch (\Illuminate\Database\QueryException $e) {
-    //         return response()->json('Error en la consulta: ' . $e->getMessage());
-    //     }
-    // }
-
-    public function actualizarClienteEmpresa(Request $request)
-    {
-        $clienteData = $request->input('cliente');
-
-        // Find the cliente by its Codigo
-        $cliente = RecaudacionClienteEmpresa::find($clienteData['Codigo']);
-
-        if (!$cliente) {
-            return response()->json(['msg' => 'Cliente no encontrado'], 404);
-        }
-
-        $rules = [
-            'RUC' => [
-                'required',
-                'string',
-                'min:8',
-                Rule::unique('clienteempresa')
-                    ->where(function ($query) {
-                        return $query->where('vigente', 1);
-                    }),
-            ],
-        ];
-
-        // Validate the request
-        $validator = Validator::make($clienteData, $rules);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        try {
-            // Update the cliente
-            $cliente->update($clienteData);
-
-            return response()->json(['msg' => 'Cliente Empresa actualizado correctamente']);
-        } catch (\Illuminate\Database\QueryException $e) {
-            return response()->json('Error en la consulta: ' . $e->getMessage(), 500);
+            return response()->json(['error' => 'Error al actualizar el cliente', 'details' => $e->getMessage()], 400);
         }
     }
 

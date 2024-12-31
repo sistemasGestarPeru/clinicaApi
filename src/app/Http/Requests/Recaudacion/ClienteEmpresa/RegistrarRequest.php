@@ -27,7 +27,7 @@ class RegistrarRequest extends FormRequest
             'RUC' => [
                 'required',
                 'string',
-                'min:8',
+                'size:11',
                 Rule::unique('clienteempresa')
                     ->where(function ($query) {
                         return $query->where('vigente', 1);
@@ -35,6 +35,18 @@ class RegistrarRequest extends FormRequest
             ],
             'Direccion' => 'required|string',
             'CodigoDepartamento' => 'required|integer'
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'RazonSocial.required' => 'La Razón Social es obligatoria.',
+            'RUC.required' => 'El RUC es obligatorio.',
+            'RUC.size' => 'El RUC debe contener 11 dígitos.',
+            'RUC.unique' => 'El RUC ya se encuentra registrado.',
+            'Direccion.required' => 'La Dirección es obligatoria.',
+            'CodigoDepartamento.required' => 'El Departamento es obligatorio.'
         ];
     }
 }
