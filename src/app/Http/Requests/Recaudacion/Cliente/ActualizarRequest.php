@@ -23,8 +23,9 @@ class ActualizarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'Nombres' => 'required|string',
-            'Apellidos' => 'required|string',
+            // 'Nombres' => 'required|string',
+            // 'Apellidos' => 'required|string',
+            'Codigo' => 'required|integer',
             'Direccion' => 'required|string',
             'Celular' => [
                 'required',
@@ -32,21 +33,22 @@ class ActualizarRequest extends FormRequest
                 'size:9', // Esto asegura que tenga exactamente 9 caracteres
                 'regex:/^9\d{8}$/' // Esto asegura que empiece con 9 y tenga 8 dígitos adicionales
             ],
+
             'Correo' => 'required|email',
-            'CodigoTipoDocumento' => 'required|integer',
-            'NumeroDocumento' => [
-                'required',
-                'string',
-                'min:8',
-                Rule::unique('personas', 'NumeroDocumento')
-                    ->where(function ($query) {
-                        $query->where('CodigoTipoDocumento', $this->input('CodigoTipoDocumento'))
-                            ->where('Vigente', 1); // Solo considera registros activos
-                    })
-                    ->ignore($this->input('Codigo'), 'Codigo'), // Ignora el registro actual
-            ],
-            'CodigoNacionalidad' => 'required|integer',
-            'CodigoDepartamento' => 'required|integer',
+            // 'CodigoTipoDocumento' => 'required|integer',
+            // 'NumeroDocumento' => [
+            //     'required',
+            //     'string',
+            //     'min:8',
+            //     Rule::unique('personas', 'NumeroDocumento')
+            //         ->where(function ($query) {
+            //             $query->where('CodigoTipoDocumento', $this->input('CodigoTipoDocumento'))
+            //                 ->where('Vigente', 1); // Solo considera registros activos
+            //         })
+            //         ->ignore($this->input('Codigo'), 'Codigo'), // Ignora el registro actual
+            // ],
+             'CodigoNacionalidad' => 'required|integer',
+            // 'CodigoDepartamento' => 'required|integer',
         ];
     }
 

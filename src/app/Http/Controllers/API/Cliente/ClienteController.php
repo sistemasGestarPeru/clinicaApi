@@ -74,6 +74,11 @@ class ClienteController extends Controller
         try {
              // Update the cliente
             $cliente = Persona::find($request->input('Codigo'));
+
+            if (!$cliente) {
+                return response()->json(['msg' => 'Cliente no encontrado'], 404);
+            }
+
             $cliente->update($request->all());
             return response()->json(['msg' => 'Cliente actualizado correctamente'],200);
 
@@ -111,7 +116,46 @@ class ClienteController extends Controller
         }
     }
 
+    public function consultaDatosCliente(Request $request){
+        $tipo = $request->input('tipo');
+        $id = $request->input('id');
 
+        try{
+            if($tipo === 0){ //Cliente
+                $cliente = DB::table('clinica_db.personas')
+                ->select(
+                    'Nombres',
+                    'Apellidos',
+                    'Direccion',
+                    'Celular',
+                    'Correo',
+                    'NumeroDocumento',
+                    'CodigoTipoDocumento',
+                )
+                ->where('Codigo', '=', $id)
+                ->where('Vigente', '=', 1)
+                ->first();
+
+                return response()->json($cliente);
+            }else{ //Empresa
+                $cliente = DB::table('clinica_db.clienteempresa')
+                ->select(
+                    'RazonSocial',
+                    'RUC',
+                    'Direccion',
+                )
+                ->where('Codigo', '=', $id)
+                ->where('Vigente', '=', 1)
+                ->first();
+                return response()->json($cliente);
+            }
+
+
+        }catch(\Exception $e){
+            return response()->json('Error al obtener los datos', 400);
+        }
+
+    }
 
     public function consultaCliente(Request $request)
     {
@@ -135,7 +179,7 @@ class ClienteController extends Controller
                 )
                 ->where('Codigo', '=', $id)
                 ->where('Vigente', '=', 1)
-                ->get();
+                ->first();
 
             return response()->json($cliente);
         } else { //Empresa
@@ -150,7 +194,7 @@ class ClienteController extends Controller
                 )
                 ->where('Codigo', '=', $id)
                 ->where('Vigente', '=', 1)
-                ->get();
+                ->first();
             return response()->json($cliente);
         }
     }

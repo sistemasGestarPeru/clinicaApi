@@ -154,7 +154,7 @@ class ControladorGeneralController extends Controller
                 ->where('s.Vigente', 1)
                 ->where('d.Vigente', 1)
                 ->select('s.CodigoDepartamento as CodigoDepartamento')
-                ->get();
+                ->first();
 
             return response()->json($departamentos);
         } catch (\Exception $e) {

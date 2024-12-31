@@ -89,6 +89,7 @@ Route::post('cliente/registrarCliente', [ClienteController::class, 'registrarCli
 Route::post('cliente/registrarClienteEmpresa', [ClienteController::class, 'registrarClienteEmpresa']);
 Route::post('cliente/busca', [ClienteController::class, 'listaCliente']);
 Route::post('cliente/consulta', [ClienteController::class, 'consultaCliente']);
+Route::post('cliente/consultaDatosCliente', [ClienteController::class, 'consultaDatosCliente']);
 Route::post('cliente/actualizarCliente', [ClienteController::class, 'actualizarCliente']);
 Route::post('cliente/actualizarClienteEmpresa', [ClienteController::class, 'actualizarClienteEmpresa']);
 /***************************************************************************/

@@ -33,7 +33,7 @@ class RegistrarRequest extends FormRequest
                 'regex:/^9\d{8}$/' // Esto asegura que empiece con 9 y tenga 8 dígitos adicionales
             ],
             'Correo' => 'required|email',
-            'CodigoTipoDocumento' => 'required|integer',
+            'CodigoTipoDocumento' => 'required|integer|min:1',
             'NumeroDocumento' => [
                 'required',
                 'string',
@@ -44,8 +44,8 @@ class RegistrarRequest extends FormRequest
                             ->where('vigente', 1);
                     }),
             ],
-            'CodigoNacionalidad' => 'required|integer',
-            'CodigoDepartamento' => 'required|integer',
+            'CodigoNacionalidad' => 'required|integer|min:1',
+            'CodigoDepartamento' => 'required|integer|min:1',
         ];
     }
 
@@ -56,6 +56,7 @@ class RegistrarRequest extends FormRequest
     {
         return [
             'CodigoTipoDocumento.required' => 'Debe seleccionar un tipo de documento.',
+            'CodigoTipoDocumento.min' => 'Debe seleccionar un tipo de documento.',
             'Nombres.required' => 'El nombre es obligatorio.',
             'Apellidos.required' => 'El apellido es obligatorio.',
             'Celular.required' => 'El número de celular es obligatorio.',
@@ -66,7 +67,9 @@ class RegistrarRequest extends FormRequest
             'NumeroDocumento.min' => 'El número de documento debe tener al menos 8 dígitos.',
             'NumeroDocumento.unique' => 'El tipo y número de documento ya se encuentra registrado.',
             'CodigoNacionalidad.required' => 'Debe seleccionar una nacionalidad.',
+            'CodigoNacionalidad.min' => 'Debe seleccionar una nacionalidad.',
             'CodigoDepartamento.required' => 'Debe seleccionar un departamento.',
+            
         ];
     }
 }
