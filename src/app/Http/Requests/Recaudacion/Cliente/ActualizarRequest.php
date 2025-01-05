@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Recaudacion\Cliente;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+
 
 class ActualizarRequest extends FormRequest
 {

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\API\Personal;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Recaudacion\Trabajador\RegistrarRequest;
+use App\Http\Requests\Recaudacion\AsignacionSede\RegistrarAsignacionSedeRequest;
+use App\Http\Requests\Recaudacion\Trabajador\RegistrarRequest as RegistrarTrabajadorRequest;
+use App\Http\Requests\Recaudacion\Cliente\ActualizarRequest as ActualizarPersonaRequest;
+use App\Http\Requests\Recaudacion\Cliente\RegistrarRequest as RegistrarPersonaRequest;
 use App\Http\Resources\Recaudacion\Trabajador\TrabajadorResource;
 use App\Models\Personal\AsignacionSede;
 use App\Models\Personal\ContratoLaboral;
@@ -13,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+
+use App\Http\Requests\Recaudacion\ContratoLaboral\GuardarContratoLaboralRequest as RecaudacionGuardarContratoLaboralRequest;
 
 class TrabajadorController extends Controller
 {
@@ -51,6 +56,27 @@ class TrabajadorController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function regAsignacionSede(RegistrarAsignacionSedeRequest $request)
+    {
+        try {
+            new (AsignacionSede::create($request->all()));
+            return (['msg' => 'Sede Asignada correctamente']);
+        } catch (\Exception $e) {
+            return response()->json('Error al Asignar Sede', 400);
+        }
+    }
+
+    public function regContratoLab(RecaudacionGuardarContratoLaboralRequest $request)
+    {
+        try {
+            new (ContratoLaboral::create($request->all()));
+            return (['msg' => 'Contrato Laboral registrado correctamente']);
+        } catch (\Exception $e) {
+
+            return response()->json('Error al registrar al Contrato Laboral', 400);
+        }
     }
 
     public function actualizarAsignacion(Request $request)
@@ -92,7 +118,7 @@ class TrabajadorController extends Controller
                     'ass.Vigente'
                 )
                 ->where('ass.Codigo', $codAsignacion)
-                ->get();
+                ->first();
 
             return response()->json($asignacion);
         } catch (\Exception $e) {
@@ -123,7 +149,7 @@ class TrabajadorController extends Controller
                     'ase.FechaFin',
                     'ase.Vigente',
                     DB::raw("CASE 
-                                WHEN '$fecha' BETWEEN ase.FechaInicio AND IFNULL(ase.FechaFin, '$fecha') THEN 1 
+                                WHEN  ase.FechaFin IS NULL OR {$fecha} < ase.FechaFin THEN 1
                                 ELSE 0 
                              END as EstadoAsignacion")
                 )
@@ -138,10 +164,9 @@ class TrabajadorController extends Controller
 
     public function listarContratos($codTrab)
     {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
         try {
-            date_default_timezone_set('America/Lima');
-            $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
-
             $results = DB::table('contrato_laborals as cl')
                 ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
                 ->select(
@@ -151,15 +176,16 @@ class TrabajadorController extends Controller
                     'cl.FechaInicio',
                     'cl.FechaFin',
                     DB::raw("CASE 
-                                WHEN '$fecha' BETWEEN cl.FechaInicio AND IFNULL(cl.FechaFin, '$fecha') THEN 1 
+                                WHEN cl.FechaFin IS NULL OR {$fecha} < cl.FechaFin THEN 1
                                 ELSE 0 
-                             END as VigenciaContrato")
+                             END AS VigenciaContrato")
                 )
                 ->where('cl.CodigoTrabajador', $codTrab)
                 ->where('cl.Vigente', 1)
                 ->where('e.Vigente', 1)
-                ->orderBy('cl.FechaFin', 'desc')
+                ->orderBy('VigenciaContrato', 'desc')
                 ->get();
+    
             return response()->json($results, 200);
         } catch (\Exception $e) {
             return response()->json('Error al obtener datos', 400);
@@ -182,10 +208,11 @@ class TrabajadorController extends Controller
                     'cl.FechaFin',
                     'cl.Tipo',
                     'cl.Tiempo',
+                    'cl.SueldoBase',
                     'cl.Vigente'
                 )
                 ->where('cl.Codigo', $codContratoLab)
-                ->get();
+                ->first();
 
             return response()->json($results, 200);
         } catch (\Exception $e) {
@@ -218,35 +245,7 @@ class TrabajadorController extends Controller
     //     }
     // }
 
-    public function regAsignacionSede(Request $request)
-    {
-        $asignacionData = $request->input('asignacionSede');
 
-        try {
-
-            AsignacionSede::create($asignacionData);
-
-            return (['msg' => 'Sede Asignada correctamente']);
-        } catch (\Exception $e) {
-
-            return response()->json('Error al Asignar Sede', 400);
-        }
-    }
-
-    public function regContratoLab(Request $request)
-    {
-        $contratoData = $request->input('contrato');
-
-        try {
-
-            ContratoLaboral::create($contratoData);
-
-            return (['msg' => 'Contrato Laboral registrado correctamente']);
-        } catch (\Exception $e) {
-
-            return response()->json('Error al registrar al Contrato Laboral', 400);
-        }
-    }
 
     public function consultarContratoLab(Request $request)
     {
@@ -274,24 +273,14 @@ class TrabajadorController extends Controller
     {
         $trabajadorData = $request->input('trabajador');
         $personaData = $request->input('persona');
+        $personaData['Vigente'] = 1;
+        // Validar persona
+        $personaValidator = Validator::make($personaData, (new RegistrarPersonaRequest())->rules());
+        $personaValidator->validate();
 
-        $trabajadorRules = [
-            'CorreoCoorporativo' => [
-                'required',
-                'email',
-                Rule::unique('trabajadors')->where(function ($query) {
-                    return $query->where('vigente', 1);
-                }),
-            ],
-        ];
-
-
-        // Validate trabajador data
-        $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
-        if ($trabajadorValidator->fails()) {
-            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
-        }
-
+        // Validar trabajador
+        $trabajadorValidator = Validator::make($trabajadorData, (new RegistrarTrabajadorRequest())->rules());
+        $trabajadorValidator->validate();
 
         DB::beginTransaction();
         try {
@@ -315,24 +304,19 @@ class TrabajadorController extends Controller
 
     public function registrarTrabajador(Request $request)
     {
-        $trabajadorData = $request->input('trabajador');
+
+        // Extraer datos del request
         $personaData = $request->input('persona');
+        $trabajadorData = $request->input('trabajador');
+        $personaData['Vigente'] = 1;
 
-        $trabajadorRules = [
-            'CorreoCoorporativo' => [
-                'required',
-                'email',
-                Rule::unique('trabajadors')->where(function ($query) {
-                    return $query->where('vigente', 1);
-                }),
-            ],
-        ];
+        // Validar persona
+        $personaValidator = Validator::make($personaData, (new ActualizarPersonaRequest())->rules());
+        $personaValidator->validate();
 
-        // Validate trabajador data
-        $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
-        if ($trabajadorValidator->fails()) {
-            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
-        }
+        // Validar trabajador
+        $trabajadorValidator = Validator::make($trabajadorData, (new RegistrarTrabajadorRequest())->rules());
+        $trabajadorValidator->validate();
 
         DB::beginTransaction();
         try {
@@ -353,39 +337,22 @@ class TrabajadorController extends Controller
     {
         $trabajadorData = $request->input('trabajador');
         $personaData = $request->input('persona');
+        $personaData['Vigente'] = 1;
+        // Validar persona
+        $personaValidator = Validator::make($personaData, (new ActualizarPersonaRequest())->rules());
+        $personaValidator->validate();
 
+        // Validar trabajador con la regla de 'ignore' actualizada
+        $trabajadorRules = (new RegistrarTrabajadorRequest())->rules();
 
-        $personaRules = [
-            'NumeroDocumento' => [
-                'required',
-                'string',
-                Rule::unique('personas')
-                    ->where('CodigoTipoDocumento', $personaData['CodigoTipoDocumento'])
-                    ->ignore($personaData['Codigo'], 'Codigo')
-            ],
-            'CodigoTipoDocumento' => 'required|integer',
+        // Modificar la regla de 'CorreoCoorporativo' para usar 'Codigo' en la validación
+        $trabajadorRules['CorreoCoorporativo'][2] = Rule::unique('trabajadors', 'CorreoCoorporativo')
+            ->where('Vigente', 1)
+            ->ignore($personaData['Codigo'], 'Codigo');
 
-        ];
-
-        $trabajadorRules = [
-            'CorreoCoorporativo' => [
-                'required',
-                'email',
-                Rule::unique('trabajadors')->ignore($personaData['Codigo'], 'Codigo')
-            ],
-        ];
-
-        // Validate persona data
-        $personaValidator = Validator::make($personaData, $personaRules);
-        if ($personaValidator->fails()) {
-            return response()->json(['errors' => $personaValidator->errors()], 400);
-        }
-
-        // Validate trabajador data
+        // Validamos los datos de trabajador con las reglas modificadas
         $trabajadorValidator = Validator::make($trabajadorData, $trabajadorRules);
-        if ($trabajadorValidator->fails()) {
-            return response()->json(['errors' => $trabajadorValidator->errors()], 400);
-        }
+        $trabajadorValidator->validate();
 
         DB::beginTransaction();
         try {
@@ -417,12 +384,12 @@ class TrabajadorController extends Controller
                     'p.Nombres',
                     'p.Apellidos',
                     'p.NumeroDocumento',
-                    'td.Siglas as DescTipoDocumento'
+                    'td.Siglas as DescTipoDocumento',
+                    't.Vigente as VigenteTrabajador'
                 )
                 ->where('p.NumeroDocumento', 'like', '%' . $numDocumento . '%')
                 ->where('p.Nombres', 'like', '%' . $nombre . '%')
                 ->where('p.Vigente', '=', 1)
-                ->where('t.Vigente', '=', 1)
                 ->get();
 
             return response()->json($personas, 200);
@@ -457,10 +424,13 @@ class TrabajadorController extends Controller
                 $trabajador = DB::table('trabajadors')
                     ->select(
                         'CorreoCoorporativo',
-                        'FechaNacimiento'
+                        'FechaNacimiento',
+                        'CodigoSistemaPensiones',
+                        'AutorizaDescuento',
+                        'Vigente'
                     )
                     ->where('Codigo', $persona->Codigo)
-                    ->where('Vigente', 1)
+                    
                     ->first();
 
                 if ($persona && $trabajador) {
@@ -509,10 +479,12 @@ class TrabajadorController extends Controller
             ->select(
                 'CorreoCoorporativo',
                 'FechaNacimiento',
+                'CodigoSistemaPensiones',
+                'AutorizaDescuento',
                 'Vigente'
             )
             ->where('Codigo', '=', $Codigo)
-            ->where('Vigente', '=', 1)
+            
             ->first();
 
         if ($persona && $trabajador) {

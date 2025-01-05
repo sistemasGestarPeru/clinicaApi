@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Recaudacion\Trabajador;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RegistrarRequest extends FormRequest
 {
@@ -22,9 +23,25 @@ class RegistrarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'Codigo' => 'required|integer',
-            'CorreoCorporativo' => 'required|email',
+            'CorreoCoorporativo' => [
+                'required',
+                'email',
+                Rule::unique('trabajadors', 'CorreoCoorporativo')->where('Vigente', 1)
+            ],
             'FechaNacimiento' => 'required|date',
+            'CodigoSistemaPensiones' => 'required|integer',
+        ];
+    }
+
+    public function messages(): array{
+        return [
+            'CorreoCoorporativo.required' => 'El correo corporativo es obligatorio.',
+            'CorreoCoorporativo.email' => 'El correo corporativo debe ser un correo válido.',
+            'CorreoCoorporativo.unique' => 'El correo corporativo ya está en uso.',
+            'FechaNacimiento.required' => 'La fecha de nacimiento es obligatoria.',
+            'FechaNacimiento.date' => 'La fecha de nacimiento debe ser una fecha válida.',
+            'CodigoSistemaPensiones.required' => 'El código del sistema de pensiones es obligatorio.',
         ];
     }
 }
+

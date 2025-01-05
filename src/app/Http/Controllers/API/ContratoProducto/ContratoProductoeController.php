@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\API\ContratoProducto;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\ContratoProducto\RegistrarContratoProductoRequest;
+use App\Http\Requests\Recaudacion\ContratoProducto\RegistrarDetalleContratoRequest;
 use App\Models\Recaudacion\CompromisoContrato;
 use App\Models\Recaudacion\ContratoProducto;
 use App\Models\Recaudacion\DetalleContrato;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Validator;
 
 class ContratoProductoeController extends Controller
 {
@@ -56,7 +58,7 @@ class ContratoProductoeController extends Controller
     {
         $nombreProducto = $request->input('nombreProducto');
         $sede = $request->input('sede');
-        $tipo = $request->input('tipo');; // Este es el valor que se recibe como parámetro
+        $tipo = $request->input('tipo'); 
 
         try {
 
@@ -133,6 +135,18 @@ class ContratoProductoeController extends Controller
         $contratoProductoData = $request->input('contratoProducto');
         $compromisoContrato = $request->input('compromisoContrato');
 
+        //Validar Contrato
+        $contratoValidar = Validator::make($contratoProductoData, (new RegistrarContratoProductoRequest())->rules());
+        $contratoValidar->validate();
+
+        //validar DetalleProductos
+        $detalleContratoValidar = Validator::make(
+            ['detalleContrato' => $detallesContrato],
+            (new RegistrarDetalleContratoRequest())->rules()
+        );
+        
+        $detalleContratoValidar->validate();
+
         if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
             $contratoProductoData['CodigoPaciente'] = null;
         }
@@ -162,19 +176,13 @@ class ContratoProductoeController extends Controller
                 DetalleContrato::create($detalle);
             }
 
-            if ($compromisoContrato) {
+            if (!empty($request->input('compromisoContrato')) && count($compromisoContrato) > 0) {
                 foreach ($compromisoContrato as $compromiso) {
                     $compromiso['CodigoContrato'] = $Contrato->Codigo;
                     CompromisoContrato::create($compromiso);
                 }
             }
-
-            // if ($compromisoContrato && $compromisoContrato['Fecha'] && $compromisoContrato['Monto']) {
-            //     $compromisoContrato['CodigoContrato'] = $Contrato->Codigo;
-            //     $compromisoContrato['Vigente'] = 1;
-            //     DB::table('compromisocontrato')->insert($compromisoContrato);
-            // }
-
+            
             // Confirmar la transacción
             DB::commit();
 
@@ -236,11 +244,10 @@ class ContratoProductoeController extends Controller
                 ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
                 ->where('cp.Codigo', $codigo)
                 ->where('dv.Vigente', 1)
-                ->select('dv.Codigo')
-                ->first();
+                ->exists();
 
             // Si no hay ventas asociadas, actualizar el contrato
-            if ($documentoVenta === null) {
+            if (!$documentoVenta) {
                 DB::table('contratoproducto')
                     ->where('Codigo', $codigo)
                     ->update(['Vigente' => 0]);

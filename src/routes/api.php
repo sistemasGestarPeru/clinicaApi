@@ -81,6 +81,7 @@ Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class
 Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
 Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
 Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
+Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
 
 /***************************************************************************/
 /********************************* CLIENTES *********************************/
@@ -103,7 +104,7 @@ Route::post('trabajador/consultar', [TrabajadorController::class, 'consultarTrab
 Route::post('trabajador/consultarNumDoc', [TrabajadorController::class, 'consultarNumDoc']);
 Route::post('trabajador/registrarContratoLaboral', [TrabajadorController::class, 'regContratoLab']);
 Route::post('trabajador/registrarAsignacionSede', [TrabajadorController::class, 'regAsignacionSede']);
-Route::post('trabajador/consultarContrato', [TrabajadorController::class, 'consultarContratoLab']); //Corregir
+// Route::post('trabajador/consultarContrato', [TrabajadorController::class, 'consultarContratoLab']); //Corregir
 Route::get('trabajador/listarContratos/{codTrab}', [TrabajadorController::class, 'listarContratos']);
 Route::get('trabajador/consultarContratoLab/{codContratoLab}', [TrabajadorController::class, 'consultarContrato']);
 Route::get('trabajador/listarAsignaciones/{codTrab}/{codEmpresa}', [TrabajadorController::class, 'listarAsignaciones']);

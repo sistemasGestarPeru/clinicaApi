@@ -94,31 +94,26 @@ class ControladorGeneralController extends Controller
 
     public function cboSedesDisponibles($codigoEmpresa, $codigoTrabajador)
     {
-
+        date_default_timezone_set('America/Lima');
+        $fechaActual = date('Y-m-d'); 
         try {
-            $sedes = DB::table('clinica_db.sedesrec as sr')
-                ->leftJoin('clinica_db.asignacion_sedes as asg', function ($join) {
-                    $join->on('sr.Codigo', '=', 'asg.CodigoSede')
-                        ->where('asg.CodigoTrabajador', 2);
-                })
-                ->where('sr.CodigoEmpresa', 5)
-                ->where(function ($query) {
-                    $query->whereNull('asg.CodigoSede')
-                        ->orWhere(function ($query) {
-                            $query->where('asg.Codigo', function ($subQuery) {
-                                $subQuery->select('asg2.Codigo')
-                                    ->from('clinica_db.asignacion_sedes as asg2')
-                                    ->whereColumn('asg2.CodigoSede', 'sr.Codigo')
-                                    ->where('asg2.CodigoTrabajador', 2)
-                                    ->orderBy('asg2.Codigo', 'desc')
-                                    ->limit(1);
-                            })
-                                ->where('asg.Vigente', 0);
-                        });
-                })
-                ->orderBy('asg.Codigo', 'desc')
-                ->select('sr.Codigo as id', 'sr.Nombre as nombre')
-                ->get();
+            $sedes = DB::table('sedesrec as s')
+            ->select('s.Codigo as id', 's.Nombre as nombre')
+            ->leftJoin('asignacion_sedes as ass', function ($join) use ($codigoTrabajador, $fechaActual) {
+                $join->on('s.Codigo', '=', 'ass.CodigoSede')
+                     ->where('ass.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
+                                                          FROM asignacion_sedes
+                                                          WHERE CodigoSede = s.Codigo
+                                                          AND CodigoTrabajador = {$codigoTrabajador}
+                                                          AND Vigente = 1)"))
+                     ->where(function ($query) use ($fechaActual) {
+                         $query->where('ass.FechaFin', '>', $fechaActual)
+                               ->orWhereNull('ass.FechaFin');
+                     });
+            })
+            ->where('s.CodigoEmpresa', $codigoEmpresa)
+            ->whereNull('ass.Codigo')
+            ->get();
 
             return response()->json($sedes);
         } catch (\Exception $e) {
@@ -127,23 +122,34 @@ class ControladorGeneralController extends Controller
     }
 
     public function cboEmpresasDisponibles($codigoTrabajador)
-    {
-        try {
+{
+    date_default_timezone_set('America/Lima');
+    $fechaActual = date('Y-m-d'); 
 
-            $empresas = DB::table('clinica_db.empresas as e')
-                ->leftJoin('clinica_db.contrato_laborals as cl', function ($join) use ($codigoTrabajador) {
-                    $join->on('e.Codigo', '=', 'cl.CodigoEmpresa')
-                        ->where('cl.CodigoTrabajador', '=', $codigoTrabajador);
-                })
-                ->whereNull('cl.CodigoTrabajador')
-                ->select('e.Codigo as id', 'e.Nombre as nombre')
-                ->get();
+    try {
+        $empresas = DB::table('empresas as e')
+        ->select('e.Codigo as id', 'e.Nombre as nombre')
+        ->leftJoin('contrato_laborals as cl', function ($join) use ($fechaActual, $codigoTrabajador) {
+            $join->on('e.Codigo', '=', 'cl.CodigoEmpresa')
+                 ->where('cl.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
+                                                      FROM contrato_laborals
+                                                      WHERE CodigoEmpresa = e.Codigo
+                                                      AND CodigoTrabajador = {$codigoTrabajador}
+                                                      AND Vigente = 1)"))
+                 ->where(function ($query) use ($fechaActual) {
+                     $query->where('cl.FechaFin', '>', $fechaActual)
+                           ->orWhereNull('cl.FechaFin');
+                 });
+        })
+        ->where('e.Vigente', 1)
+        ->whereNull('cl.Codigo')
+        ->get();
 
-            return response()->json($empresas);
-        } catch (\Exception $e) {
-            return response()->json('Error en la consulta: ' . $e->getMessage());
-        }
+        return response()->json($empresas);
+    } catch (\Exception $e) {
+        return response()->json('Error en la consulta: ' . $e->getMessage());
     }
+}
 
     public function listarDepartamentos($sede)
     {
@@ -178,6 +184,18 @@ class ControladorGeneralController extends Controller
                 ->get();
 
             return response()->json($docVentas);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarSistemaPension(){
+        try {
+            $sistemaPension = DB::table('sistemapensiones as sp')
+                ->where('sp.Vigente', 1)
+                ->select('sp.Codigo', 'sp.Siglas as Nombre')
+                ->get();
+            return response()->json($sistemaPension);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }

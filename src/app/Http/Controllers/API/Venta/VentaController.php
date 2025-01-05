@@ -701,8 +701,6 @@ class VentaController extends Controller
                 ->where('dv.Codigo', $codigo)
                 ->where('dv.Vigente', 1)
                 ->select(
-
-
                     'dv.Codigo',
                     'dv.Numero',
                     DB::raw('CAST(dv.Fecha AS DATE) as fechaVenta'),

@@ -15,6 +15,8 @@ class Trabajador extends Model
         'Codigo',
         'CorreoCoorporativo',
         'FechaNacimiento',
+        'CodigoSistemaPensiones',
+        'AutorizaDescuento',
         'Vigente',
     ];
 }

@@ -26,18 +26,21 @@ class CajaController extends Controller
      */
     public function store(Request $request)
     {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
 
         $cajaData = $request->input('Caja');
         $IngresoDineroData = $request->input('IngresoDinero');
 
+        $cajaData['FechaInicio'] = $fecha;
+        $cajaData['Estado'] = 'A';
+        
         DB::beginTransaction();
+
         try {
-            date_default_timezone_set('America/Lima');
-            $fecha = date('Y-m-d H:i:s');
-            $cajaData['FechaInicio'] = $fecha;
 
             $caja = Caja::create($cajaData);
-
             $codigo = $caja->Codigo;
 
             $IngresoDineroData['CodigoCaja'] = $codigo;
