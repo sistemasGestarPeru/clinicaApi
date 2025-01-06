@@ -167,7 +167,11 @@ Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']
 Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
 Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
 
+Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
+
 /********************************** PAGO PROVEEDOR **********************************/
+
+Route::post('pagoProveedor/registrarPago', [PagoProveedorController::class, 'registrarPago']);
 
 Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
 Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);

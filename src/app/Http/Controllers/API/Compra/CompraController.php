@@ -4,6 +4,10 @@ namespace App\Http\Controllers\API\Compra;
 
 use App\Http\Controllers\Controller;
 use App\Models\Recaudacion\Compra;
+use App\Models\Recaudacion\Cuota;
+use App\Models\Recaudacion\DetalleCompra;
+use App\Models\Recaudacion\Egreso;
+use App\Models\Recaudacion\PagoProveedor;
 use App\Models\Recaudacion\Proveedor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +80,7 @@ class CompraController extends Controller
 
         try {
             $productos = DB::table('producto')
-                ->select('Codigo', 'Nombre', 'Monto', 'TipoGravado')
+                ->select('Codigo', 'Nombre', 'TipoGravado')
                 ->where('Tipo', 'B')
                 ->where('Vigente', 1)
                 ->get();
@@ -103,6 +107,33 @@ class CompraController extends Controller
         }
     }
 
+    public function listarPagosAdelantados(Request $request)
+    {
+        $Proveedor = $request->input('proveedor');
+
+        try {
+            $result = DB::table('PagoProveedor as pp')
+                ->join('Egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                ->select(
+                    'e.Codigo as CodigoE',
+                    'pp.TipoMoneda',
+                    'e.Fecha',
+                    DB::raw("
+                        CASE 
+                            WHEN pp.TipoMoneda = 'S' THEN e.Monto
+                            ELSE pp.MontoMonedaExtranjera
+                        END AS Monto
+                        ")
+                )
+                ->where('pp.CodigoProveedor', $Proveedor)
+                ->whereNull('pp.CodigoCuota')
+                ->get();
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al listar los pagos adelantados'], 500);
+        }
+    }
+
 
     public function registrarCompra(Request $request)
     {
@@ -110,6 +141,15 @@ class CompraController extends Controller
         $compra = $request->input('compra');
         $detalleCompra = $request->input('detalleCompra');
         $cuotas = $request->input('cuota');
+        $egreso = $request->input('egreso');
+        $proveedor = $request->input('proveedor');
+
+        $egreso['CodigoCaja'] = 65;
+        $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
+
+        if ($egreso['CodigoCuentaOrigen'] == 0) {
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
 
         $MontoTotal = 0;
 
@@ -119,42 +159,37 @@ class CompraController extends Controller
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
-            foreach ($detalleCompra as &$detalle) {
+            foreach ($detalleCompra as $detalle) {
                 $detalle['CodigoCompra'] = $idCompra;
                 $MontoTotal += $detalle['MontoTotal'];
+                DetalleCompra::create($detalle);
             }
 
-            DB::table('detalleCompra')->insert($detalleCompra);
+            $nuevoEgreso = Egreso::create($egreso);
+            $idEgreso = $nuevoEgreso->Codigo;
 
-            if ($cuotas != null && count($cuotas) > 0) {
+            foreach ($cuotas as $cuota) {
 
-                if ($compraData['FormaPago'] == 'C') { // Generar la diferencia del adelanto y crear cuota
-                    $diferencia = $MontoTotal - $cuotas[0]['Monto'];
+                $cuota['CodigoCompra'] = $idCompra;
+                $cutaData = Cuota::create($cuota);
+                $idCuota = $cutaData->Codigo;
 
-                    if ($diferencia > 0) {
-                        printf("Diferencia: %d\n", $diferencia);
-                        $nuevaCuota = array_merge([], $cuotas[0]);  // Crear una copia de la primera cuota
-                        $nuevaCuota['Monto'] = $diferencia;  // Ajustar el monto en la nueva cuota
-
-                        array_push($cuotas, $nuevaCuota);  // Agregar la nueva cuota al final del array
-                    } else {
-                        printf("Diferencia: %d\n", $diferencia);
-                    }
+                if (!empty($cuota['CodigoE'])) {
+                    DB::table('pagoproveedor')
+                        ->where('Codigo', $cuota['CodigoE'])
+                        ->update(['CodigoCuota' => $idCuota]);
+                } else {
+                    $proveedor['Codigo'] = $idEgreso;
+                    $proveedor['CodigoCuota'] = $idCuota;
+                    PagoProveedor::create($proveedor);
                 }
-
-                foreach ($cuotas as &$cuota) { //Cuando es al Contado este tiene 1 cuota que refleja lo adelantado
-                    $cuota['CodigoCompra'] = $idCompra;
-                }
-
-                DB::table('cuota')->insert($cuotas);
             }
-
 
             DB::commit();
-            return response()->json(['message' => 'Compra registrada correctamente'], 200);
+            return response()->json(['message' => 'Compra registrada correctamente', 'cuotas' => $cuotas], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al registrar la compra', 'error' => $e], 500);
+            return response()->json(['message' => 'Error al registrar la compra', 'error' => $e, 'cuotas' => $cuotas], 500);
         }
     }
 }
