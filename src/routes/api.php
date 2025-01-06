@@ -48,7 +48,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
-
+Route::post('/consultaApp', [UserController::class, 'verificarAplicacion']);
+    
 /* RUTAS PUBLICAS PARA EL INDEX DE LA PAG WEB*/
 
 Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimos']);
@@ -66,7 +67,7 @@ Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVige
 /***************************************************************************/
 /********************************* CONSULTA SIDEBAR *********************************/
 Route::get('/detallesUsuario/{codigoPersona}', [UserController::class, 'getUserDetails']); //detalles del usuario
-Route::post('/consultaApp', [UserController::class, 'verificarAplicacion']);
+
 Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorController::class, 'ConsultaEmpresasTrab']);
 Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
