@@ -147,9 +147,6 @@ class CompraController extends Controller
         $egreso['CodigoCaja'] = 65;
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
 
-        if ($egreso['CodigoCuentaOrigen'] == 0) {
-            $egreso['CodigoCuentaOrigen'] = null;
-        }
 
         $MontoTotal = 0;
 
@@ -165,12 +162,20 @@ class CompraController extends Controller
                 DetalleCompra::create($detalle);
             }
 
-            $nuevoEgreso = Egreso::create($egreso);
-            $idEgreso = $nuevoEgreso->Codigo;
+            if ($compra['FormaPago'] == 'C') {
+
+                if ($egreso['CodigoCuentaOrigen'] == 0) {
+                    $egreso['CodigoCuentaOrigen'] = null;
+                }
+
+                $nuevoEgreso = Egreso::create($egreso);
+                $idEgreso = $nuevoEgreso->Codigo;
+            }
 
             foreach ($cuotas as $cuota) {
 
                 $cuota['CodigoCompra'] = $idCompra;
+                $cuota['TipoMoneda'] = 'S';
                 $cutaData = Cuota::create($cuota);
                 $idCuota = $cutaData->Codigo;
 
@@ -179,17 +184,19 @@ class CompraController extends Controller
                         ->where('Codigo', $cuota['CodigoE'])
                         ->update(['CodigoCuota' => $idCuota]);
                 } else {
-                    $proveedor['Codigo'] = $idEgreso;
-                    $proveedor['CodigoCuota'] = $idCuota;
-                    PagoProveedor::create($proveedor);
+                    if ($compra['FormaPago'] == 'C') {
+                        $proveedor['Codigo'] = $idEgreso;
+                        $proveedor['CodigoCuota'] = $idCuota;
+                        PagoProveedor::create($proveedor);
+                    }
                 }
             }
 
             DB::commit();
-            return response()->json(['message' => 'Compra registrada correctamente', 'cuotas' => $cuotas], 200);
+            return response()->json(['message' => 'Compra registrada correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al registrar la compra', 'error' => $e, 'cuotas' => $cuotas], 500);
+            return response()->json(['message' => 'Error al registrar la compra', 'error' => $e], 500);
         }
     }
 }
