@@ -82,7 +82,7 @@ class PagoProveedorController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $pagoProveedor], 500);
+            return response()->json(['error' => $e], 500);
         }
     }
 
