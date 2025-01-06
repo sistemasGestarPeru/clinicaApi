@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\API\PagoServicio;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
+use App\Http\Requests\Recaudacion\PagoProveedor\PagoProveedorRequest as GuardarPagoProveedorRequest;
 use App\Models\Recaudacion\Egreso;
+use App\Models\Recaudacion\PagoProveedor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class PagoProveedorController extends Controller
 {
@@ -48,6 +52,40 @@ class PagoProveedorController extends Controller
     {
         //
     }
+
+
+    public function registrarPago(Request $request)
+    {
+        $pagoProveedor = $request->input('pagoProveedor');
+        $egreso = $request->input('egreso');
+
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+
+        //Validar Pago Proveedor
+        $pagoProveedorValidator = Validator::make($pagoProveedor, (new GuardarPagoProveedorRequest())->rules());
+        $pagoProveedorValidator->validate();
+
+        if ($egreso['CodigoCuentaOrigen'] == 0) {
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        DB::beginTransaction();
+        try {
+            $DataEgreso = Egreso::create($egreso);
+            $idEgreso = $DataEgreso->Codigo;
+
+            $pagoProveedor['Codigo'] = $idEgreso;
+            PagoProveedor::create($pagoProveedor);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => $pagoProveedor], 500);
+        }
+    }
+
 
     public function listarComprasProveedores(Request $request)
     {
