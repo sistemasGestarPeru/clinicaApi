@@ -66,8 +66,6 @@ Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVige
 
 /***************************************************************************/
 /********************************* CONSULTA SIDEBAR *********************************/
-Route::get('/detallesUsuario/{codigoPersona}', [UserController::class, 'getUserDetails']); //detalles del usuario
-
 Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorController::class, 'ConsultaEmpresasTrab']);
 Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 

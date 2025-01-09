@@ -27,40 +27,25 @@ class UserController extends Controller
         ], 200);
     }
 
+    
+
     public function acceso(AccesoRequest $request)
     {
-        try {
-
-            $user = User::join('Usuario_Perfil as up', 'up.CodigoPersona', '=', 'users.CodigoPersona')
-                ->where(function ($query) use ($request) {
-                    $query->where('users.email', $request->identifier)
-                        ->orWhere('users.name', $request->identifier);
-                })
-                ->where('users.Vigente', 1)
-                ->where('up.Vigente', 1)
-                ->where('up.CodigoAplicacion', $request->id)
-                ->select('users.id', 'users.CodigoPersona', 'users.email', 'users.password')
-                ->first();
-
-            if (!$user) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'Usuario no encontrado'
-                ], 401);
+        try{
+            $user = User::where('email', $request->identifier)
+            ->orWhere('name', $request->identifier)
+            ->first();
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                throw ValidationException::withMessages([
+                    'msg' => ['Las credenciales son incorrectas!'],
+                ]);
             }
 
-            if (!Hash::check($request->password, $user->password)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'Credenciales Incorrectas'
-                ], 401);
-            }
-
-            // $aplicaciones = DB::table('Usuario_Perfil')
-            //     ->where('Vigente', 1)
-            //     ->where('CodigoPersona', $user->CodigoPersona)
-            //     ->select('CodigoAplicacion as app')
-            //     ->get();
+            $trabajador = DB::table('personas as p')
+            ->select('p.Nombres', 'p.Apellidos', 'p.Correo')
+            ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
+            ->where('p.Codigo', '=', $user->CodigoPersona)
+            ->first();
 
             $expiresAt = now()->addHour(2); // Fecha de vencimiento a 10 minutos en el futuro
             $token = $user->createToken($user->email, ['*'], $expiresAt)->plainTextToken;
@@ -70,10 +55,11 @@ class UserController extends Controller
                 'res' => true,
                 'token' => $token,
                 'userCod' => $user->CodigoPersona,
+                'trabajador' => $trabajador,
                 'token_expired' => $expiresAt->toIso8601String(),
                 'mensaje' => $mensaje
             ], 200);
-        } catch (ValidationException $e) {
+        }catch(ValidationException $e){
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -166,24 +152,4 @@ class UserController extends Controller
         ], 200);
     }
 
-    public function getUserDetails($codigoPersona)
-    {
-        // Obtener los detalles del usuario
-        $userDetails = User::where('CodigoPersona', $codigoPersona)
-            ->with(['persona.trabajador'])
-            ->first(['id', 'CodigoPersona']);
-
-        if (!$userDetails) {
-            return response()->json(['message' => 'Usuario no encontrado'], 404);
-        }
-
-        $response = [
-            'id' => $userDetails->id,
-            'CorreoCorporativo' => $userDetails->persona->trabajador->CorreoCorporativo,
-            'Nombres' => $userDetails->persona->Nombres,
-            'Apellidos' => $userDetails->persona->Apellidos,
-        ];
-
-        return response()->json($response);
-    }
 }
