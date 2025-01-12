@@ -58,19 +58,27 @@ class ContratoProductoeController extends Controller
     {
         try {
             $datos = DB::table('localdocumentoventa as ldv')
-                ->select('tdv.Nombre', 'ldv.TipoProducto')
+                ->selectRaw("
+                ldv.TipoProducto as Codigo,
+                CASE
+                    WHEN ldv.TipoProducto = 'B' THEN 'Bienes'
+                    WHEN ldv.TipoProducto = 'S' THEN 'Servicios'
+                    WHEN ldv.TipoProducto = 'T' THEN 'Todo'
+                END as Nombre
+            ")
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
                 ->where('ldv.Vigente', 1)
                 ->where('tdv.Vigente', 1)
                 ->where('ldv.CodigoSede', $sede)
-                ->when($tipoCliente == 0, function ($query) {
-                    $query->where('tdv.Codigo', '!=', 2); // Excluir tdv.Codigo = 2
-                })
-                ->when($tipoCliente == 1, function ($query) {
-                    $query->where('tdv.Codigo', '!=', 1); // Excluir tdv.Codigo = 1
+                ->where(function ($query) use ($tipoCliente) {
+                    $query->where(function ($subQuery) use ($tipoCliente) {
+                        $subQuery->whereRaw("{$tipoCliente} = 0")->where('tdv.Codigo', '!=', 2);
+                    })->orWhere(function ($subQuery) use ($tipoCliente) {
+                        $subQuery->whereRaw("{$tipoCliente} = 1")->where('tdv.Codigo', '!=', 1);
+                    });
                 })
                 ->get();
-    
+
             return response()->json($datos);
         } catch (\Exception $e) {
             return response()->json([
@@ -84,7 +92,7 @@ class ContratoProductoeController extends Controller
     {
         $nombreProducto = $request->input('nombreProducto');
         $sede = $request->input('sede');
-        $tipo = $request->input('tipo'); 
+        $tipo = $request->input('tipo');
 
         try {
 
@@ -170,7 +178,7 @@ class ContratoProductoeController extends Controller
             ['detalleContrato' => $detallesContrato],
             (new RegistrarDetalleContratoRequest())->rules()
         );
-        
+
         $detalleContratoValidar->validate();
 
         if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
@@ -208,7 +216,7 @@ class ContratoProductoeController extends Controller
                     CompromisoContrato::create($compromiso);
                 }
             }
-            
+
             // Confirmar la transacción
             DB::commit();
 
