@@ -113,7 +113,7 @@ Route::post('trabajador/actualizarContratoLaboral', [TrabajadorController::class
 Route::post('trabajador/actualizarAsignacionSede', [TrabajadorController::class, 'actualizarAsignacion']);
 /***************************************************************************/
 /***************************** CONTRATO ******************************/
-
+Route::get('contratoProducto/filtrarTipoProductoSede/{sede}/{tipoCliente}', [ContratoProductoeController::class, 'filtrarTipoProductoSede']);
 Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::class, 'buscarProducto']);
 Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
 Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
@@ -187,6 +187,13 @@ Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']
 /***************************************************************************/
 
 
+
+
+
+
+
+
+
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
@@ -228,4 +235,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('portadas/consultar/{id}', [PortadaController::class, 'consultarListado']);
 
     /***************************************************************************/
+
+
+
+
+
+    
 });

@@ -54,6 +54,32 @@ class ContratoProductoeController extends Controller
         //
     }
 
+    public function filtrarTipoProductoSede($sede, $tipoCliente)
+    {
+        try {
+            $datos = DB::table('localdocumentoventa as ldv')
+                ->select('tdv.Nombre', 'ldv.TipoProducto')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
+                ->where('ldv.Vigente', 1)
+                ->where('tdv.Vigente', 1)
+                ->where('ldv.CodigoSede', $sede)
+                ->when($tipoCliente == 0, function ($query) {
+                    $query->where('tdv.Codigo', '!=', 2); // Excluir tdv.Codigo = 2
+                })
+                ->when($tipoCliente == 1, function ($query) {
+                    $query->where('tdv.Codigo', '!=', 1); // Excluir tdv.Codigo = 1
+                })
+                ->get();
+    
+            return response()->json($datos);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al filtrar productos de la sede',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function buscarProducto(Request $request)
     {
         $nombreProducto = $request->input('nombreProducto');

@@ -29,7 +29,6 @@ class CajaController extends Controller
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d H:i:s');
 
-
         $cajaData = $request->input('Caja');
         $IngresoDineroData = $request->input('IngresoDinero');
 
@@ -49,12 +48,16 @@ class CajaController extends Controller
             IngresoDinero::create($IngresoDineroData);
             DB::commit();
             return response()->json([
-                'message' => 'Caja registrada correctamente',
-                'codigo' => $codigo
+                'CodigoCaja' => $codigo,
+                'resp' => true
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al registrar la caja: ', $e], 400);
+            return response()->json([
+                'error' => 'Error al registrar la caja',
+                'resp' => false
+            ], 400);
         }
     }
 
@@ -95,10 +98,13 @@ class CajaController extends Controller
             $caja->update($request->all());
 
             return response()->json([
-                'message' => 'Caja cerrada correctamente'
+                'CodigoCaja' => -1,
+                'resp' => false
             ], 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al cerrar la caja'], 400);
+            return response()->json([
+                'error' => 'Error al cerrar la caja'
+            ], 400);
         }
     }
 
