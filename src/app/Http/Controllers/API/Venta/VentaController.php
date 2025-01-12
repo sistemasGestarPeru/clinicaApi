@@ -385,6 +385,7 @@ class VentaController extends Controller
                         'dc.Descripcion',
                         'dc.CodigoProducto',
                         'p.TipoGravado',
+                        'p.Tipo',
                         DB::raw("(CASE WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2) ELSE 0 END) as MontoIGV")
                     )
                     ->where('dc.CodigoContrato', $idContrato)
@@ -559,10 +560,10 @@ class VentaController extends Controller
         try {
 
             $result = DB::table('localdocumentoventa as ldv')
-                ->select('Codigo', 'Serie')
-                ->where('ldv.CodigoSede', $sede)
-                ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
-                ->where('ldv.Vigente', 1)
+                    ->select('Codigo', 'Serie')
+                    ->where('ldv.CodigoSede', $sede)
+                    ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
+                    ->where('ldv.Vigente', 1)
                 ->get();
 
             return response()->json($result);
