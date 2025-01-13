@@ -553,20 +553,33 @@ class VentaController extends Controller
 
     public function consultarSerie(Request $request)
     {
-
         $sede = $request->input('sede');
         $tipoDocumento = $request->input('tipoDocumento');
-
+        $tipoProducto = $request->input('tipoProducto');
         try {
 
-            $result = DB::table('localdocumentoventa as ldv')
+            if($tipoProducto != null && $tipoProducto != ''){
+                $result = DB::table('localdocumentoventa')
+                ->where('CodigoSede', $sede)
+                ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
+                ->where(function ($query) use ($tipoProducto) {
+                    $query->where('TipoProducto', $tipoProducto)
+                          ->orWhere('TipoProducto', 'T');
+                })
+                ->get();
+
+            }else{
+                $result = DB::table('localdocumentoventa as ldv')
                     ->select('Codigo', 'Serie')
                     ->where('ldv.CodigoSede', $sede)
                     ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
                     ->where('ldv.Vigente', 1)
-                ->get();
+                    ->get();
+            }
+        
 
             return response()->json($result);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
