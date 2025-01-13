@@ -362,6 +362,7 @@ class VentaController extends Controller
                         'd.Descripcion',
                         'd.CodigoProducto',
                         'p.TipoGravado',
+                        'p.Tipo',
                         DB::raw("CASE 
                             WHEN p.TipoGravado = 'A' 
                             THEN ROUND(d.MontoTotal - (d.MontoTotal / (1 + 0.18)), 2) 
@@ -555,27 +556,17 @@ class VentaController extends Controller
     {
         $sede = $request->input('sede');
         $tipoDocumento = $request->input('tipoDocumento');
-        $tipoProducto = $request->input('tipoProducto');
+
         try {
 
-            if($tipoProducto != null && $tipoProducto != ''){
-                $result = DB::table('localdocumentoventa')
-                ->where('CodigoSede', $sede)
-                ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
-                ->where(function ($query) use ($tipoProducto) {
-                    $query->where('TipoProducto', $tipoProducto)
-                          ->orWhere('TipoProducto', 'T');
-                })
-                ->get();
 
-            }else{
                 $result = DB::table('localdocumentoventa as ldv')
                     ->select('Codigo', 'Serie')
                     ->where('ldv.CodigoSede', $sede)
                     ->where('ldv.CodigoTipoDocumentoVenta', $tipoDocumento)
                     ->where('ldv.Vigente', 1)
                     ->get();
-            }
+            
         
 
             return response()->json($result);
@@ -593,7 +584,7 @@ class VentaController extends Controller
 
             $result = DB::table('localdocumentoventa as ldv')
                 ->select([
-                    'ldv.Codigo as Codigo',
+                    'ldv.TipoProducto as Codigo',
                     DB::raw("
                 CASE 
                     WHEN ldv.TipoProducto = 'B' THEN 'Bien'

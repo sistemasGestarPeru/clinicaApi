@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Pago;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\Pago\RegistrarPagoRequest;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
 use Illuminate\Http\Request;
@@ -48,6 +49,16 @@ class PagoController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function registrarPago(RegistrarPagoRequest $request){
+
+        try{
+            new (Pago::create($request->all()));
+            return response()->json('Pago registrado correctamente', 200);
+        }catch(\Exception $e){
+            return response()->json('Error al registrar el Pago ', $e->getMessage());
+        }
     }
 
     public function registrarPagoDocumentoVenta(Request $request)

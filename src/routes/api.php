@@ -64,131 +64,6 @@ Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']
 Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVigentes']);
 
 
-/***************************************************************************/
-/********************************* CONSULTA SIDEBAR *********************************/
-Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorController::class, 'ConsultaEmpresasTrab']);
-Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
-
-/********************************* COMBOS *********************************/
-Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
-Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
-Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
-Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general
-Route::get('combos/empresasDisponibles/{codigoTrabajador}', [ControladorGeneralController::class, 'cboEmpresasDisponibles']); //Cambiar si se usa de manera general
-Route::get('combos/departamentoSede/{sede}', [ControladorGeneralController::class, 'listarDepartamentos']); //Cambiar si se usa de manera general
-Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
-Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class, 'listarMedioPago']);
-Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
-Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
-Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
-Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
-
-/***************************************************************************/
-/********************************* CLIENTES *********************************/
-Route::apiResource("cliente", ClienteController::class);
-Route::post('cliente/registrarCliente', [ClienteController::class, 'registrarCliente']);
-Route::post('cliente/registrarClienteEmpresa', [ClienteController::class, 'registrarClienteEmpresa']);
-Route::post('cliente/busca', [ClienteController::class, 'listaCliente']);
-Route::post('cliente/consulta', [ClienteController::class, 'consultaCliente']);
-Route::post('cliente/consultaDatosCliente', [ClienteController::class, 'consultaDatosCliente']);
-Route::post('cliente/actualizarCliente', [ClienteController::class, 'actualizarCliente']);
-Route::post('cliente/actualizarClienteEmpresa', [ClienteController::class, 'actualizarClienteEmpresa']);
-/***************************************************************************/
-
-/********************************* Trabajador *********************************/
-Route::post('trabajador/registrarTrabajador', [TrabajadorController::class, 'registrarTrabajador']);
-Route::post('trabajador/registrarPersonaTrabajador', [TrabajadorController::class, 'registrarPersonaTrabajador']);
-Route::post('trabajador/actualizarTrabajador', [TrabajadorController::class, 'actualizarTrabajador']);
-Route::post('trabajador/buscar', [TrabajadorController::class, 'buscar']);
-Route::post('trabajador/consultar', [TrabajadorController::class, 'consultarTrabCodigo']);
-Route::post('trabajador/consultarNumDoc', [TrabajadorController::class, 'consultarNumDoc']);
-Route::post('trabajador/registrarContratoLaboral', [TrabajadorController::class, 'regContratoLab']);
-Route::post('trabajador/registrarAsignacionSede', [TrabajadorController::class, 'regAsignacionSede']);
-// Route::post('trabajador/consultarContrato', [TrabajadorController::class, 'consultarContratoLab']); //Corregir
-Route::get('trabajador/listarContratos/{codTrab}', [TrabajadorController::class, 'listarContratos']);
-Route::get('trabajador/consultarContratoLab/{codContratoLab}', [TrabajadorController::class, 'consultarContrato']);
-Route::get('trabajador/listarAsignaciones/{codTrab}/{codEmpresa}', [TrabajadorController::class, 'listarAsignaciones']);
-Route::get('trabajador/consultarAsignacion/{codAsignacion}', [TrabajadorController::class, 'consultarAsignacion']);
-Route::post('trabajador/actualizarContratoLaboral', [TrabajadorController::class, 'actualizarContrato']);
-Route::post('trabajador/actualizarAsignacionSede', [TrabajadorController::class, 'actualizarAsignacion']);
-/***************************************************************************/
-/***************************** CONTRATO ******************************/
-Route::get('contratoProducto/filtrarTipoProductoSede/{sede}/{tipoCliente}', [ContratoProductoeController::class, 'filtrarTipoProductoSede']);
-Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::class, 'buscarProducto']);
-Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
-Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
-Route::post('contratoProducto/anularContrato', [ContratoProductoeController::class, 'anularContrato']);
-Route::post('contratoProducto/consultarDeuda', [ContratoProductoeController::class, 'consultarDeuda']);
-
-/********************************* CAJA *********************************/
-Route::apiResource("caja", CajaController::class);
-Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
-Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
-Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
-Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
-/********************************* VENTA *********************************/
-Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
-Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
-Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
-Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
-Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
-Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
-Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
-Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
-Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
-Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
-Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
-Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);
-Route::post('venta/consultarTipoProducto', [VentaController::class, 'consultarTipoProducto']);
-
-/********************************* PAGOS *********************************/
-Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
-Route::post('pago/buscarVentas', [PagoController::class, 'buscarVentas']);
-Route::post('pago/registrarPagoDocumentoVenta', [PagoController::class, 'registrarPagoDocumentoVenta']);
-Route::post('pago/anularPago', [PagoController::class, 'anularPago']);
-Route::post('pago/consultarPago', [PagoController::class, 'consultarPago']);
-Route::post('pago/editarPago', [PagoController::class, 'editarPago']);
-
-/********************************** PAGO SERVICIOS **********************************/
-Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
-Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
-
-/********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
-Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
-Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
-Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
-
-
-
-/********************************* Compras *********************************/
-Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
-Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
-Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
-Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
-
-Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
-
-/********************************** PAGO PROVEEDOR **********************************/
-
-Route::post('pagoProveedor/registrarPago', [PagoProveedorController::class, 'registrarPago']);
-
-Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
-Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);
-
-/********************************* PRUEBAS *********************************/
-Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
-Route::get('tipodocumento/listar', [TipoDocumentoController::class, 'index']);
-Route::get('departamento/listar', [DepartamentoController::class, 'index']);
-Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
-Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
-Route::get('empresa/listar', [EmpresaController::class, 'index']);
-Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
-
-/***************************************************************************/
-
-
-
-
 
 
 
@@ -238,6 +113,132 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 
 
+
+
+
+    
+    /***************************************************************************/
+    /********************************* CONSULTA SIDEBAR *********************************/
+    Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorController::class, 'ConsultaEmpresasTrab']);
+    Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
+
+    /********************************* COMBOS *********************************/
+    Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
+    Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
+    Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
+    Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general
+    Route::get('combos/empresasDisponibles/{codigoTrabajador}', [ControladorGeneralController::class, 'cboEmpresasDisponibles']); //Cambiar si se usa de manera general
+    Route::get('combos/departamentoSede/{sede}', [ControladorGeneralController::class, 'listarDepartamentos']); //Cambiar si se usa de manera general
+    Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
+    Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class, 'listarMedioPago']);
+    Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
+    Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
+    Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
+    Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
+
+    /***************************************************************************/
+    /********************************* CLIENTES *********************************/
+    Route::apiResource("cliente", ClienteController::class);
+    Route::post('cliente/registrarCliente', [ClienteController::class, 'registrarCliente']);
+    Route::post('cliente/registrarClienteEmpresa', [ClienteController::class, 'registrarClienteEmpresa']);
+    Route::post('cliente/busca', [ClienteController::class, 'listaCliente']);
+    Route::post('cliente/consulta', [ClienteController::class, 'consultaCliente']);
+    Route::post('cliente/consultaDatosCliente', [ClienteController::class, 'consultaDatosCliente']);
+    Route::post('cliente/actualizarCliente', [ClienteController::class, 'actualizarCliente']);
+    Route::post('cliente/actualizarClienteEmpresa', [ClienteController::class, 'actualizarClienteEmpresa']);
+    /***************************************************************************/
+
+    /********************************* Trabajador *********************************/
+    Route::post('trabajador/registrarTrabajador', [TrabajadorController::class, 'registrarTrabajador']);
+    Route::post('trabajador/registrarPersonaTrabajador', [TrabajadorController::class, 'registrarPersonaTrabajador']);
+    Route::post('trabajador/actualizarTrabajador', [TrabajadorController::class, 'actualizarTrabajador']);
+    Route::post('trabajador/buscar', [TrabajadorController::class, 'buscar']);
+    Route::post('trabajador/consultar', [TrabajadorController::class, 'consultarTrabCodigo']);
+    Route::post('trabajador/consultarNumDoc', [TrabajadorController::class, 'consultarNumDoc']);
+    Route::post('trabajador/registrarContratoLaboral', [TrabajadorController::class, 'regContratoLab']);
+    Route::post('trabajador/registrarAsignacionSede', [TrabajadorController::class, 'regAsignacionSede']);
+    // Route::post('trabajador/consultarContrato', [TrabajadorController::class, 'consultarContratoLab']); //Corregir
+    Route::get('trabajador/listarContratos/{codTrab}', [TrabajadorController::class, 'listarContratos']);
+    Route::get('trabajador/consultarContratoLab/{codContratoLab}', [TrabajadorController::class, 'consultarContrato']);
+    Route::get('trabajador/listarAsignaciones/{codTrab}/{codEmpresa}', [TrabajadorController::class, 'listarAsignaciones']);
+    Route::get('trabajador/consultarAsignacion/{codAsignacion}', [TrabajadorController::class, 'consultarAsignacion']);
+    Route::post('trabajador/actualizarContratoLaboral', [TrabajadorController::class, 'actualizarContrato']);
+    Route::post('trabajador/actualizarAsignacionSede', [TrabajadorController::class, 'actualizarAsignacion']);
+    /***************************************************************************/
+    /***************************** CONTRATO ******************************/
+    Route::get('contratoProducto/filtrarTipoProductoSede/{sede}/{tipoCliente}', [ContratoProductoeController::class, 'filtrarTipoProductoSede']);
+    Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::class, 'buscarProducto']);
+    Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
+    Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
+    Route::post('contratoProducto/anularContrato', [ContratoProductoeController::class, 'anularContrato']);
+    Route::post('contratoProducto/consultarDeuda', [ContratoProductoeController::class, 'consultarDeuda']);
+
+    /********************************* CAJA *********************************/
+    Route::apiResource("caja", CajaController::class);
+    Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
+    Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
+    Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
+    Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
+    /********************************* VENTA *********************************/
+    Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
+    Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
+    Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
+    Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
+    Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
+    Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
+    Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
+    Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
+    Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
+    Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
+    Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
+    Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);
+    Route::post('venta/consultarTipoProducto', [VentaController::class, 'consultarTipoProducto']);
+
+    /********************************* PAGOS *********************************/
+    Route::post('pago/registrarPago', [PagoController::class, 'registrarPago']);
+    Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
+    Route::post('pago/buscarVentas', [PagoController::class, 'buscarVentas']);
+    Route::post('pago/registrarPagoDocumentoVenta', [PagoController::class, 'registrarPagoDocumentoVenta']);
+    Route::post('pago/anularPago', [PagoController::class, 'anularPago']);
+    Route::post('pago/consultarPago', [PagoController::class, 'consultarPago']);
+    Route::post('pago/editarPago', [PagoController::class, 'editarPago']);
+
+    /********************************** PAGO SERVICIOS **********************************/
+    Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
+    Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
+
+    /********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
+    Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
+    Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
+    Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
+
+
+
+    /********************************* Compras *********************************/
+    Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
+    Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
+    Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
+    Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
+
+    Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
+
+    /********************************** PAGO PROVEEDOR **********************************/
+
+    Route::post('pagoProveedor/registrarPago', [PagoProveedorController::class, 'registrarPago']);
+
+    Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
+    Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);
+
+    /********************************* PRUEBAS *********************************/
+    Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
+    Route::get('tipodocumento/listar', [TipoDocumentoController::class, 'index']);
+    Route::get('departamento/listar', [DepartamentoController::class, 'index']);
+    Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
+    Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
+    Route::get('empresa/listar', [EmpresaController::class, 'index']);
+    Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
+
+    /***************************************************************************/
 
 
     

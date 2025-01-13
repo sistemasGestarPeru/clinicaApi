@@ -58,11 +58,14 @@ class PagoTrabajadoresController extends Controller
         $planillas = $request->input('planilla');
         $egreso = $request->input('egreso');
 
+
+
         if (empty($planillas) || empty($egreso)) {
             return response()->json(['mensaje' => 'No se han enviado datos'], 400);
         }
 
         foreach($egreso as $index => $egresos){
+
             $egresoValidator = Validator::make($egresos, [
                 'Fecha' => 'required|date',
                 'Monto' => 'required|integer',
@@ -103,6 +106,10 @@ class PagoTrabajadoresController extends Controller
         try {
 
             foreach ($egreso as $index => $egresos) {
+
+                if ($egresos['CodigoMedioPago'] == 1) {
+                    $egresos['CodigoCuentaOrigen'] = null;
+                }
                 
                 $nuevoEgresoId = DB::table('egreso')->insertGetId($egresos);
             
