@@ -96,26 +96,32 @@ class PagoController extends Controller
 
         try {
             $pagos = DB::table('pago as p')
-                ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-                ->join('pagodocumentoventa as pdv', 'pdv.CodigoPago', '=', 'p.Codigo')
-                ->join('documentoventa as d', 'd.Codigo', '=', 'pdv.CodigoDocumentoVenta')
-                ->select(
-                    'p.Codigo',
-                    'p.NumeroOperacion',
-                    'mp.Nombre',
-                    DB::raw('DATE(p.Fecha) as Fecha'),
-                    'p.Monto'
-                )
-                ->where('p.Vigente', 1)
-                ->where('pdv.Vigente', 0)
-                ->where(DB::raw('DATE(p.Fecha)'), $fecha)
-                ->where('d.CodigoSede', $codigoSede)
-                ->where(function ($query) {
-                    $query->whereRaw('pdv.Codigo = (SELECT pdv_sub.Codigo FROM pagodocumentoventa pdv_sub WHERE pdv_sub.CodigoPago = p.Codigo ORDER BY pdv_sub.Codigo DESC LIMIT 1)');
-                })
-                ->get();
+            ->select(
+                'p.Codigo',
+                DB::raw("CASE WHEN p.CodigoMedioPago = 2 THEN p.NumeroOperacion ELSE '-' END AS NumeroOperacion"),
+                'mp.Nombre',
+                DB::raw('DATE(p.Fecha) as Fecha'),
+                'p.Monto'
+            )
+            ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+            ->leftJoin('pagodocumentoventa as pdv', function ($join) {
+                $join->on('pdv.CodigoPago', '=', 'p.Codigo')
+                     ->where('pdv.Vigente', '=', 1);
+            })
+            ->leftJoin('documentoventa as d', function ($join) use ($codigoSede) {
+                $join->on('d.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+                     ->where('d.CodigoSede', '=', $codigoSede);
+            })
+            ->where('p.Vigente', 1)
+            ->where(function ($query) {
+                $query->where('d.Vigente', 0)
+                      ->orWhereNull('pdv.Codigo');
+            })
+            ->whereDate('p.Fecha', $fecha)
+            ->get();
 
             return response()->json($pagos, 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -127,17 +133,25 @@ class PagoController extends Controller
     {
         $fecha = $request->input('fecha');
         $codigoSede = $request->input('codigoSede');
+        $codigoPago = $request->input('codigoPago');
 
         try {
 
             $ventas = DB::table('documentoventa as dv')
-                ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
-                ->whereNull('pdv.Codigo')
-                ->where('dv.Vigente', 1)
-                ->select('dv.Codigo', 'dv.CodigoTipoDocumentoVenta', 'dv.Serie', 'dv.Numero', DB::raw("DATE(dv.Fecha) as Fecha"), 'dv.MontoTotal', 'dv.MontoPagado')
-                ->where(DB::raw("DATE(dv.Fecha)"), $fecha)  // Reemplaza esto con el valor de $fecha
-                ->where('dv.CodigoSede', $codigoSede)
-                ->get();
+            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
+            ->whereNull('pdv.Codigo')
+            ->where('dv.Vigente', 1)
+            ->where('dv.CodigoSede', $codigoSede)
+            ->where('dv.MontoTotal', '>=', function ($query) use ($codigoPago) {
+                $query->select('p.Monto')
+                    ->from('pago as p')
+                    ->where('p.Codigo', $codigoPago)
+                    ->where('p.Vigente', 1)
+                    ->limit(1);
+            })
+            ->select('dv.Codigo', 'tdv.Nombre', 'dv.Serie', 'dv.Numero', DB::raw('DATE(dv.Fecha) as Fecha'), 'dv.MontoTotal', 'dv.MontoPagado')
+            ->get();
 
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
