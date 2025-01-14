@@ -64,7 +64,7 @@ class PagoTrabajadoresController extends Controller
             return response()->json(['mensaje' => 'No se han enviado datos'], 400);
         }
 
-        foreach($egreso as $index => $egresos){
+        foreach ($egreso as $index => $egresos) {
 
             $egresoValidator = Validator::make($egresos, [
                 'Fecha' => 'required|date',
@@ -80,7 +80,6 @@ class PagoTrabajadoresController extends Controller
                     'mensaje' => "Error en el trabajador del índice $index "
                 ], 400);
             }
-
         }
 
         // Validar cada objeto dentro del arreglo
@@ -93,15 +92,15 @@ class PagoTrabajadoresController extends Controller
                 // 'MontoSeguro' => 'required|integer',
                 // 'ReciboHonorario' => 'nullable|integer',
             ]);
-    
+
             if ($planillaValidator->fails()) {
                 return response()->json([
                     'error' => $planillaValidator->errors(),
-                    'mensaje' => "Error en la planilla del índice ". ($index + 1)
+                    'mensaje' => "Error en la planilla del índice " . ($index + 1)
                 ], 400);
             }
         }
-    
+
         DB::beginTransaction();
         try {
 
@@ -110,17 +109,16 @@ class PagoTrabajadoresController extends Controller
                 if ($egresos['CodigoMedioPago'] == 1) {
                     $egresos['CodigoCuentaOrigen'] = null;
                 }
-                
+
                 $nuevoEgresoId = DB::table('egreso')->insertGetId($egresos);
-            
+
                 $planilla = $planillas[$index];
                 $planilla['Codigo'] = $nuevoEgresoId;
-            
+
                 PagoPlanilla::create($planilla);
             }
             DB::commit();
             return response()->json(['mensaje' => 'Planilla registrada correctamente'], 200);
-
         } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al registrar la planilla'], 500);
@@ -131,6 +129,8 @@ class PagoTrabajadoresController extends Controller
     public function listarTrabajadoresPlanilla(Request $request)
     {
         $empresa = $request->input('empresa');
+        $fecha = $request->input('fecha');
+        $fechaActual = date('Y-m-d'); // Obtiene la fecha actual correctamente
 
         try {
             $resultado = DB::table('personas as p')
@@ -149,6 +149,16 @@ class PagoTrabajadoresController extends Controller
                 ->where('t.Vigente', 1)
                 ->where('cl.Vigente', 1)
                 ->where('cl.CodigoEmpresa', $empresa)
+                ->where(function ($query) use ($fechaActual) { // Usar use para pasar $fechaActual
+                    $query->whereNull('cl.FechaFin')
+                        ->orWhere('cl.FechaFin', '>', $fechaActual);
+                })
+                ->whereNotIn('cl.CodigoTrabajador', function ($query) use ($fecha) {
+                    $formattedFecha = date('Y-m', strtotime($fecha)); // Formatear la fecha como YYYY-MM
+                    $query->select('PP.CodigoTrabajador')
+                        ->from('pagopersonal as PP')
+                        ->whereRaw("DATE_FORMAT(PP.Mes, '%Y-%m') = ?", [$formattedFecha]);
+                })
                 ->orderBy('p.Codigo')
                 ->get();
 
@@ -158,13 +168,14 @@ class PagoTrabajadoresController extends Controller
         }
     }
 
-    public function buscarTrabajadorPago(Request $request){
+    public function buscarTrabajadorPago(Request $request)
+    {
 
         $empresa = $request->input('empresa');
         $tipoDocumento = $request->input('tipoDocumento');
         $numeroDocumento = $request->input('numeroDocumento');
 
-        try{
+        try {
 
             $results = DB::table('trabajadors as t')
                 ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
@@ -187,9 +198,8 @@ class PagoTrabajadoresController extends Controller
                 ->where('p.NumeroDocumento', $numeroDocumento)
                 ->first();
 
-                return response()->json($results, 200); 
-
-        }catch(Exception $e){
+            return response()->json($results, 200);
+        } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al buscar el trabajador'], 500);
         }
     }
