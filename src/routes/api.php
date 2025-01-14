@@ -208,10 +208,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
 
     /********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
+    Route::post('pagoTrabajadores/listarPagosRealizados', [PagoTrabajadoresController::class, 'listarPagosRealizados']);
     Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
     Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
     Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
-
+    Route::post('pagoTrabajadores/registrarPagoIndividual', [PagoTrabajadoresController::class, 'registrarPagoIndividual']);
 
 
     /********************************* Compras *********************************/

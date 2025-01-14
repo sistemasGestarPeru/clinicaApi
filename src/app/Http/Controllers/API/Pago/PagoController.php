@@ -50,17 +50,24 @@ class PagoController extends Controller
     {
         //
     }
-
-    public function registrarPago(RegistrarPagoRequest $request){
-
-        try{
-            new (Pago::create($request->all()));
-            return response()->json('Pago registrado correctamente', 200);
-        }catch(\Exception $e){
-            return response()->json('Error al registrar el Pago ', $e->getMessage());
+    public function registrarPago(RegistrarPagoRequest $request)
+    {
+        // Verificación de los datos
+        if ($request['CodigoMedioPago'] == 1) {
+            $request['CodigoCuentaBancaria'] = null;
+            $request['NumeroOperacion'] = null;
+        }
+    
+        try {
+            // Intentar crear el pago
+            Pago::create($request->all());
+            return response()->json(['message' => 'Pago registrado correctamente'], 200);
+            
+        } catch (\Exception $e) {
+            // En caso de error, devuelve el mensaje de error y un código de estado 500 (error interno del servidor)
+            return response()->json(['message' => 'Error al registrar el Pago', 'error' => $e->getMessage()], 500);
         }
     }
-
     public function registrarPagoDocumentoVenta(Request $request)
     {
 

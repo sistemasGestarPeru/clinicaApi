@@ -21,20 +21,23 @@ class RegistrarPagoRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'CodigoTrabajador' => 'required|integer|min:1',
             'CodigoMedioPago' => 'required|integer|min:1',
             'CodigoCaja' => 'required|integer|min:1',
             'Fecha' => 'required|date',
             'Monto' => 'required|numeric|min:0',
         ];
-    }
 
-    public function withValidator($validator)
-    {
-        $validator->sometimes(['CodigoCuentaBancaria', 'NumeroOperacion'], 'required|string|min:1', function ($input) {
-            return $input->CodigoMedioPago == 2;
-        });
+        if ($this->input('CodigoMedioPago') == 2) {
+            $rules['CodigoCuentaBancaria'] = 'required|integer|min:1';
+            $rules['NumeroOperacion'] = 'required|string|min:1';
+        }else{
+            $rules['CodigoCuentaBancaria'] = 'nullable';
+            $rules['NumeroOperacion'] = 'nullable';
+        }
+        
+        return $rules;
     }
 
     public function messages()
