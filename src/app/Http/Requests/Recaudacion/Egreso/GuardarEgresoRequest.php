@@ -23,7 +23,7 @@ class GuardarEgresoRequest extends FormRequest
     {
         return [
             'Fecha' => 'required|date',
-            'Monto' => 'required|numeric|min:1',
+            'Monto' => 'required|numeric|min:0.01',
             'CodigoCaja' => 'required|integer|min:1',
             'CodigoTrabajador' => 'required|integer|min:1',
             'CodigoMedioPago' => 'required|integer|min:1',

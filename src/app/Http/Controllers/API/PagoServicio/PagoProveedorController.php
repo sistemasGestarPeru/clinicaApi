@@ -67,7 +67,7 @@ class PagoProveedorController extends Controller
         $pagoProveedorValidator = Validator::make($pagoProveedor, (new GuardarPagoProveedorRequest())->rules());
         $pagoProveedorValidator->validate();
 
-        if ($egreso['CodigoCuentaOrigen'] == 0) {
+        if (!$egreso['CodigoCuentaOrigen'] || $egreso['CodigoCuentaOrigen'] == 0 || $egreso['CodigoCuentaOrigen'] == null) {
             $egreso['CodigoCuentaOrigen'] = null;
         }
 
@@ -80,6 +80,9 @@ class PagoProveedorController extends Controller
             PagoProveedor::create($pagoProveedor);
 
             DB::commit();
+
+            return response()->json(['message' => 'Pago registrado correctamente'], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e], 500);
@@ -91,18 +94,30 @@ class PagoProveedorController extends Controller
     {
         try {
 
-            $resultado = DB::table('Compra as C')
-                ->join('Proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
-                ->select(
-                    'C.Codigo as Compra',
-                    'P.Codigo as Proveedor',
-                    'P.RazonSocial',
-                    'C.Fecha',
-                    'C.Serie',
-                    'C.Numero'
-                )
-                ->orderBy('C.Codigo')
-                ->get();
+        $resultado = DB::table('compra as C')
+            ->join('Cuota as CU', 'CU.CodigoCompra', '=', 'C.Codigo')
+            ->leftJoin('PagoProveedor as PP', 'PP.CodigoCuota', '=', 'CU.Codigo')
+            ->join('Proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
+            ->select(
+                'C.Codigo as Compra',
+                'C.Fecha',
+                'C.Serie',
+                'C.Numero',
+                'P.Codigo as Proveedor',
+                'P.RazonSocial'
+            )
+            ->where('CU.Vigente', 1)
+            ->where('C.Vigente', 1)
+            ->groupBy(
+                'C.Codigo',
+                'C.Fecha',
+                'C.Serie',
+                'C.Numero',
+                'P.Codigo',
+                'P.RazonSocial'
+            )
+            ->havingRaw('SUM(CASE WHEN PP.Codigo IS NULL THEN 1 ELSE 0 END) > 0')
+            ->get();
 
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
