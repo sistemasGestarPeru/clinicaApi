@@ -177,4 +177,46 @@ class CajaController extends Controller
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
     }
+
+    public function estadoCajaLogin(Request $request)
+    {
+        $codigoTrabajador = $request->input('CodigoTrabajador');
+        $codigoSede = $request->input('CodigoSede');
+
+        try {
+            $result = DB::table('caja')
+                ->selectRaw("
+                    CASE 
+                        WHEN Estado = 'A' THEN Codigo
+                        WHEN Estado = 'C' THEN -1
+                    END AS CodigoCaja
+                ")
+                ->where('CodigoTrabajador', $codigoTrabajador)
+                ->where('CodigoSede', $codigoSede)
+                ->orderByDesc('Codigo')
+                ->limit(1)
+                ->first();
+
+            // Si no hay resultado o el resultado es -1
+            if (!$result || $result->CodigoCaja == -1) {
+                return response()->json([
+                    'CodigoCaja' => -1,
+                    'resp' => false
+                ], 200);
+            }
+
+            // Si el resultado es válido y positivo
+            return response()->json([
+                'CodigoCaja' => $result->CodigoCaja,
+                'resp' => true
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al consultar la caja',
+                'error' => $e->getMessage()
+            ], 500); // Usar el código 500 para errores del servidor
+        }
+    }
+    
 }

@@ -174,6 +174,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************* CAJA *********************************/
     Route::apiResource("caja", CajaController::class);
+    Route::post('caja/estadoCajaLogin', [CajaController::class, 'estadoCajaLogin']);
     Route::post('caja/cerrarCaja', [CajaController::class, 'cerrarCaja']);
     Route::post('caja/consultarCaja', [CajaController::class, 'consultarCaja']);
     Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
