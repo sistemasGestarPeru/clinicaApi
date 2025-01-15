@@ -271,4 +271,20 @@ class ControladorGeneralController extends Controller
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
+
+
+    public function listarMotivoPagoServicio(){
+        try {
+
+            $resultado = DB::table('motivopagoservicio')
+                ->select('Codigo', 'Nombre', 'Descripcion')
+                ->where('Vigente', 1) // 
+                ->get();
+
+            return response()->json($resultado);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+
+    }
 }

@@ -135,7 +135,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
     Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
     Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
-
+    Route::get('combos/listarMotivoPagoServicio', [ControladorGeneralController::class, 'listarMotivoPagoServicio']);
     /***************************************************************************/
     /********************************* CLIENTES *********************************/
     Route::apiResource("cliente", ClienteController::class);
@@ -166,12 +166,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('trabajador/actualizarAsignacionSede', [TrabajadorController::class, 'actualizarAsignacion']);
     /***************************************************************************/
     /***************************** CONTRATO ******************************/
-    Route::get('contratoProducto/filtrarTipoProductoSede/{sede}/{tipoCliente}', [ContratoProductoeController::class, 'filtrarTipoProductoSede']);
+
     Route::post('contratoProducto/buscarProducto', [ContratoProductoeController::class, 'buscarProducto']);
     Route::post('contratoProducto/registrarContratoProducto', [ContratoProductoeController::class, 'registrarContratoProducto']);
     Route::post('contratoProducto/buscarContratoProducto', [ContratoProductoeController::class, 'buscarContratoProducto']);
     Route::post('contratoProducto/anularContrato', [ContratoProductoeController::class, 'anularContrato']);
-    Route::post('contratoProducto/consultarDeuda', [ContratoProductoeController::class, 'consultarDeuda']);
 
     /********************************* CAJA *********************************/
     Route::apiResource("caja", CajaController::class);

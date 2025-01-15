@@ -54,40 +54,6 @@ class ContratoProductoeController extends Controller
         //
     }
 
-    public function filtrarTipoProductoSede($sede, $tipoCliente)
-    {
-        try {
-            $datos = DB::table('localdocumentoventa as ldv')
-                ->selectRaw("
-                ldv.TipoProducto as Codigo,
-                CASE
-                    WHEN ldv.TipoProducto = 'B' THEN 'Bienes'
-                    WHEN ldv.TipoProducto = 'S' THEN 'Servicios'
-                    WHEN ldv.TipoProducto = 'T' THEN 'Todo'
-                END as Nombre
-            ")
-                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
-                ->where('ldv.Vigente', 1)
-                ->where('tdv.Vigente', 1)
-                ->where('ldv.CodigoSede', $sede)
-                ->where(function ($query) use ($tipoCliente) {
-                    $query->where(function ($subQuery) use ($tipoCliente) {
-                        $subQuery->whereRaw("{$tipoCliente} = 0")->where('tdv.Codigo', '!=', 2);
-                    })->orWhere(function ($subQuery) use ($tipoCliente) {
-                        $subQuery->whereRaw("{$tipoCliente} = 1")->where('tdv.Codigo', '!=', 1);
-                    });
-                })
-                ->get();
-
-            return response()->json($datos);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al filtrar productos de la sede',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function buscarProducto(Request $request)
     {
         $nombreProducto = $request->input('nombreProducto');
@@ -134,31 +100,6 @@ class ContratoProductoeController extends Controller
         }
     }
 
-
-    public function consultarDeuda(Request $request)
-    {
-        $codigoContrato = $request->input('codigoContrato');
-
-        try {
-
-            $estadoPago = DB::table('contratoproducto as cp')
-                ->leftJoin('documentoventa as dv', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
-                ->select(DB::raw("
-                CASE 
-                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) IS NULL THEN cp.Total
-                    WHEN SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END) = cp.Total THEN 0
-                    ELSE cp.Total - SUM(CASE WHEN dv.Vigente = 1 THEN dv.MontoPagado ELSE 0 END)
-                END AS EstadoPago
-            "))
-                ->where('cp.Codigo', $codigoContrato)
-                ->groupBy('cp.Total')
-                ->first();
-
-            return response()->json($estadoPago);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
 
     public function registrarContratoProducto(Request $request)
     {
@@ -238,26 +179,34 @@ class ContratoProductoeController extends Controller
     {
         $fecha = $request->input('fecha');
         $codigoSede = $request->input('codigoSede');
+    
+       // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
 
         try {
             $contratos = DB::table('clinica_db.contratoproducto as cp')
-                ->leftJoin('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-                ->leftJoin('clinica_db.clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
-                ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
-                ->where('cp.CodigoSede', $codigoSede)
-                ->where('cp.Vigente', 1)
-                ->select(
-                    'cp.Codigo as Codigo',
-                    DB::raw("DATE(cp.Fecha) as Fecha"),
-                    'cp.Total as Total',
-                    DB::raw("
-                        CASE 
-                            WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
-                            WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
-                            ELSE 'No identificado'
-                        END as NombrePaciente")
-                )
-                ->get();
+            ->leftJoin('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+            ->leftJoin('clinica_db.clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
+            ->where('cp.CodigoSede', 1) // Filtro por CódigoSede
+            ->where('cp.Vigente', $codigoSede) // Filtro por Vigente
+            ->select(
+                'cp.Codigo as Codigo',
+                DB::raw("DATE(cp.Fecha) as Fecha"),
+                'cp.Total as Total',
+                DB::raw("
+                    CASE
+                        WHEN cp.TotalPagado = cp.Total THEN 0
+                        ELSE (cp.Total - cp.TotalPagado)
+                    END as TotalPagado
+                "),
+                DB::raw("
+                    CASE
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                        ELSE 'No identificado'
+                    END as NombrePaciente
+                ")
+            )
+            ->get();
 
             return response()->json($contratos);
         } catch (\Exception $e) {
@@ -271,32 +220,42 @@ class ContratoProductoeController extends Controller
     public function anularContrato(Request $request)
     {
         $codigo = $request->input('codigoContrato');
-
+    
+        DB::beginTransaction();
         try {
-            // Verificar si no hay ventas asociadas
+            // Verificar si hay ventas asociadas
             $documentoVenta = DB::table('documentoventa as dv')
-                ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
+                ->join('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
                 ->where('cp.Codigo', $codigo)
                 ->where('dv.Vigente', 1)
                 ->exists();
-
-            // Si no hay ventas asociadas, actualizar el contrato
+    
+            // Si no hay ventas asociadas, actualizar el contrato y compromisos
             if (!$documentoVenta) {
                 DB::table('contratoproducto')
                     ->where('Codigo', $codigo)
                     ->update(['Vigente' => 0]);
-
+    
+                DB::table('compromisocontrato')
+                    ->where('CodigoContrato', $codigo)
+                    ->where('Vigente', 1)
+                    ->update(['Vigente' => 0]);
+    
+                DB::commit();
+                
                 return response()->json([
                     'message' => 'Contrato anulado correctamente',
                     'id' => 1
                 ], 200);
             } else {
+                DB::rollBack();
                 return response()->json([
-                    'message' => 'No se puede anular contrato porque tiene documentos asociados.',
+                    'message' => 'No se puede anular contrato porque tiene documentos de venta asociados.',
                     'id' => 2
                 ], 200);
             }
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Error al anular contrato',
                 'error' => $e->getMessage()

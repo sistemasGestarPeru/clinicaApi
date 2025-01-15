@@ -117,7 +117,7 @@ class PagoController extends Controller
                 $query->where('d.Vigente', 0)
                       ->orWhereNull('pdv.Codigo');
             })
-            ->whereDate('p.Fecha', $fecha)
+            // ->whereDate('p.Fecha', $fecha)
             ->get();
 
             return response()->json($pagos, 200);
@@ -165,24 +165,56 @@ class PagoController extends Controller
     {
         $codigoPago = $request->input('codigoPago');
         $codigoTrabajador = $request->input('codigoTrabajador');
+        
+        DB::beginTransaction();
         try {
-
-            DB::table('pago')
+            // Verificar si existe el registro en 'pagodocumentoventa'
+            $registroExiste = DB::table('pagodocumentoventa')
+                ->where('CodigoPago', $codigoPago)
+                ->exists();
+    
+            if ($registroExiste) {
+                // Actualizar 'pagodocumentoventa' si existe
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoPago', $codigoPago)
+                    ->update([
+                        'Vigente' => 0
+                    ]);
+            }
+    
+            // Verificar si existe el registro en 'pago'
+            $registroPagoExiste = DB::table('pago')
                 ->where('Codigo', $codigoPago)
-                ->update([
-                    'CodigoTrabajador' => $codigoTrabajador,
-                    'Vigente' => 0
-                ]);
+                ->exists();
+    
+            if ($registroPagoExiste) {
+                // Actualizar 'pago' si existe
+                DB::table('pago')
+                    ->where('Codigo', $codigoPago)
+                    ->update([
+                        'CodigoTrabajador' => $codigoTrabajador,
+                        'Vigente' => 0
+                    ]);
+            }else{
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'El Pago no existe.',
+                ], 404);
+            }
 
+            DB::commit();
             return response()->json([
-                'message' => 'Pago anulado correctamente',
+                'message' => 'Pago anulado correctamente.',
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
-                'error' => $e->getMessage(),
+                'message' => 'Error al anular el Pago.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
+    
 
     public function consultarPago(Request $request)
     {

@@ -10,6 +10,9 @@ use App\Models\Recaudacion\MotivoPagoServicio;
 use App\Models\Recaudacion\PagoServicio;
 use App\Models\Recaudacion\SalidaDinero;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
+use App\Http\Requests\Recaudacion\PagoServicio\RegistrarPagoServicioRequest;
 
 class PagoServicioController extends Controller
 {
@@ -78,30 +81,31 @@ class PagoServicioController extends Controller
 
     public function registrarPago(Request $request)
     {
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
-
-        $motivoPagoServicio = $request->input('motivoPagoServicio');
         $pagoServicio = $request->input('pagoServicio');
         $egreso = $request->input('egreso');
-        $salidaDinero = $request->input('salidaDinero');
+
+        if($egreso['CodigoMedioPago'] == 1){
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        //Validar PagoServicio
+        $pagoServicioValidator = Validator::make($pagoServicio, (new RegistrarPagoServicioRequest())->rules());
+        $pagoServicioValidator->validate();
+
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+
+
 
         DB::beginTransaction();
         try {
 
-            $MotivoPagoData = MotivoPagoServicio::create($motivoPagoServicio);
-            $idMotivoPago = $MotivoPagoData->Codigo;
-
-            $egreso['Fecha'] = $fecha;
             $DataEgreso = Egreso::create($egreso);
             $idEgreso = $DataEgreso->Codigo;
 
             $pagoServicio['Codigo'] = $idEgreso;
-            $pagoServicio['CodigoMotivoPago'] = $idMotivoPago;
             PagoServicio::create($pagoServicio);
-
-            $salidaDinero['Codigo'] = $idEgreso;
-            SalidaDinero::create($salidaDinero);
 
             DB::commit();
             return response()->json([
