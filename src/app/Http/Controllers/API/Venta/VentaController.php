@@ -60,69 +60,6 @@ class VentaController extends Controller
         //
     }
 
-    private function getUploadConfig($pdfContent)
-    {
-        return [
-            'fileContent' => $pdfContent,
-            'projectId' => 'sitio-web-419317',
-            'bucketName' => 'gestar-peru',
-            'credentialsPath' => base_path('credentials.json')
-        ];
-    }
-
-    // Método para subir el archivo a Google Cloud Storage
-    private function uploadFile($config)
-    {
-        $storage = new StorageClient([
-            'projectId' => $config['projectId'],
-            'keyFilePath' => $config['credentialsPath']
-        ]);
-
-        $bucket = $storage->bucket($config['bucketName']);
-
-        // Nombre del archivo remoto
-        $remoteFileName = 'DocumentosVenta/' . uniqid() . '.pdf';
-
-        // Subir el archivo a Google Cloud Storage usando el contenido binario directamente
-        $bucket->upload($config['fileContent'], [
-            'name' => $remoteFileName,
-            'metadata' => [
-                'contentType' => 'application/pdf'
-            ]
-        ]);
-
-        return $remoteFileName;
-    }
-
-
-    //Metdo para consultar un archivo del bucket en Google Cloud Storage
-    private function fileExists($fileName)
-    {
-        $storage = new StorageClient([
-            'projectId' => 'sitio-web-419317',
-            'keyFilePath' => base_path('credentials.json')
-        ]);
-
-        $bucket = $storage->bucket('gestar-peru');
-        $object = $bucket->object($fileName);
-
-        return $object->exists();
-    }
-
-    // Método para eliminar un archivo del bucket en Google Cloud Storage
-    private function deleteFile($fileName)
-    {
-        $storage = new StorageClient([
-            'projectId' => 'sitio-web-419317',
-            'keyFilePath' => base_path('credentials.json')
-        ]);
-
-        $bucket = $storage->bucket('gestar-peru');
-
-        $object = $bucket->object($fileName);
-        $object->delete();
-    }
-
     public function registrarPagoVenta(Request $request)
     {
 
@@ -180,6 +117,7 @@ class VentaController extends Controller
         }
     }
 
+    
     public function registrarVenta(Request $request)
     {
         date_default_timezone_set('America/Lima');
@@ -323,75 +261,41 @@ class VentaController extends Controller
 
             //Consultar si tiene ventas realizadas
 
-            $documento = DB::table('documentoventa')->where('CodigoContratoProducto', $idContrato)->first();
-
-            if ($documento) {
-                // Crear una tabla temporal para los montos por producto
-                DB::statement("CREATE TEMPORARY TABLE TempProductoMontos (
-                    CodigoProducto INT,
-                    MontoTotal DECIMAL(10,2)
-                )");
-
-                // Obtener los datos agrupados por CodigoProducto y con la suma de MontoTotal, si hay ventas
-                $productos = DB::table('documentoventa as dv')
-                    ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
-                    ->select('ddv.CodigoProducto', DB::raw('SUM(ddv.MontoTotal) as MontoTotal'))
-                    ->where('dv.CodigoContratoProducto', $idContrato)
-                    ->where('dv.Vigente', 1)
-                    ->groupBy('ddv.CodigoProducto')
-                    ->get();
-
-                // Convertir los resultados a un arreglo de pares clave-valor para la inserción
-                $insertData = $productos->map(function ($producto) {
-                    return [
-                        'CodigoProducto' => $producto->CodigoProducto,
-                        'MontoTotal' => $producto->MontoTotal
-                    ];
-                })->toArray();
-
-                // Insertar los datos en la tabla temporal
-                DB::table('TempProductoMontos')->insert($insertData);
-
-                // Realizar la consulta principal
-                $detalle = DB::table('detallecontrato as d')
-                    ->leftJoin('TempProductoMontos as t', 'd.CodigoProducto', '=', 't.CodigoProducto')
-                    ->join('producto as p', 'p.Codigo', '=', 'd.CodigoProducto')
-                    ->select(
-                        DB::raw('(d.MontoTotal - COALESCE(t.MontoTotal, 0)) as MontoTotal'),
-                        'd.Cantidad',
-                        'd.Descripcion',
-                        'd.CodigoProducto',
-                        'p.TipoGravado',
-                        'p.Tipo',
-                        DB::raw("CASE 
-                            WHEN p.TipoGravado = 'A' 
-                            THEN ROUND(d.MontoTotal - (d.MontoTotal / (1 + 0.18)), 2) 
-                            ELSE 0 
-                        END as MontoIGV")
-                    )
-                    ->where('d.CodigoContrato', $idContrato)
-                    ->whereRaw('(d.MontoTotal - COALESCE(t.MontoTotal, 0)) != 0')
-                    ->get();
-
-                // Eliminar la tabla temporal después de usarla
-                DB::statement('DROP TEMPORARY TABLE IF EXISTS TempProductoMontos');
-            } else {
-
-                // Consulta del detalle del contrato
-                $detalle = DB::table('detallecontrato as dc')
+            $detalle = DB::table('detallecontrato as dc')
+                    ->selectRaw("
+                        (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) AS MontoTotal,
+                        CASE
+                            WHEN p.Tipo = 'B' THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) 
+                            WHEN p.Tipo = 'S' THEN 1
+                        END AS Cantidad,
+                        dc.Descripcion,
+                        dc.CodigoProducto,
+                        p.TipoGravado,
+                        p.Tipo,
+                        CASE
+                            WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2)
+                            ELSE 0
+                        END AS MontoIGV
+                    ")
+                    ->leftJoin('detalledocumentoventa as ddv', function($join) use ($idContrato) {
+                        $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
+                            ->whereIn('ddv.CodigoVenta', function($query) use ($idContrato) {
+                                $query->select('Codigo')
+                                    ->from('documentoventa')
+                                    ->where('CodigoContratoProducto', $idContrato);
+                            });
+                    })
                     ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-                    ->select(
-                        'dc.MontoTotal',
-                        'dc.Cantidad',
-                        'dc.Descripcion',
-                        'dc.CodigoProducto',
-                        'p.TipoGravado',
-                        'p.Tipo',
-                        DB::raw("(CASE WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2) ELSE 0 END) as MontoIGV")
-                    )
                     ->where('dc.CodigoContrato', $idContrato)
+                    ->groupBy('dc.Codigo', 'dc.Descripcion', 'dc.Cantidad', 'dc.MontoTotal', 'p.Codigo', 'p.TipoGravado', 'p.Tipo')
+                    ->havingRaw("
+                        CASE
+                            WHEN p.Tipo = 'B' THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
+                            WHEN p.Tipo = 'S' THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
+                            ELSE 0
+                        END
+                    ")
                     ->get();
-            }
 
             // Convertir los valores a números en lugar de cadenas
             $detalle = $detalle->map(function ($item) {
