@@ -130,19 +130,19 @@ class PagoProveedorController extends Controller
         $codigoCompra = $request->input('codigoCompra');
 
         try {
-            $resultado = DB::table('Cuota as C')
-                ->select(
-                    'C.Codigo',
-                    'C.Fecha',
-                    'C.Monto',
-                    DB::raw('CASE WHEN PP.Codigo IS NULL THEN 1 ELSE 0 END AS Condicion'),
-                    'CO.FormaPago'
-                )
-                ->leftJoin('PagoProveedor as PP', 'C.Codigo', '=', 'PP.CodigoCuota')
-                ->join('Compra as CO', 'C.CodigoCompra', '=', 'CO.Codigo')
-                ->where('C.CodigoCompra', '=', $codigoCompra)
-                ->where('C.Vigente', '=', 1)
-                ->get();
+            $resultado = DB::table('cuota AS C')
+            ->select(
+                'C.Codigo',
+                'C.Fecha',
+                'C.Monto',
+                DB::raw('COALESCE(SUM(e.Monto), 0) AS MontoTotalPagado'),
+                DB::raw('(C.Monto - COALESCE(SUM(e.Monto), 0)) AS MontoRestante')
+            )
+            ->leftJoin('PagoProveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
+            ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
+            ->where('C.CodigoCompra', '=', $codigoCompra)
+            ->groupBy('C.Codigo', 'C.Fecha', 'C.Monto')
+            ->get();
 
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
