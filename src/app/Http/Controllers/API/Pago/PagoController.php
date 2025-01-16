@@ -104,21 +104,19 @@ class PagoController extends Controller
                 'p.Monto'
             )
             ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-            ->leftJoin('pagodocumentoventa as pdv', function ($join) {
-                $join->on('pdv.CodigoPago', '=', 'p.Codigo')
-                     ->where('pdv.Vigente', '=', 1);
-            })
+            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoPago', '=', 'p.Codigo')
             ->leftJoin('documentoventa as d', function ($join) use ($codigoSede) {
                 $join->on('d.Codigo', '=', 'pdv.CodigoDocumentoVenta')
-                     ->where('d.CodigoSede', '=', $codigoSede);
+                    ->where('d.CodigoSede', '=', $codigoSede);
             })
             ->where('p.Vigente', 1)
-            ->where(function ($query) {
-                $query->where('d.Vigente', 0)
-                      ->orWhereNull('pdv.Codigo');
-            })
             // ->whereDate('p.Fecha', $fecha)
+            ->where(function ($query) {
+                $query->where('pdv.Vigente', 0)
+                    ->orWhereNull('pdv.Codigo');
+            })
             ->get();
+
 
             return response()->json($pagos, 200);
 
@@ -168,21 +166,7 @@ class PagoController extends Controller
         
         DB::beginTransaction();
         try {
-            // Verificar si existe el registro en 'pagodocumentoventa'
-            $registroExiste = DB::table('pagodocumentoventa')
-                ->where('CodigoPago', $codigoPago)
-                ->exists();
-    
-            if ($registroExiste) {
-                // Actualizar 'pagodocumentoventa' si existe
-                DB::table('pagodocumentoventa')
-                    ->where('CodigoPago', $codigoPago)
-                    ->update([
-                        'Vigente' => 0
-                    ]);
-            }
-    
-            // Verificar si existe el registro en 'pago'
+
             $registroPagoExiste = DB::table('pago')
                 ->where('Codigo', $codigoPago)
                 ->exists();

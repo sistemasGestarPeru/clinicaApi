@@ -287,4 +287,25 @@ class ControladorGeneralController extends Controller
         }
 
     }
+
+    public function personalAutorizado($sede){
+        
+        try{
+
+            $trabajadores = DB::table('trabajadors as t')
+            ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
+            ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
+            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+            ->where('t.AutorizaDescuento', 1)
+            ->where('t.Vigente', 1)
+            ->where('p.Vigente', 1)
+            ->where('ass.Vigente', 1)
+            ->where('ass.CodigoSede', $sede)
+            ->get();
+            return response()->json($trabajadores);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+
+    }
 }
