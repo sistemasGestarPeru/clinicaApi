@@ -113,21 +113,22 @@ class CompraController extends Controller
 
         try {
             $result = DB::table('PagoProveedor as pp')
-                ->join('Egreso as e', 'e.Codigo', '=', 'pp.Codigo')
-                ->select(
-                    'e.Codigo as CodigoE',
-                    'pp.TipoMoneda',
-                    'e.Fecha',
-                    DB::raw("
-                        CASE 
-                            WHEN pp.TipoMoneda = 'S' THEN e.Monto
-                            ELSE pp.MontoMonedaExtranjera
-                        END AS Monto
-                        ")
-                )
-                ->where('pp.CodigoProveedor', $Proveedor)
-                ->whereNull('pp.CodigoCuota')
-                ->get();
+            ->join('Egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+            ->join('tipomoneda as tp', 'tp.Codigo', '=', 'pp.tipomoneda')
+            ->select(
+                'e.Codigo as CodigoE',
+                'tp.Siglas as TipoMoneda',
+                'e.Fecha',
+                DB::raw("
+                    CASE 
+                        WHEN pp.TipoMoneda = 1 THEN e.Monto
+                        ELSE pp.MontoMonedaExtranjera
+                    END AS Monto
+                ")
+            )
+            ->where('pp.CodigoProveedor', $Proveedor)
+            ->whereNull('pp.CodigoCuota')
+            ->get();
             return response()->json($result, 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al listar los pagos adelantados'], 500);
