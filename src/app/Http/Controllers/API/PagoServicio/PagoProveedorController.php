@@ -71,6 +71,8 @@ class PagoProveedorController extends Controller
             $egreso['CodigoCuentaOrigen'] = null;
         }
 
+        $pagoProveedor['TipoMoneda'] = 1;
+
         DB::beginTransaction();
         try {
             $DataEgreso = Egreso::create($egreso);

@@ -24,7 +24,7 @@ class PagoProveedorRequest extends FormRequest
         return [
             // 'CodigoCuota' => 'required|integer|min:1',
             'CodigoProveedor' => 'required|integer|min:1',
-            'TipoMoneda' => 'required|string',
+            // 'TipoMoneda' => 'required|integer | min:1',
             // 'MontoMonedaExtranjera' => 'required|numeric|min:1',
         ];
     }
@@ -40,8 +40,8 @@ class PagoProveedorRequest extends FormRequest
             'CodigoProveedor.integer' => 'Debe seleccionar un Proveedor.',
             'CodigoProveedor.min' => 'Debe seleccionar un Proveedor.',
 
-            'TipoMonedad.required' => 'El campo Moneda es obligatorio.',
-            'TipoMonedad.string' => 'Error con el Tipo de Moneda.',
+            // 'TipoMonedad.required' => 'El campo Moneda es obligatorio.',
+            // 'TipoMonedad.integer' => 'Error con el Tipo de Moneda.',
             // 'MontoMonedaExtranjera.required' => 'El campo Monto Moneda Extranjera es obligatorio.',
             // 'MontoMonedaExtranjera.numeric' => 'El campo Monto Moneda Extranjera debe ser un número.',
             // 'MontoMonedaExtranjera.min' => 'El campo Monto Moneda Extranjera debe ser mayor a 0.',
