@@ -137,6 +137,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
     Route::get('combos/listarMotivoPagoServicio', [ControladorGeneralController::class, 'listarMotivoPagoServicio']);
     Route::get('combos/personalAutorizado/{sede}', [ControladorGeneralController::class, 'personalAutorizado']);
+    Route::get('combos/listarTipoMoneda', [ControladorGeneralController::class, 'listarTipoMoneda']);
     
     /***************************************************************************/
     /********************************* CLIENTES *********************************/

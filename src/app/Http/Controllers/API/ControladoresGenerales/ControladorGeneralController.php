@@ -308,4 +308,18 @@ class ControladorGeneralController extends Controller
         }
 
     }
+
+    public function listarTipoMoneda(){
+        try{
+            $resp = DB::table('tipomoneda')
+            ->select('Codigo', 'Nombre', 'Siglas')
+            ->where('Vigente', 1)
+            ->get();
+
+            return response()->json($resp);
+
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
 }
