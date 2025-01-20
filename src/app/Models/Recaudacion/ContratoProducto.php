@@ -23,6 +23,7 @@ class ContratoProducto extends Model
         'CodigoClienteEmpresa',
         'CodigoSede',
         'CodigoTrabajador',
-        'Vigente'
+        'Vigente',
+        'CodigoMedico'
     ];
 }

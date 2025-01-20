@@ -322,4 +322,46 @@ class ControladorGeneralController extends Controller
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
+
+    public function listarMedicos($sede){ //Para Contrato y Ventas
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+        try{
+
+            $resultado = DB::table('trabajadors as t')
+                ->join('asignacion_sedes as ags', 'ags.CodigoTrabajador', '=', 't.Codigo')
+                ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+                ->select('t.Codigo as Codigo', 'p.Apellidos', 'p.Nombres')
+                ->where('p.Vigente', 1)
+                ->where('t.Vigente', 1)
+                ->where('ags.Vigente', 1)
+                ->where(function ($query) use ($fecha) {
+                    $query->where('ags.FechaFin', '>=', $fecha)
+                        ->orWhereNull('ags.FechaFin');
+                })
+                ->where('ags.CodigoSede', $sede)
+                ->where('t.Tipo', 'M')
+                ->get();
+
+            return response()->json($resultado);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarPacientes($sede){
+        try{
+            $resultado = DB::table('Personas as p')
+                ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
+                ->select('p.Codigo', 'p.Nombres', 'p.Apellidos')
+                ->where('p.Vigente', 1)
+                ->where('s.Vigente', 1)
+                ->where('s.Codigo', $sede)
+                ->get();
+            return response()->json($resultado);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
 }

@@ -58,38 +58,25 @@ class ContratoProductoeController extends Controller
     {
         $nombreProducto = $request->input('nombreProducto');
         $sede = $request->input('sede');
-        $tipo = $request->input('tipo');
 
         try {
-
             $producto = DB::table('sedeproducto as sp')
-                ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado', 'sp.Stock')
-                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
-                ->where('sp.Vigente', 1) // Filtro por Vigente
-                ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
-                ->where(function ($query) use ($tipo) {
-                    $query->where('p.Tipo', $tipo) // Filtro por Tipo
-                        ->orWhereNotExists(function ($subquery) use ($tipo) {
-                            $subquery->select(DB::raw(1))
-                                ->from('producto')
-                                ->where('Tipo', $tipo)
-                                ->where('Vigente', 1); // Verificación de existencia
-                        });
-                })
-                ->get();
-
-
-            // $producto = DB::table('sedeproducto as sp')
-            //     ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-            //     ->select('p.Codigo', 'p.Nombre', 'p.Monto', 'p.Tipo', 'p.TipoGravado')
-            //     ->where('p.Vigente', 1)
-            //     ->where('p.Nombre', 'like', '%' . $nombreProducto . '%')
-            //     ->where('sp.CodigoSede', $sede)
-            //     ->get();
-
-
-
+            ->select(
+                'p.Codigo',
+                'p.Nombre',
+                'sp.Precio as Monto',
+                'p.Tipo',
+                'tg.Tipo as TipoGravado',
+                'sp.Stock'
+            )
+            ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+            ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+            ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
+            ->where('p.Vigente', 1) // Filtro por Vigente en producto
+            ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
+            ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
+            ->get();
 
             return response()->json($producto);
         } catch (\Exception $e) {
@@ -261,5 +248,42 @@ class ContratoProductoeController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+
+    public function visualizarContrato($contrato){
+            $contratoProducto = DB::table('contratoproducto as cp')
+            ->select(
+                DB::raw("
+                    CASE
+                        WHEN cp.CodigoClienteEmpresa IS NULL THEN CONCAT(pPac.Nombres, ' ', pPac.Apellidos)
+                        ELSE ce.RazonSocial
+                    END AS Nombre
+                "),
+                DB::raw("
+                    CASE
+                        WHEN cp.CodigoClienteEmpresa IS NULL THEN CONCAT(td.Nombre, ': ', pPac.NumeroDocumento)
+                        ELSE ce.RUC
+                    END AS Documento
+                "),
+                DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
+            )
+            ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
+            ->leftJoin('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
+            ->leftJoin('clienteEmpresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
+            ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
+            ->where('cp.Codigo', $contrato)
+            ->first();
+
+        $detalleContrato = DB::table('detallecontrato as dc')
+            ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad')
+            ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+            ->where('dc.Codigo', $contrato)
+            ->get();
+
+        return response()->json([
+            'contratoProducto' => $contratoProducto,
+            'detalleContrato' => $detalleContrato,
+        ]);
     }
 }

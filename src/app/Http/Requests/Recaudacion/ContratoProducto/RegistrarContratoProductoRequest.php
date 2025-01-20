@@ -26,7 +26,8 @@ class RegistrarContratoProductoRequest extends FormRequest
             'CodigoEmpresa' => 'required_without:CodigoPaciente|integer',
             'CodigoSede' => 'required|integer|min:1',
             'CodigoTrabajador' => 'required|integer|min:1',
-            'Total' => 'required|numeric|min:1'
+            'Total' => 'required|numeric|min:1',
+            'CodigoMedico' => 'required|integer|min:1',
         ];
     }
     
@@ -43,6 +44,8 @@ class RegistrarContratoProductoRequest extends FormRequest
             'Total.min'=> 'Monto debe ser mayor a S/. 0.',
             'Total.required'=> 'Monto no válido.',
             'Total.numeric'=> 'Monto no válido.',
+            'CodigoMedico.required' => 'Debe seleccionar un Médico.',
+            'CodigoMedico.min' => 'Médico no válido.',
             
         ];
     }
