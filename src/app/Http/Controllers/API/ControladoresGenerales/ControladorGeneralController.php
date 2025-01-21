@@ -63,6 +63,22 @@ class ControladorGeneralController extends Controller
         }
     }
 
+    public function listarTipoDocIdentidad(){
+        
+        try{
+            $documentos = DB::table('clinica_db.tipo_documentos')
+            ->where('Vigente', 1)
+            ->select('Codigo as Codigo', 'Siglas as Nombre')
+            ->get();
+    
+            return response()->json($documentos);
+            
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+
+    }
+
     //Listar Combo Empresas
     public function listarEmpresas()
     {

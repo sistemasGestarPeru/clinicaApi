@@ -433,7 +433,7 @@ class VentaController extends Controller
             $codigoSede = $request->input('codigoSede');
 
             $venta = DB::table('clinica_db.documentoventa')
-                ->where(DB::raw("DATE(Fecha)"), $fecha)
+                // ->where(DB::raw("DATE(Fecha)"), $fecha)
                 ->where('CodigoSede', $codigoSede)
                 ->where('Vigente', 1)
                 ->select(

@@ -117,6 +117,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
     /********************************* COMBOS *********************************/
+    Route::get('combos/listarTipoDocIdentidad', [ControladorGeneralController::class, 'listarTipoDocIdentidad']);
     Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
     Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
     Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
@@ -231,7 +232,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
-    Route::get('tipodocumento/listar', [TipoDocumentoController::class, 'index']);
+
     Route::get('departamento/listar', [DepartamentoController::class, 'index']);
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);

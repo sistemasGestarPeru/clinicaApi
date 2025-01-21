@@ -15,12 +15,6 @@ class TipoDocumentoController extends Controller
     public function index()
     {
 
-        $documentos = DB::table('clinica_db.tipo_documentos')
-            ->where('Vigente', 1)
-            ->select('Codigo as Codigo', 'Siglas as Nombre')
-            ->get();
-
-        return response()->json($documentos);
     }
 
     /**
