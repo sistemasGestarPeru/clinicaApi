@@ -36,7 +36,7 @@ class RegistrarVentaRequest extends FormRequest
             'MontoPagado' => 'required|numeric|min:0',
             'CodigoContratoProducto' => 'nullable|integer|min:1',
             'CodigoCaja' => 'required|integer|min:1',
-            'CodigoAutorizador' => 'nullable|integer|min:1',
+            // 'CodigoAutorizador' => 'nullable|integer|min:1',
             'CodigoMedico' => 'required|integer|min:1',
             'CodigoPaciente' => 'required|integer|min:1',
         ];

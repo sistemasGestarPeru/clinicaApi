@@ -132,8 +132,11 @@ class VentaController extends Controller
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
         $ventaValidator->validate();
 
-        //validar Detalles de Venta
+        if (isset($ventaData['CodigoAutorizador']) && $ventaData['CodigoAutorizador'] == 0) {
+            $ventaData['CodigoAutorizador'] = null;
+        }
 
+        //validar Detalles de Venta
         $detalleVentaValidar = Validator::make(
             ['detalleVenta' => $detallesVentaData],
             (new RegistrarDetalleVentaRequest())->rules()
@@ -231,40 +234,50 @@ class VentaController extends Controller
             //Consultar si tiene ventas realizadas
 
             $detalle = DB::table('detallecontrato as dc')
-                    ->selectRaw("
-                        (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) AS MontoTotal,
-                        CASE
-                            WHEN p.Tipo = 'B' THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) 
-                            WHEN p.Tipo = 'S' THEN 1
-                        END AS Cantidad,
-                        dc.Descripcion,
-                        dc.CodigoProducto,
-                        p.TipoGravado,
-                        p.Tipo,
-                        CASE
-                            WHEN p.TipoGravado = 'A' THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + 0.18)), 2)
-                            ELSE 0
-                        END AS MontoIGV
-                    ")
-                    ->leftJoin('detalledocumentoventa as ddv', function($join) use ($idContrato) {
-                        $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
-                            ->whereIn('ddv.CodigoVenta', function($query) use ($idContrato) {
-                                $query->select('Codigo')
-                                    ->from('documentoventa')
-                                    ->where('CodigoContratoProducto', $idContrato);
-                            });
-                    })
-                    ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-                    ->where('dc.CodigoContrato', $idContrato)
-                    ->groupBy('dc.Codigo', 'dc.Descripcion', 'dc.Cantidad', 'dc.MontoTotal', 'p.Codigo', 'p.TipoGravado', 'p.Tipo')
-                    ->havingRaw("
-                        CASE
-                            WHEN p.Tipo = 'B' THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
-                            WHEN p.Tipo = 'S' THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
-                            ELSE 0
-                        END
-                    ")
-                    ->get();
+            ->selectRaw('
+                (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) AS MontoTotal,
+                CASE
+                    WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0))
+                    WHEN p.Tipo = "S" THEN 1
+                END AS Cantidad,
+                dc.Descripcion,
+                dc.CodigoProducto,
+                p.Tipo,
+                CASE
+                    WHEN tg.Tipo = "G" THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + (tg.Porcentaje / 100))), 2)
+                    ELSE 0
+                END AS MontoIGV
+                ')
+                ->leftJoin('detalledocumentoventa as ddv', function ($join) use ($idContrato) {
+                    $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
+                        ->whereIn('ddv.CodigoVenta', function ($query) use ($idContrato) {
+                            $query->select('Codigo')
+                                ->from('documentoventa')
+                                ->where('CodigoContratoProducto', $idContrato);
+                        });
+                })
+                ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+                ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'dc.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+                ->where('dc.CodigoContrato', $idContrato)
+                ->groupBy(
+                    'dc.Codigo', 
+                    'dc.Descripcion', 
+                    'dc.Cantidad', 
+                    'dc.MontoTotal', 
+                    'p.Codigo', 
+                    'p.Tipo', 
+                    'tg.Tipo', 
+                    'tg.Porcentaje'
+                )
+                ->havingRaw('
+                    CASE
+                        WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
+                        WHEN p.Tipo = "S" THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
+                        ELSE 0
+                    END
+                ')
+            ->get();
 
             // Convertir los valores a números en lugar de cadenas
             $detalle = $detalle->map(function ($item) {
