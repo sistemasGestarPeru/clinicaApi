@@ -18,11 +18,11 @@ class DetalleVenta extends Model
         'Numero',
         'Descripcion',
         'Cantidad',
-        'TipoGravado',
         'MontoTotal',
         'MontoIGV',
         'CodigoVenta',
-        'CodigoProducto'
-
+        'CodigoProducto',
+        'Descuento',
+        'CodigoTipoGravado'
     ];
 }

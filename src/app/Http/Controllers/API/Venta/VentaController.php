@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API\Venta;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\Pago\RegistrarPagoRequest;
+use App\Http\Requests\Venta\RegistrarDetalleVentaRequest;
+use App\Http\Requests\Venta\RegistrarVentaRequest;
 use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\IngresoDinero;
@@ -15,6 +18,7 @@ use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Validator;
 
 use TCPDF;
 
@@ -120,101 +124,66 @@ class VentaController extends Controller
     
     public function registrarVenta(Request $request)
     {
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
-
-        $detallesVentaData = $request->input('detalleVenta');
         $ventaData = $request->input('venta');
+        $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
-        $detraccion = $request->input('detraccion');
 
-        if (!$detallesVentaData) {
-            return response()->json(['error' => 'No se han enviado los detalles de la venta'], 400);
-        }
+        //Validar Venta
+        $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
+        $ventaValidator->validate();
 
-        if (!$ventaData) {
-            return response()->json(['error' => 'No se han enviado los datos de la venta'], 400);
-        }
+        //validar Detalles de Venta
 
-        // if (!$pagoData) {
-        //     return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
-        // }
+        $detalleVentaValidar = Validator::make(
+            ['detalleVenta' => $detallesVentaData],
+            (new RegistrarDetalleVentaRequest())->rules()
+        );
+        $detalleVentaValidar->validate();
 
-        if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
-            $ventaData['CodigoPersona'] = null;
-        }
+        //Validar Pago
+        if ($pagoData) {
+            $pagoData['Monto'] = $ventaData['MontoPagado'];
+            $pagoData['CodigoCaja'] = $ventaData['CodigoCaja'];
+            $pagoData['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
 
-        if (isset($ventaData['CodigoClienteEmpresa']) && $ventaData['CodigoClienteEmpresa'] == 0) {
-            $ventaData['CodigoClienteEmpresa'] = null;
-        }
-
-        if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto'] == 0) {
-            $ventaData['CodigoContratoProducto'] = null;
-        }
-
-        if (!empty($pagoData)) {
-            if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+            if($pagoData['CodigoMedioPago'] == 1){
+                $pagoData['Fecha'] = date('Y-m-d H:i:s');
                 $pagoData['CodigoCuentaBancaria'] = null;
             }
-
-            if ($pagoData['CodigoMedioPago'] == 1) {
-
-                $pagoData['Fecha'] = $fecha;
-            }
+            $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
+            $pagoValidator->validate();
         }
 
-        $ventaData['Fecha'] = $fecha;
 
-        $ventaData['EstadoFactura'] = 'M';
-
-        // $MedioPago = $pagoData['CodigoMedioPago'];
-
-        // $CodigoTipoDocumentoVenta = $ventaData['CodigoTipoDocumentoVenta'];
-        // $sede = $ventaData['CodigoSede'];
-
-
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
         DB::beginTransaction();
-        try {
+        try{
+            $ventaData['Fecha'] = $fecha;
+            $ventaCreada = Venta::create($ventaData);
 
-            $venta = Venta::create($ventaData);
-            $codigoVenta = $venta->Codigo;
-
-            foreach ($detallesVentaData as $detalle) {
-                $detalle['CodigoVenta'] = $codigoVenta;
+            foreach($detallesVentaData as $detalle){
+                $detalle['CodigoVenta'] = $ventaCreada->Codigo;
                 DetalleVenta::create($detalle);
             }
 
-
-            if (!empty($pagoData)) {
-                $pago = Pago::create($pagoData);
-                $codigoPago = $pago->Codigo;
-
+            if($pagoData){
+                $pagoCreado = Pago::create($pagoData);
                 PagoDocumentoVenta::create([
-                    'CodigoPago' => $codigoPago,
-                    'CodigoDocumentoVenta' => $codigoVenta,
-                    'Monto' => $pagoData['Monto'],
+                    'CodigoPago' => $pagoCreado->Codigo,
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                    'Monto' => $pagoData['Monto']
                 ]);
             }
 
-            if (!empty($detraccion)) {
-                $detraccion['Fecha'] = $fecha;;
-                Pago::create($detraccion);
-            }
-
-            if ($ventaData['CodigoContratoProducto']) {
-                DB::table('contratoproducto')
-                    ->where('Codigo', $ventaData['CodigoContratoProducto'])
-                    ->increment('TotalPagado', $pagoData['Monto']);
-            }
-
-            //$url = $this->generarPDF(); //asignar a una variable de la tabla DetalleVenta
-
             DB::commit();
-            return response()->json(['message' => 'Venta registrada correctamente.', 'venta' => $venta->Codigo], 201);
-        } catch (\Exception $e) {
+            return response()->json(['message' => 'Venta registrada correctamente.'], 201);
+        
+        }catch(\Exception $e){
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar la Venta.'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
+
     }
 
     public function consultarDatosContratoProducto(Request $request)
@@ -393,14 +362,22 @@ class VentaController extends Controller
 
     public function buscarCliente(Request $request)
     {
-        $tipoDocumento = $request->input('tipoDocumento');
         $numDocumento = $request->input('numDocumento');
         $codSede = $request->input('codSede');
         $codDocumento = $request->input('codDocumento');
 
+        $primerosDosDigitos = substr($numDocumento, 0, 2);
         try {
-            if ($tipoDocumento !== 'RUC') {
-                $cliente = DB::table('personas as p')
+            if ($primerosDosDigitos == '20') {
+                $cliente = DB::table('clienteempresa as ce')
+                    ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'ce.CodigoDepartamento')
+                    ->where('ce.RUC', $numDocumento)
+                    ->where('ce.Vigente', 1)
+                    ->where('s.Codigo', $codSede)
+                    ->select('ce.Codigo', 'ce.RazonSocial as NombreCompleto', DB::raw('0 as TipoCliente'))
+                    ->first();
+            } else {
+                    $cliente = DB::table('personas as p')
                     ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
                     ->where('s.Codigo', $codSede)
                     ->where('s.Vigente', 1)
@@ -410,14 +387,6 @@ class VentaController extends Controller
                     ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto"), DB::raw('1 as TipoCliente'))
                     ->orderBy('p.Codigo')
                     ->first();
-            } else {
-                $cliente = DB::table('clienteempresa as ce')
-                    ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'ce.CodigoDepartamento')
-                    ->where('ce.RUC', $numDocumento)
-                    ->where('ce.Vigente', 1)
-                    ->where('s.Codigo', $codSede)
-                    ->select('ce.Codigo', 'ce.RazonSocial as NombreCompleto', DB::raw('0 as TipoCliente'))
-                    ->first();
             }
             return response()->json($cliente, 200);
         } catch (\Exception $e) {
@@ -425,7 +394,48 @@ class VentaController extends Controller
         }
     }
 
+    public function buscarProductos(Request $request){
 
+        $nombreProducto = $request->input('nombreProducto');
+        $sede = $request->input('codigoSede');
+        $tipo = $request->input('tipo');
+        
+        try{
+            $productos = DB::table('sedeproducto as sp')
+            ->select(
+                'p.Codigo',
+                'p.Nombre',
+                'sp.Precio as Monto',
+                'p.Tipo',
+                'tg.Tipo as TipoGravado',
+                'tg.Codigo as CodigoTipoGravado',
+                'tg.Porcentaje',
+                'tg.CodigoSUNAT',
+                'sp.Stock'
+            )
+            ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+            ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+            ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
+            ->where('p.Vigente', 1) // Filtro por Vigente en producto
+            ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
+            ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
+            ->where(function ($query) use ($tipo) {
+                $query->where('p.Tipo', $tipo) // Filtro por Tipo
+                    ->orWhereNotExists(function ($subquery) use ($tipo) {
+                        $subquery->select(DB::raw(1))
+                            ->from('producto')
+                            ->where('Tipo', $tipo)
+                            ->where('Vigente', 1); // Verificación de existencia
+                    });
+            })
+            ->get();
+            return response()->json($productos, 200);
+        }
+        catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
     public function buscarVenta(Request $request)
     {
         try {
@@ -496,7 +506,7 @@ class VentaController extends Controller
                     WHEN ldv.TipoProducto = 'T' THEN 'Todo'
                     ELSE 'Desconocido'
                 END AS TipoProducto
-            ")
+                ")
                 ])
                 ->join('sedesrec as s', 's.Codigo', '=', 'ldv.CodigoSede')
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')

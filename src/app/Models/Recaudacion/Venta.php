@@ -28,6 +28,7 @@ class Venta extends Model
         'TotalGravado',
         'TotalExonerado',
         'TotalInafecto',
+        'TotalGratis',
         'IGVTotal',
         'MontoTotal',
         'MontoPagado',
@@ -35,6 +36,9 @@ class Venta extends Model
         'EstadoFactura',
         'CodigoContratoProducto',
         'CodigoCaja',
+        'CodigoAutorizador',
+        'CodigoMedico',
+        'CodigoPaciente',
         'Vigente'
 
     ];

@@ -278,7 +278,7 @@ class ContratoProductoeController extends Controller
         $detalleContrato = DB::table('detallecontrato as dc')
             ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad')
             ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-            ->where('dc.Codigo', $contrato)
+            ->where('dc.CodigoContrato', $contrato)
             ->get();
 
         return response()->json([

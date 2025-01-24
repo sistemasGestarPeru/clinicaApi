@@ -68,7 +68,7 @@ class ControladorGeneralController extends Controller
         try{
             $documentos = DB::table('clinica_db.tipo_documentos')
             ->where('Vigente', 1)
-            ->select('Codigo as Codigo', 'Siglas as Nombre')
+            ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
             ->get();
     
             return response()->json($documentos);
