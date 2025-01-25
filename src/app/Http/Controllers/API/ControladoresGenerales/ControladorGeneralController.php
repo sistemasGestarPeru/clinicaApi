@@ -191,7 +191,7 @@ class ControladorGeneralController extends Controller
             $docVentas = DB::table('localdocumentoventa as ldv')
                 ->join('sedesrec as s', 's.Codigo', '=', 'ldv.CodigoSede')
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
-                ->select('tdv.Codigo', 'tdv.Nombre')
+                ->select('tdv.Codigo', 'tdv.Nombre', 'tdv.CodigoSUNAT')
                 ->where('ldv.CodigoSede', $sede)
                 ->where('tdv.Vigente', 1)
                 ->where('s.Vigente', 1)

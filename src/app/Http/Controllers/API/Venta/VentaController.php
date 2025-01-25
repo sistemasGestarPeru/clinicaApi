@@ -179,6 +179,12 @@ class VentaController extends Controller
                 ]);
             }
 
+            if ($ventaData['CodigoContratoProducto']) {
+                DB::table('contratoproducto')
+                    ->where('Codigo', $ventaData['CodigoContratoProducto'])
+                    ->increment('TotalPagado', $pagoData['Monto']);
+            }
+
             DB::commit();
             return response()->json(['message' => 'Venta registrada correctamente.'], 201);
         
@@ -195,41 +201,63 @@ class VentaController extends Controller
         try {
             // Consulta del contrato
             $contrato = DB::table('contratoproducto as cp')
-                ->leftJoin('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-                ->leftJoin('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
-                ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
-                ->where('cp.Codigo', $idContrato)
-                ->select(
-                    'cp.Codigo',
-                    'cp.NumContrato',
-                    DB::raw('DATE(cp.Fecha) as Fecha'),
-                    DB::raw(
-                        "
-                        CASE 
-                            WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
-                            WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
-                            ELSE 'No identificado'
-                        END as NombreCompleto"
-                    ),
-                    DB::raw(
-                        "
-                        CASE 
-                            WHEN p.Codigo IS NOT NULL THEN CONCAT(td.Siglas, ': ', p.NumeroDocumento)
-                            WHEN ce.Codigo IS NOT NULL THEN ce.Ruc
-                            ELSE 'Documento no disponible'
-                        END as DocumentoCompleto"
-                    ),
-                    DB::raw('COALESCE(p.Codigo, 0) as CodigoPaciente'),
-                    DB::raw('COALESCE(ce.Codigo, 0) as CodigoEmpresa'),
-                    DB::raw(
-                        "
-                        CASE
-                            WHEN p.Codigo IS NOT NULL THEN p.CodigoTipoDocumento
-                            ELSE -1
-                        END as CodTipoDoc"
-                    )
-                )
-                ->first();
+            ->leftJoin('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+            ->leftJoin('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
+            ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
+            ->leftJoinSub(
+                DB::table('documentoventa')
+                    ->select('CodigoPaciente', 'CodigoContratoProducto')
+                    ->where('Vigente', 1),
+                'dv',
+                'dv.CodigoContratoProducto',
+                '=',
+                'cp.Codigo'
+            )
+            ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
+            ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
+            ->where('cp.Codigo', $idContrato)
+            ->select(
+                'cp.Codigo',
+                'cp.NumContrato',
+                DB::raw('DATE(cp.Fecha) as Fecha'),
+                DB::raw("
+                    CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                        ELSE 'No identificado'
+                    END as NombreCompleto
+                "),
+                DB::raw("
+                    CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(td.Siglas, ': ', p.NumeroDocumento)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.Ruc
+                        ELSE 'Documento no disponible'
+                    END as DocumentoCompleto
+                "),
+                DB::raw('COALESCE(p.Codigo, 0) as CodigoPersona'),
+                DB::raw('COALESCE(ce.Codigo, 0) as CodigoEmpresa'),
+                DB::raw("
+                    CASE
+                        WHEN p.Codigo IS NOT NULL THEN p.CodigoTipoDocumento
+                        ELSE -1
+                    END as CodTipoDoc
+                "),
+                'cp.CodigoMedico',
+                DB::raw('COALESCE(dv.CodigoPaciente, 0) as CodigoPaciente'),
+                DB::raw("
+                    COALESCE(
+                        CONCAT(paciente.Nombres, ' ', paciente.Apellidos), 
+                        ''
+                    ) as NombrePaciente
+                "),
+                DB::raw("
+                    COALESCE(
+                        CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), 
+                        ''
+                    ) as DocumentoPaciente
+                ")
+            )
+            ->first();
 
             //Consultar si tiene ventas realizadas
 
@@ -246,37 +274,39 @@ class VentaController extends Controller
                 CASE
                     WHEN tg.Tipo = "G" THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + (tg.Porcentaje / 100))), 2)
                     ELSE 0
-                END AS MontoIGV
-                ')
-                ->leftJoin('detalledocumentoventa as ddv', function ($join) use ($idContrato) {
-                    $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
-                        ->whereIn('ddv.CodigoVenta', function ($query) use ($idContrato) {
-                            $query->select('Codigo')
-                                ->from('documentoventa')
-                                ->where('CodigoContratoProducto', $idContrato);
-                        });
-                })
-                ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-                ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'dc.CodigoProducto')
-                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-                ->where('dc.CodigoContrato', $idContrato)
-                ->groupBy(
-                    'dc.Codigo', 
-                    'dc.Descripcion', 
-                    'dc.Cantidad', 
-                    'dc.MontoTotal', 
-                    'p.Codigo', 
-                    'p.Tipo', 
-                    'tg.Tipo', 
-                    'tg.Porcentaje'
-                )
-                ->havingRaw('
-                    CASE
-                        WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
-                        WHEN p.Tipo = "S" THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
-                        ELSE 0
-                    END
-                ')
+                END AS MontoIGV,
+                tg.Tipo AS TipoGravado,
+                tg.Codigo AS CodigoTipoGravado
+            ')
+            ->leftJoin('detalledocumentoventa as ddv', function ($join) use ($idContrato) {
+                $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
+                    ->whereIn('ddv.CodigoVenta', function ($query) use ($idContrato) {
+                        $query->select('Codigo')
+                            ->from('documentoventa')
+                            ->where('CodigoContratoProducto', $idContrato);
+                    });
+            })
+            ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+            ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'dc.CodigoProducto')
+            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+            ->where('dc.CodigoContrato', $idContrato)
+            ->groupBy(
+                'dc.CodigoProducto', 
+                'dc.Descripcion', 
+                'dc.Cantidad', 
+                'dc.MontoTotal', 
+                'p.Tipo', 
+                'tg.Tipo', 
+                'tg.Porcentaje',
+                'tg.Codigo' 
+            )
+            ->havingRaw('
+                CASE
+                    WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
+                    WHEN p.Tipo = "S" THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
+                    ELSE 0
+                END
+            ')
             ->get();
 
             // Convertir los valores a números en lugar de cadenas
