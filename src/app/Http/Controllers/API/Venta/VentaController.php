@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\API\Venta;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\Pago\RegistrarPagoRequest;
 use App\Http\Requests\Venta\RegistrarDetalleVentaRequest;
 use App\Http\Requests\Venta\RegistrarVentaRequest;
 use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
+use App\Models\Recaudacion\DevolucionNotaCredito;
+use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\IngresoDinero;
 use App\Models\Recaudacion\LocalDocumentoVenta;
 use App\Models\Recaudacion\LocalMedioPago;
@@ -127,6 +130,7 @@ class VentaController extends Controller
         $ventaData = $request->input('venta');
         $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
+        $dataEgreso = $request->input('egreso');
 
         //Validar Venta
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
@@ -142,6 +146,22 @@ class VentaController extends Controller
             (new RegistrarDetalleVentaRequest())->rules()
         );
         $detalleVentaValidar->validate();
+
+        //validar egreso
+        if($dataEgreso){
+
+            if($dataEgreso['CodigoCuentaOrigen'] == 0){
+                $dataEgreso['CodigoCuentaOrigen'] = null;
+            }
+
+            $dataEgreso['CodigoCaja'] = $ventaData['CodigoCaja'];
+            $dataEgreso['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
+
+            //Validar Egreso
+            $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
+            $egresoValidator->validate();
+        }
+
 
         //Validar Pago
         if ($pagoData) {
@@ -179,10 +199,27 @@ class VentaController extends Controller
                 ]);
             }
 
-            if ($ventaData['CodigoContratoProducto']) {
+            if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto']) {
                 DB::table('contratoproducto')
                     ->where('Codigo', $ventaData['CodigoContratoProducto'])
                     ->increment('TotalPagado', $pagoData['Monto']);
+            }
+
+            if($dataEgreso){
+
+                if($dataEgreso['CodigoMedioPago'] == 1){
+                    $egreso['CodigoCuentaOrigen'] = null;
+                }
+
+                $egresoCreado = Egreso::create($dataEgreso);
+
+                $dataDevolucion = [
+                    'Codigo' => $egresoCreado->Codigo,
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                ];
+
+                DevolucionNotaCredito::create($dataDevolucion);
+
             }
 
             DB::commit();
@@ -193,6 +230,95 @@ class VentaController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
+    }
+
+    public function consultarDocumentoVenta(Request $request){
+
+        $CodVenta = $request->input('venta');
+        $sede = $request->input('sede');
+        try{
+            $venta = DB::table('documentoventa as dv')
+            ->select(
+                'dv.Codigo',
+                DB::raw('DATE(dv.Fecha) as Fecha'),
+                DB::raw(
+                    "CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                        ELSE 'No identificado'
+                    END AS NombreCompleto"
+                ),
+                DB::raw(
+                    "CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(td.Siglas, ': ', p.NumeroDocumento)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.Ruc
+                        ELSE 'Documento no disponible'
+                    END AS DocumentoCompleto"
+                ),
+                DB::raw('COALESCE(p.Codigo, 0) AS CodigoPersona'),
+                DB::raw('COALESCE(ce.Codigo, 0) AS CodigoEmpresa'),
+                DB::raw(
+                    "CASE
+                        WHEN p.Codigo IS NOT NULL THEN p.CodigoTipoDocumento
+                        ELSE -1
+                    END AS CodTipoDoc"
+                ),
+                'dv.CodigoMedico',
+                DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) AS NombreMedico"),
+                DB::raw('COALESCE(dv.CodigoPaciente, 0) AS CodigoPaciente'),
+                DB::raw(
+                    "COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"
+                ),
+                DB::raw(
+                    "COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"
+                ),
+                'dv.CodigoTipoDocumentoVenta',
+                'tdv.Nombre as TipoDocumentoVenta',
+                'dv.Serie',
+                'dv.Numero'
+            )
+            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+            ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
+            ->leftJoin('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
+            ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
+            ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
+            ->leftJoin('personas as medico', 'medico.Codigo', '=', 'dv.CodigoMedico')
+            ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
+            
+            ->where('dv.Codigo', $CodVenta)
+            ->first();
+
+            $detalle = DB::table('detalledocumentoventa as ddv')
+            ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'ddv.CodigoProducto')
+            ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+            ->where('ddv.CodigoVenta', $CodVenta)
+            ->where('sp.CodigoSede',$sede)
+            ->select(
+                'ddv.MontoTotal',
+                DB::raw("CASE WHEN p.Tipo = 'B' THEN ddv.Cantidad WHEN p.Tipo = 'S' THEN 1 END AS Cantidad"),
+                'ddv.Descripcion',
+                'ddv.CodigoProducto',
+                'p.Tipo',
+                DB::raw("CASE WHEN tg.Tipo = 'G' THEN ROUND(ddv.MontoTotal - (ddv.MontoTotal / (1 + (tg.Porcentaje / 100))), 2) ELSE 0 END AS MontoIGV"),
+                'tg.Tipo AS TipoGravado',
+                'tg.Codigo AS CodigoTipoGravado'
+            )
+            ->get();
+
+
+            // Convertir los valores a números en lugar de cadenas
+            $detalle = $detalle->map(function ($item) {
+                $item->MontoTotal = (float) $item->MontoTotal;
+                $item->MontoIGV = (float) $item->MontoIGV;
+                return $item;
+            });
+            
+            return response()->json(['venta' => $venta, 'detalle' => $detalle], 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function consultarDatosContratoProducto(Request $request)

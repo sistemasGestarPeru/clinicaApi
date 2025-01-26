@@ -117,6 +117,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
     /********************************* COMBOS *********************************/
+    
     Route::get('combos/listarTipoDocIdentidad', [ControladorGeneralController::class, 'listarTipoDocIdentidad']);
     Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
     Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
@@ -135,6 +136,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarTipoMoneda', [ControladorGeneralController::class, 'listarTipoMoneda']);
     Route::get('combos/listarMedicos/{sede}', [ControladorGeneralController::class, 'listarMedicos']);
     Route::get('combos/listarPacientes/{sede}', [ControladorGeneralController::class, 'listarPacientes']);
+    Route::get('combos/listarMotivoNotaCredito', [ControladorGeneralController::class, 'listarMotivoNotaCredito']);
 
     /***************************************************************************/
     /********************************* CLIENTES *********************************/
@@ -180,6 +182,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
     Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
     /********************************* VENTA *********************************/
+    Route::post('venta/consultarDocumentoVenta', [VentaController::class, 'consultarDocumentoVenta']);
     Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
     Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
     Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);

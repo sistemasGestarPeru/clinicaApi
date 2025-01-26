@@ -380,4 +380,16 @@ class ControladorGeneralController extends Controller
         }
     }
 
+    public function listarMotivoNotaCredito(){
+        try{
+            $resultado = DB::table('motivonotacredito')
+                ->select('Codigo', 'Nombre', 'CodigoSUNAT')
+                ->where('Vigente', 1)
+                ->get();
+            return response()->json($resultado);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
 }
