@@ -127,6 +127,9 @@ class VentaController extends Controller
     
     public function registrarVenta(Request $request)
     {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
         $ventaData = $request->input('venta');
         $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
@@ -170,7 +173,7 @@ class VentaController extends Controller
             $pagoData['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
 
             if($pagoData['CodigoMedioPago'] == 1){
-                $pagoData['Fecha'] = date('Y-m-d H:i:s');
+                $pagoData['Fecha'] = $fecha;
                 $pagoData['CodigoCuentaBancaria'] = null;
             }
             $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
@@ -178,11 +181,10 @@ class VentaController extends Controller
         }
 
 
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
+
         DB::beginTransaction();
         try{
-            $ventaData['Fecha'] = $fecha;
+
             $ventaCreada = Venta::create($ventaData);
 
             foreach($detallesVentaData as $detalle){
@@ -223,7 +225,9 @@ class VentaController extends Controller
             }
 
             DB::commit();
+            
             return response()->json(['message' => 'Venta registrada correctamente.'], 201);
+
         
         }catch(\Exception $e){
             DB::rollBack();

@@ -26,9 +26,9 @@ class RegistrarDetalleVentaRequest extends FormRequest
             'detalleVenta' => ['required', 'array', 'min:1'], // Validar que detalleVenta sea un arreglo y tenga al menos un elemento
             'detalleVenta.*.Numero' => ['required', 'integer', 'min:1'],
             'detalleVenta.*.Descripcion' => ['required', 'string'],
-            'detalleVenta.*.Cantidad' => ['required', 'integer', 'min:1'],
-            'detalleVenta.*.MontoTotal' => ['required', 'numeric', 'min:1'],
-            'detalleVenta.*.MontoIGV' => ['required', 'numeric', 'min:0'],
+            'detalleVenta.*.Cantidad' => ['required', 'integer'],
+            'detalleVenta.*.MontoTotal' => ['required', 'numeric'],
+            'detalleVenta.*.MontoIGV' => ['required', 'numeric'],
             'detalleVenta.*.CodigoProducto' => ['required', 'integer', 'min:1'],
             'detalleVenta.*.CodigoTipoGravado' => ['required', 'integer', 'min:1'],
 
