@@ -85,6 +85,115 @@ class CajaController extends Controller
         //
     }
 
+    public function datosCajaExcel($caja){
+        try {
+            // Consulta para obtener datos de la caja
+            $cajaData = DB::table('CAJA as c')
+                ->join('Personas as p', 'p.Codigo', '=', 'c.CodigoTrabajador')
+                ->select(
+                    DB::raw("DATE_FORMAT(c.FechaInicio, '%d/%m/%Y') as FechaInicio"),
+                    DB::raw("DATE_FORMAT(c.FechaFin, '%d/%m/%Y') as FechaFin"),
+                    DB::raw("TIME(c.FechaInicio) as HoraInicio"),
+                    DB::raw("TIME(c.FechaFin) as HoraFin"),
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Trabajador")
+                )
+                ->where('c.Codigo', $caja)
+                ->first();
+    
+            // Consulta unida para obtener los movimientos de la caja
+            $unionQuery = DB::select("
+                SELECT 
+                    Fecha,
+                    OPERACION,
+                    DOCUMENTO,
+                    MONTO,
+                    ROUND(@saldo := @saldo + MONTO, 2) AS SALDO
+                FROM (
+                    SELECT 
+                        CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
+                        CASE 
+                            WHEN Tipo = 'A' THEN 'INGRESO APERTURA' 
+                            ELSE 'INGRESO' 
+                        END AS OPERACION,
+                        '' AS DOCUMENTO,
+                        Monto AS MONTO
+                    FROM IngresoDinero 
+                    WHERE CodigoCaja = 85 AND Vigente = 1
+    
+                    UNION ALL
+    
+                    SELECT 
+                        CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
+                        'RECAUDACION' AS OPERACION,
+                        '' AS DOCUMENTO,
+                        Monto AS MONTO
+                    FROM Pago 
+                    WHERE CodigoCaja = 85 
+                        AND Vigente = 1 
+                        AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
+    
+                    UNION ALL
+    
+                    SELECT 
+                        CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
+                        'EGRESO' AS OPERACION,
+                        '' AS DOCUMENTO,
+                        -Monto AS MONTO
+                    FROM Egreso 
+                    WHERE CodigoCaja = 85 
+                        AND Vigente = 1 
+                        AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
+                ) AS result,
+                (SELECT @saldo := 0) AS init
+                ORDER BY FECHA;
+            ");
+    
+            // Devolver los resultados
+            return response()->json([
+                'caja' => $cajaData,
+                'movimientos' => $unionQuery
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function consultarDatosCaja($caja){
+        try{
+
+            $result = DB::table(DB::raw('(SELECT 1) as dummy')) // Usamos una tabla ficticia
+            ->select([
+                DB::raw("(SELECT DATE_FORMAT(FechaInicio, '%d/%m/%Y') 
+                        FROM CAJA 
+                        WHERE Codigo = $caja and Estado = 'A') AS Fecha"),
+                DB::raw("(SELECT TIME(FechaInicio) 
+                        FROM CAJA 
+                        WHERE Codigo = $caja) AS Hora"),
+                DB::raw("(SELECT SUM(Monto) 
+                        FROM IngresoDinero 
+                        WHERE CodigoCaja = $caja AND Vigente = 1) AS Ingresos"),
+                DB::raw("(SELECT SUM(Monto) 
+                        FROM Pago 
+                        WHERE CodigoCaja = $caja AND Vigente = 1 AND 
+                                CodigoMedioPago = (SELECT Codigo 
+                                                FROM mediopago 
+                                                WHERE Nombre LIKE '%Efectivo%')) AS Recaudacion"),
+                DB::raw("(SELECT SUM(Monto) 
+                        FROM Egreso 
+                        WHERE CodigoCaja = $caja AND Vigente = 1 AND 
+                                CodigoMedioPago = (SELECT Codigo 
+                                                FROM mediopago 
+                                                WHERE Nombre LIKE '%Efectivo%')) AS Egresos"),
+            ])
+            ->first();
+    
+            return response()->json($result, 200);
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
+        }
+    }
+
     public function cerrarCaja(Request $request)
     {
         try {
@@ -122,41 +231,6 @@ class CajaController extends Controller
             IngresoDinero::create($IngresoDineroData);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al registrar el ingreso', 'error' => $e->getMessage()], 400);
-        }
-    }
-
-    public function consultarCaja(Request $request)
-    {
-        try {
-            $codigoTrabajador = $request->input('CodigoTrabajador');
-            $codigoSede = $request->input('CodigoSede');
-
-            $caja = DB::table('clinica_db.caja')
-                ->where('CodigoTrabajador', $codigoTrabajador)
-                ->where('CodigoSede', $codigoSede)
-                ->where('Estado', 'A')
-                ->orderByDesc('Codigo')
-                ->select('Estado', 'Codigo')
-                ->first();
-
-            if ($caja) {
-                $result = DB::table('ingresodinero as i')
-                    ->select(
-                        'c.FechaInicio',
-                        DB::raw('SUM(CASE WHEN i.Tipo = "I" THEN i.Monto ELSE 0 END) AS TotalMonto'),
-                        DB::raw('SUM(CASE WHEN i.Tipo = "A" THEN i.Monto ELSE 0 END) AS MontoApertura')
-                    )
-                    ->join('caja as c', 'c.Codigo', '=', 'i.CodigoCaja')
-                    ->where('i.CodigoCaja', $caja->Codigo)
-                    ->where('c.Estado', 'A')
-                    ->groupBy('i.CodigoCaja')
-                    ->first();
-                return response()->json(['caja' => $caja, 'result' => $result], 200);
-            } else {
-                return response()->json(['message' => 'No se encontró caja abierta'], 200);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
     }
 
