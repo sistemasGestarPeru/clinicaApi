@@ -278,7 +278,7 @@ class VentaController extends Controller
                 'dv.Numero',
                 'cp.Codigo as CodigoContrato',
                 'cp.NumContrato',
-                'cp.Fecha as FechaContrato'
+                DB::raw('DATE(cp.Fecha) as FechaContrato')
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
