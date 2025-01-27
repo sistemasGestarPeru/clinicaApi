@@ -624,8 +624,8 @@ class VentaController extends Controller
                     'CodigoTipoDocumentoVenta as TipoDoc',
                     DB::raw("CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Documento"),
                     DB::raw("DATE(dv.Fecha) as Fecha"),
-                    'dv.MontoTotal',
-                    'dv.MontoPagado',
+                    DB::raw("ABS(dv.MontoTotal) as MontoTotal"), // Aseguramos que sea positivo
+                    DB::raw("ABS(dv.MontoPagado) as MontoPagado"), // Aseguramos que sea positivo
                     DB::raw("
                         CASE
                             WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
@@ -635,10 +635,10 @@ class VentaController extends Controller
                     "),
                     DB::raw("
                         CASE 
-                            WHEN dv.CodigoContratoProducto IS NULL THEN 'V'
-                            WHEN dv.CodigoContratoProducto IS NOT NULL THEN 'C'
                             WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V'
                             WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N'
+                            WHEN dv.CodigoContratoProducto IS NULL THEN 'V'
+                            WHEN dv.CodigoContratoProducto IS NOT NULL THEN 'C'
                         END as TipoVenta
                     ")
                 )

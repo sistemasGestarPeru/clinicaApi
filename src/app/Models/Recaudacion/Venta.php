@@ -39,7 +39,7 @@ class Venta extends Model
         'CodigoAutorizador',
         'CodigoMedico',
         'CodigoPaciente',
+        'CodigoMotivoNotaCredito',
         'Vigente'
-
     ];
 }
