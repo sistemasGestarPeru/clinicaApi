@@ -80,13 +80,13 @@ class CompraController extends Controller
 
         try {
             $productos = DB::table('producto')
-                ->select('Codigo', 'Nombre', 'TipoGravado')
+                ->select('Codigo', 'Nombre', DB::raw("'G' as TipoGravado"))
                 ->where('Tipo', 'B')
                 ->where('Vigente', 1)
                 ->get();
             return response()->json($productos, 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al listar los productos'], 500);
+            return response()->json(['message' => 'Error al listar los productos', $e], 500);
         }
     }
 
