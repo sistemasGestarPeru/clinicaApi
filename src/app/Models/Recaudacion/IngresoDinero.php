@@ -17,6 +17,7 @@ class IngresoDinero extends Model
         'Monto',
         'Tipo',
         'CodigoCaja',
+        'CodigoEmisor',
         'Vigente'
     ];
 }

@@ -42,10 +42,10 @@ class CajaController extends Controller
             $caja = Caja::create($cajaData);
             $codigo = $caja->Codigo;
 
-            $IngresoDineroData['CodigoCaja'] = $codigo;
-            $IngresoDineroData['Fecha'] = $fecha;
-            $IngresoDineroData['Tipo'] = 'A';
-            IngresoDinero::create($IngresoDineroData);
+            // $IngresoDineroData['CodigoCaja'] = $codigo;
+            // $IngresoDineroData['Fecha'] = $fecha;
+            // $IngresoDineroData['Tipo'] = 'A';
+            // IngresoDinero::create($IngresoDineroData);
             DB::commit();
             return response()->json([
                 'CodigoCaja' => $codigo,
@@ -118,7 +118,7 @@ class CajaController extends Controller
                         '' AS DOCUMENTO,
                         Monto AS MONTO
                     FROM IngresoDinero 
-                    WHERE CodigoCaja = 85 AND Vigente = 1
+                    WHERE CodigoCaja = $caja AND Vigente = 1
     
                     UNION ALL
     
@@ -128,7 +128,7 @@ class CajaController extends Controller
                         '' AS DOCUMENTO,
                         Monto AS MONTO
                     FROM Pago 
-                    WHERE CodigoCaja = 85 
+                    WHERE CodigoCaja = $caja 
                         AND Vigente = 1 
                         AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
     
@@ -140,7 +140,7 @@ class CajaController extends Controller
                         '' AS DOCUMENTO,
                         -Monto AS MONTO
                     FROM Egreso 
-                    WHERE CodigoCaja = 85 
+                    WHERE CodigoCaja = $caja 
                         AND Vigente = 1 
                         AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
                 ) AS result,
@@ -219,16 +219,16 @@ class CajaController extends Controller
 
     public function registrarIngreso(Request $request)
     {
+        $IngresoDineroData = $request->input('IngresoDinero');
+
         try {
             $IngresoDineroData = $request->input('IngresoDinero');
 
-            date_default_timezone_set('America/Lima');
-            $fecha = date('Y-m-d H:i:s');
-
-            $IngresoDineroData['Fecha'] = $fecha;
             $IngresoDineroData['Tipo'] = 'I';
 
             IngresoDinero::create($IngresoDineroData);
+            return response()->json(['message' => 'Ingreso registrado correctamente'], 201);
+            
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al registrar el ingreso', 'error' => $e->getMessage()], 400);
         }
