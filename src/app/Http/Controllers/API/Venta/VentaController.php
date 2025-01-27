@@ -614,25 +614,51 @@ class VentaController extends Controller
         try {
             $fecha = $request->input('fecha');
             $codigoSede = $request->input('codigoSede');
+            $nombre = $request->input('nombre');
 
-            $venta = DB::table('clinica_db.documentoventa')
-                // ->where(DB::raw("DATE(Fecha)"), $fecha)
-                ->where('CodigoSede', $codigoSede)
-                ->where('Vigente', 1)
+            $venta = DB::table('clinica_db.documentoventa as dv')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+                ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
+                ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
                 ->select(
-                    'Codigo',
-                    'Serie',
-                    'Numero',
+                    'dv.Codigo',
                     'CodigoTipoDocumentoVenta as TipoDoc',
-                    DB::raw("DATE(Fecha) as Fecha"),
-                    DB::raw("CASE 
-                            WHEN MontoTotal = MontoPagado THEN 0
-                            WHEN MontoTotal != MontoPagado THEN 1
-                        END AS PagoCompleto")
+                    DB::raw("CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Documento"),
+                    DB::raw("DATE(dv.Fecha) as Fecha"),
+                    'dv.MontoTotal',
+                    'dv.MontoPagado',
+                    DB::raw("
+                        CASE
+                            WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                            WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                            ELSE 'No identificado'
+                        END as NombreCliente
+                    "),
+                    DB::raw("
+                        CASE 
+                            WHEN dv.CodigoContratoProducto IS NULL THEN 'V'
+                            WHEN dv.CodigoContratoProducto IS NOT NULL THEN 'C'
+                            WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V'
+                            WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N'
+                        END as TipoVenta
+                    ")
                 )
+                ->where('dv.CodigoSede', $codigoSede)
+                ->where('dv.Vigente', 1)
+                ->when($fecha, function ($query, $fecha) {
+                    return $query->whereDate('dv.Fecha', $fecha);
+                })
+                ->when($nombre, function ($query, $nombre) {
+                    return $query->where(function ($query) use ($nombre) {
+                        $query->where('p.Nombres', 'LIKE', "%$nombre%")
+                            ->orWhere('p.Apellidos', 'LIKE', "%$nombre%")
+                            ->orWhere('ce.RazonSocial', 'LIKE', "%$nombre%");
+                    });
+                })
                 ->get();
 
             return response()->json($venta);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage(), 'msg' => 'Error al buscar Venta'], 500);
         }
