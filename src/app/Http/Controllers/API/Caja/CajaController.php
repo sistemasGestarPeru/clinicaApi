@@ -30,7 +30,6 @@ class CajaController extends Controller
         $fecha = date('Y-m-d H:i:s');
 
         $cajaData = $request->input('Caja');
-        $IngresoDineroData = $request->input('IngresoDinero');
 
         $cajaData['FechaInicio'] = $fecha;
         $cajaData['Estado'] = 'A';
@@ -41,11 +40,6 @@ class CajaController extends Controller
 
             $caja = Caja::create($cajaData);
             $codigo = $caja->Codigo;
-
-            // $IngresoDineroData['CodigoCaja'] = $codigo;
-            // $IngresoDineroData['Fecha'] = $fecha;
-            // $IngresoDineroData['Tipo'] = 'A';
-            // IngresoDinero::create($IngresoDineroData);
             DB::commit();
             return response()->json([
                 'CodigoCaja' => $codigo,
