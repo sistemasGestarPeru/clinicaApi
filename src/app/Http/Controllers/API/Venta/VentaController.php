@@ -245,41 +245,40 @@ class VentaController extends Controller
             ->select(
                 'dv.Codigo',
                 DB::raw('DATE(dv.Fecha) as Fecha'),
-                DB::raw(
-                    "CASE 
+                DB::raw("
+                    CASE 
                         WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
                         WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
                         ELSE 'No identificado'
-                    END AS NombreCompleto"
-                ),
-                DB::raw(
-                    "CASE 
+                    END AS NombreCompleto
+                "),
+                DB::raw("
+                    CASE 
                         WHEN p.Codigo IS NOT NULL THEN CONCAT(td.Siglas, ': ', p.NumeroDocumento)
                         WHEN ce.Codigo IS NOT NULL THEN ce.Ruc
                         ELSE 'Documento no disponible'
-                    END AS DocumentoCompleto"
-                ),
+                    END AS DocumentoCompleto
+                "),
                 DB::raw('COALESCE(p.Codigo, 0) AS CodigoPersona'),
                 DB::raw('COALESCE(ce.Codigo, 0) AS CodigoEmpresa'),
-                DB::raw(
-                    "CASE
+                DB::raw("
+                    CASE
                         WHEN p.Codigo IS NOT NULL THEN p.CodigoTipoDocumento
                         ELSE -1
-                    END AS CodTipoDoc"
-                ),
+                    END AS CodTipoDoc
+                "),
                 'dv.CodigoMedico',
                 DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) AS NombreMedico"),
                 DB::raw('COALESCE(dv.CodigoPaciente, 0) AS CodigoPaciente'),
-                DB::raw(
-                    "COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"
-                ),
-                DB::raw(
-                    "COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"
-                ),
+                DB::raw("COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"),
+                DB::raw("COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"),
                 'dv.CodigoTipoDocumentoVenta',
                 'tdv.Nombre as TipoDocumentoVenta',
                 'dv.Serie',
-                'dv.Numero'
+                'dv.Numero',
+                'cp.Codigo as CodigoContrato',
+                'cp.NumContrato',
+                'cp.Fecha as FechaContrato'
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
@@ -288,7 +287,7 @@ class VentaController extends Controller
             ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
             ->leftJoin('personas as medico', 'medico.Codigo', '=', 'dv.CodigoMedico')
             ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
-            
+            ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
             ->where('dv.Codigo', $CodVenta)
             ->first();
 
