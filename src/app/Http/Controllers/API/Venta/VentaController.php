@@ -906,7 +906,7 @@ class VentaController extends Controller
             ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
             ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
             ->leftJoin('motivonotacredito as NOTACREDITO', 'NOTACREDITO.Codigo', '=', 'dv.CodigoMotivoNotaCredito')
-            ->where('dv.Codigo', '=', 268)
+            ->where('dv.Codigo', '=', $CodVenta)
             ->limit(1)
             ->first();
     
@@ -935,7 +935,7 @@ class VentaController extends Controller
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->leftJoin('cuentabancaria as cb', 'cb.Codigo', '=', 'e.CodigoCuentaOrigen')
                 ->leftJoin('entidadbancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
-                ->where('dnc.CodigoDocumentoVenta', 268)
+                ->where('dnc.CodigoDocumentoVenta', $CodVenta)
                 ->select(
                     'e.Monto',
                     'mp.Nombre',
