@@ -119,7 +119,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************* COMBOS *********************************/
     
     Route::get('combos/listarTipoDocIdentidad', [ControladorGeneralController::class, 'listarTipoDocIdentidad']);
-    Route::get('combos/listarTiposDocVenta/{sede}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
+    Route::get('combos/listarTiposDocVenta/{sede}/{tipo}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
     Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
     Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
     Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general
@@ -184,6 +184,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
     /********************************* VENTA *********************************/
     Route::post('venta/consultarDocumentoVenta', [VentaController::class, 'consultarDocumentoVenta']);
+    Route::post('venta/consultarNotaCredito', [VentaController::class, 'consultarNotaCredito']);
+    Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
+    Route::post('venta/registrarNotaCredito', [VentaController::class, 'registrarNotaCredito']);
+    
+    
+
     Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
     Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
     Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
@@ -191,11 +197,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
     Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
     Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
-    Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
+    // Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
     Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
-    Route::post('venta/generarPDF', [VentaController::class, 'generarPDF']);
     Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
     Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);
+    Route::post('venta/consultarSerieNotaCredito', [VentaController::class, 'consultarSerieNotaCredito']);
     Route::post('venta/consultarTipoProducto', [VentaController::class, 'consultarTipoProducto']);
     Route::post('venta/buscarProductos', [VentaController::class, 'buscarProductos']);
     /********************************* PAGOS *********************************/
