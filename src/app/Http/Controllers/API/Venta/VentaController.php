@@ -374,6 +374,7 @@ class VentaController extends Controller
                 'cp.Codigo'
             )
             ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
+            ->leftJoin('personas as medico', 'medico.Codigo', '=', 'cp.CodigoMedico')
             ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
             ->where('cp.Codigo', $idContrato)
             ->select(
@@ -403,6 +404,7 @@ class VentaController extends Controller
                     END as CodTipoDoc
                 "),
                 'cp.CodigoMedico',
+                DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) as NombreMedico"),
                 DB::raw('COALESCE(dv.CodigoPaciente, 0) as CodigoPaciente'),
                 DB::raw("
                     COALESCE(
@@ -585,10 +587,9 @@ class VentaController extends Controller
                     "),
                     DB::raw("
                         CASE 
-                            WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V'
+                            WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NULL)  THEN 'V'
+                            WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NOT NULL)  THEN 'C'
                             WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N'
-                            WHEN dv.CodigoContratoProducto IS NULL THEN 'V'
-                            WHEN dv.CodigoContratoProducto IS NOT NULL THEN 'C'
                         END as TipoVenta
                     ")
                 )
@@ -782,33 +783,7 @@ class VentaController extends Controller
         }
     }
 
-    public function consultarVenta(Request $request)
-    {
-        $codigo = $request->input('codigoVenta');
-        try {
-            $resultados = DB::table('documentoventa as dv')
-                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
-                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
-                ->where('dv.Codigo', $codigo)
-                ->where('dv.Vigente', 1)
-                ->select(
-                    'dv.Codigo',
-                    'dv.Numero',
-                    DB::raw('CAST(dv.Fecha AS DATE) as fechaVenta'),
-                    DB::raw('CASE 
-                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, \' \', p.Apellidos)
-                    WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
-                    ELSE \'No disponible\'
-                END AS nombreCliente'),
-                    'dv.MontoPagado as montoPagado',
-                )
-                ->first();
 
-            return $resultados;
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
 
     
 
@@ -1074,6 +1049,36 @@ class VentaController extends Controller
             });
 
             return response()->json(['venta' => $documentoVenta, 'detalle' => $detalle, 'estadoPago' => $estadoPago], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+
+    public function consultarVenta(Request $request)
+    {
+        $codigo = $request->input('codigoVenta');
+        try {
+            $resultados = DB::table('documentoventa as dv')
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+                ->where('dv.Codigo', $codigo)
+                ->where('dv.Vigente', 1)
+                ->select(
+                    'dv.Codigo',
+                    'dv.Numero',
+                    DB::raw('CAST(dv.Fecha AS DATE) as fechaVenta'),
+                    DB::raw('CASE 
+                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, \' \', p.Apellidos)
+                    WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                    ELSE \'No disponible\'
+                END AS nombreCliente'),
+                    'dv.MontoPagado as montoPagado',
+                )
+                ->first();
+
+            return $resultados;
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
