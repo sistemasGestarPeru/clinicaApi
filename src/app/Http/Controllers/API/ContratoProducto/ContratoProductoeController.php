@@ -286,4 +286,49 @@ class ContratoProductoeController extends Controller
             'detalleContrato' => $detalleContrato,
         ]);
     }
+
+
+    public function historialContratoVenta($codigo){
+
+        try{
+            $ventas = DB::table('documentoventa as dv')
+            ->select(
+                'dv.Codigo as Venta',
+                'dv.CodigoContratoProducto as Contrato',
+                DB::raw("CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Documento"),
+                DB::raw(
+                    "CASE 
+                        WHEN e.Codigo IS NOT NULL THEN mpe.Nombre 
+                        WHEN p.Codigo IS NOT NULL THEN mp.Nombre 
+                    END AS MedioPago"
+                ),
+                'dv.MontoPagado',
+                DB::raw(
+                    "CASE 
+                        WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N' 
+                        WHEN dv.Vigente = 0 THEN 'A' 
+                        WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V' 
+                    END AS TipoVenta"
+                )
+            )
+            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
+            ->leftJoin('Pago as p', 'p.Codigo', '=', 'pdv.CodigoPago')
+            ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+            ->leftJoin('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
+            ->leftJoin('egreso as e', 'e.Codigo', '=', 'dnc.Codigo')
+            ->leftJoin('mediopago as mpe', 'mpe.Codigo', '=', 'e.CodigoMedioPago')
+            ->where('dv.CodigoContratoProducto', $codigo)
+            ->orderBy('dv.Codigo', 'asc')
+            ->get();
+            
+            return response()->json($ventas);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al buscar historial de ventas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
