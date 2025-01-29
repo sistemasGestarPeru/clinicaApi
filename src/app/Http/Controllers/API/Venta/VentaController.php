@@ -136,6 +136,12 @@ class VentaController extends Controller
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
         $ventaValidator->validate();
 
+        $codProducto = null;
+
+        if(isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto'] != 0){
+            $codProducto = $ventaData['CodigoContratoProducto'];
+        }
+
         if (isset($ventaData['CodigoAutorizador']) && $ventaData['CodigoAutorizador'] == 0) {
             $ventaData['CodigoAutorizador'] = null;
         }
@@ -164,6 +170,13 @@ class VentaController extends Controller
 
         try{
             $ventaCreada = Venta::create($ventaData);
+
+            if($codProducto){
+                DB::table('contratoproducto')
+                    ->where('Codigo', $codProducto)
+                    ->increment('TotalPagado', $ventaData['MontoPagado']);
+
+            }
 
             foreach($detallesVentaData as $detalle){
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
@@ -420,8 +433,6 @@ class VentaController extends Controller
                 ")
             )
             ->first();
-
-            //Consultar si tiene ventas realizadas
 
             $detalle = DB::table('detallecontrato as dc')
             ->selectRaw('

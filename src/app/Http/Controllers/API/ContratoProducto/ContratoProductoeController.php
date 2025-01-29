@@ -179,12 +179,7 @@ class ContratoProductoeController extends Controller
                 'cp.Codigo as Codigo',
                 DB::raw("DATE(cp.Fecha) as Fecha"),
                 'cp.Total as Total',
-                DB::raw("
-                    CASE
-                        WHEN cp.TotalPagado = cp.Total THEN 0
-                        ELSE (cp.Total - cp.TotalPagado)
-                    END as TotalPagado
-                "),
+                'cp.TotalPagado as TotalPagado',
                 DB::raw("
                     CASE
                         WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
@@ -321,7 +316,7 @@ class ContratoProductoeController extends Controller
             ->where('dv.CodigoContratoProducto', $codigo)
             ->orderBy('dv.Codigo', 'asc')
             ->get();
-            
+
             return response()->json($ventas);
 
         }catch(\Exception $e){
