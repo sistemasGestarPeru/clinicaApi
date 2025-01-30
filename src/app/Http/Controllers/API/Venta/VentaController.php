@@ -136,14 +136,12 @@ class VentaController extends Controller
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
         $ventaValidator->validate();
 
-        $codProducto = null;
-
-        if(isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto'] != 0){
-            $codProducto = $ventaData['CodigoContratoProducto'];
-        }
-
         if (isset($ventaData['CodigoAutorizador']) && $ventaData['CodigoAutorizador'] == 0) {
             $ventaData['CodigoAutorizador'] = null;
+        }
+
+        if (isset($ventaData['CodigoClienteEmpresa']) && $ventaData['CodigoClienteEmpresa'] == 0) {
+            $ventaData['CodigoClienteEmpresa'] = null;
         }
 
         //validar Detalles de Venta
@@ -170,13 +168,6 @@ class VentaController extends Controller
 
         try{
             $ventaCreada = Venta::create($ventaData);
-
-            if($codProducto){
-                DB::table('contratoproducto')
-                    ->where('Codigo', $codProducto)
-                    ->increment('TotalPagado', $ventaData['MontoPagado']);
-
-            }
 
             foreach($detallesVentaData as $detalle){
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
@@ -222,6 +213,14 @@ class VentaController extends Controller
 
         if (isset($ventaData['CodigoAutorizador']) && $ventaData['CodigoAutorizador'] == 0) {
             $ventaData['CodigoAutorizador'] = null;
+        }
+
+        if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
+            $ventaData['CodigoPersona'] = null;
+        }
+
+        if (isset($ventaData['CodigoClienteEmpresa']) && $ventaData['CodigoClienteEmpresa'] == 0) {
+            $ventaData['CodigoClienteEmpresa'] = null;
         }
 
         //validar Detalles de Venta
@@ -583,12 +582,13 @@ class VentaController extends Controller
                 ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
                 ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
                 ->select(
+                    'dv.Vigente',
                     'dv.Codigo',
                     'CodigoTipoDocumentoVenta as TipoDoc',
                     DB::raw("CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Documento"),
                     DB::raw("DATE(dv.Fecha) as Fecha"),
-                    DB::raw("dv.MontoTotal as MontoTotal"), // Aseguramos que sea positivo
-                    DB::raw("dv.MontoPagado as MontoPagado"), // Aseguramos que sea positivo
+                    DB::raw("dv.MontoTotal as MontoTotal"), 
+                    DB::raw("dv.MontoPagado as MontoPagado"), 
                     DB::raw("
                         CASE
                             WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
@@ -602,10 +602,19 @@ class VentaController extends Controller
                             WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NOT NULL)  THEN 'C'
                             WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N'
                         END as TipoVenta
+                    "),
+
+                    DB::raw("
+                        CASE 
+                            WHEN tdv.CodigoSUNAT IS NULL THEN false
+                            ELSE true
+                        END as Canje
                     ")
+
+                    
                 )
                 ->where('dv.CodigoSede', $codigoSede)
-                ->where('dv.Vigente', 1)
+                // ->where('dv.Vigente', 1)
                 ->when($fecha, function ($query, $fecha) {
                     return $query->whereDate('dv.Fecha', $fecha);
                 })
@@ -616,6 +625,7 @@ class VentaController extends Controller
                             ->orWhere('ce.RazonSocial', 'LIKE', "%$nombre%");
                     });
                 })
+                ->orderBy('dv.Codigo', 'desc')
                 ->get();
 
             return response()->json($venta);

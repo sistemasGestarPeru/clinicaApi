@@ -227,7 +227,7 @@ class ControladorGeneralController extends Controller
             $medioPago = DB::table('localmediopago as lmp')
                 ->join('sedesrec as s', 's.Codigo', '=', 'lmp.CodigoSede')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'lmp.CodigoMedioPago')
-                ->select('mp.Codigo', 'mp.Nombre')
+                ->select('mp.Codigo', 'mp.Nombre', 'mp.CodigoSUNAT')
                 ->where('lmp.CodigoSede', $sede)
                 ->where('mp.Vigente', 1)
                 ->where('s.Vigente', 1)

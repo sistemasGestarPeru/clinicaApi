@@ -5,20 +5,21 @@ namespace App\Models\Recaudacion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Producto extends Model
+class SedeProducto extends Model
 {
     use HasFactory;
-
     public $timestamps = false;
-
-    protected $table = 'producto';
+    protected $table = 'sedeproducto';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [
-        'CodigoCategoria',
-        'Nombre',
-        'Descripcion',
-        'Tipo',
-        'Vigente'
+        'CodigoProducto',
+        'CodigoSede',
+        'Negociable',
+        'Precio',
+        'PrecioMinimo',
+        'Stock',
+        'Vigente',
+        'CodigoTipoGravado'
     ];
 }

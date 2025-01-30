@@ -20,15 +20,15 @@ use App\Http\Controllers\API\Personal\ContratoLaboralController;
 use App\Http\Controllers\API\Personal\DepartamentoController;
 use App\Http\Controllers\API\Personal\EmpresaController;
 use App\Http\Controllers\API\Personal\NacionalidadController;
-use App\Http\Controllers\API\Personal\PersonaController;
 use App\Http\Controllers\API\Personal\SedeController as PersonalSedeController;
-use App\Http\Controllers\API\Personal\TipoDocumentoController;
 use App\Http\Controllers\API\Personal\TrabajadorController;
 use App\Http\Controllers\API\PortadaController;
+use App\Http\Controllers\API\Producto\ProductoController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
+use App\Http\Controllers\API\SedeProducto\SedeProductoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -240,6 +240,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
     Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);
 
+    /********************************** PRODUCTO **********************************/
+    Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
+    Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
+
+    /********************************** SEDE PRODUCTO **********************************/
+    Route::post('sedeProducto/listarSedeProducto', [SedeProductoController::class, 'listarSedeProducto']);
+
+    
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 
