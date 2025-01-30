@@ -11,16 +11,11 @@ use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\DevolucionNotaCredito;
 use App\Models\Recaudacion\Egreso;
-use App\Models\Recaudacion\IngresoDinero;
-use App\Models\Recaudacion\LocalDocumentoVenta;
-use App\Models\Recaudacion\LocalMedioPago;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
 use App\Models\Recaudacion\Venta;
-use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 
 use TCPDF;
@@ -69,35 +64,23 @@ class VentaController extends Controller
 
     public function registrarPagoVenta(Request $request)
     {
-
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d H:i:s');
 
-        $codigoVenta = $request->input('venta');
         $pagoData = $request->input('pago');
+        $ventaData = $request->input('venta');
 
-        if (!$codigoVenta) {
-            return response()->json(['error' => 'No se ha encontrado el comprobante de pago'], 400);
+        if(!$ventaData){
+            return response()->json(['error' => 'No se ha encontrado la venta.'], 400);
         }
 
-        if (!$pagoData) {
-            return response()->json(['error' => 'No se han enviado los datos del pago'], 400);
+        if($pagoData['CodigoMedioPago'] == 1){
+            $pagoData['Fecha'] = $fecha;
+            $pagoData['CodigoCuentaBancaria'] = null;
         }
-
-        if (!empty($pagoData)) {
-            if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
-                $pagoData['CodigoCuentaBancaria'] = null;
-            }
-
-            if ($pagoData['CodigoMedioPago'] == 1) {
-
-                $pagoData['Fecha'] = $fecha;
-            }
-        }
-
-        $ventaData['Fecha'] = $fecha;
-
-        $ventaData['EstadoFactura'] = 'M';
+        
+        $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
+        $pagoValidator->validate();
 
         DB::beginTransaction();
 
@@ -108,16 +91,17 @@ class VentaController extends Controller
 
             PagoDocumentoVenta::create([
                 'CodigoPago' => $codigoPago,
-                'CodigoDocumentoVenta' => $codigoVenta,
+                'CodigoDocumentoVenta' => $ventaData,
                 'Monto' => $pagoData['Monto'],
             ]);
 
             DB::table('documentoventa')
-                ->where('Codigo', $codigoVenta)
+                ->where('Codigo', $ventaData)
                 ->increment('MontoPagado', $pagoData['Monto']);
 
             DB::commit();
             return response()->json(['message' => 'Pago registrada correctamente.'], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar el pago.'], 500);
