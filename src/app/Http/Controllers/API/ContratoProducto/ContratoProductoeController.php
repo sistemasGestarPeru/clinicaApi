@@ -330,4 +330,64 @@ class ContratoProductoeController extends Controller
             ], 500);
         }
     }
+
+
+    public function contratoPDF($contrato){
+        try{
+            $contratoData = DB::table('contratoproducto as c')
+                ->join('sedesrec as s', 's.Codigo', '=', 'c.CodigoSede')
+                ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+                ->join('personas as cliente', 'cliente.Codigo', '=', 'c.CodigoPaciente')
+                ->join('personas as medico', 'medico.Codigo', '=', 'c.CodigoMedico')
+                ->join('tipo_documentos as td', 'td.Codigo', '=', 'cliente.CodigoTipoDocumento')
+                ->select(
+                    'e.Nombre as empresaNombre',
+                    'e.RUC as ruc',
+                    'e.Direccion as direccion',
+                    DB::raw("'Lambayeque' as departamento"),
+                    DB::raw("'Chiclayo' as provincia"),
+                    DB::raw("'Chiclayo' as distrito"),
+                    's.Nombre as sede',
+                    DB::raw("LPAD(c.NumContrato, 8, '0') AS numero"),
+                    DB::raw("CONCAT(cliente.Nombres, ' ', cliente.Apellidos) as cliente"),
+                    'td.Nombre as documentoIdentidad',
+                    'cliente.NumeroDocumento as numDocumento',
+                    'cliente.Direccion as clienteDireccion',
+                    DB::raw("DATE(c.Fecha) AS fechaEmision"),
+                    DB::raw("'Soles' as moneda"),
+                    DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) as medico")
+                )
+                ->where('c.Codigo', $contrato)
+                ->first();
+
+            // Obtener detalles del contrato
+            $detalleContrato = DB::table('detallecontrato as dc')
+                ->select(
+                    'dc.Descripcion as descripcion',
+                    'dc.MontoTotal as monto',
+                    'dc.Cantidad as cantidad',
+                    DB::raw('(dc.MontoTotal * dc.Cantidad) as subTotal')
+                )
+                ->where('dc.CodigoContrato', $contrato)
+                ->get();
+
+            // Obtener compromisos de pago del contrato
+            $compromisos = DB::table('compromisocontrato')
+                ->select('Fecha as fecha', 'Monto as monto')
+                ->where('CodigoContrato', $contrato)
+                ->get();
+
+                return  response()->json([
+                    'contrato' => $contratoData,
+                    'detalle' => $detalleContrato,
+                    'compromisos' => $compromisos
+                ]);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al generar PDF',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
