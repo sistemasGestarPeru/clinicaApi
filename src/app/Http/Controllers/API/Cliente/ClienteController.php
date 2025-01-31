@@ -61,10 +61,15 @@ class ClienteController extends Controller
     public function registrarCliente(RegistrarRequest $request)
     {
         try {
-            new Cliente(Persona::create($request->all()));
-            return response()->json(['msg' => 'Cliente registrado correctamente']);
+            // Crear la persona y capturar su instancia
+            $persona = Persona::create($request->all());
+    
+            return response()->json([
+                'msg' => 'Cliente registrado correctamente',
+                'codigo' => $persona->Codigo
+            ]);
         } catch (\Exception $e) {
-            return response()->json('Error al registrar el cliente', 400);
+            return response()->json(['error' => 'Error al registrar el cliente'], 400);
         }
     }
 
