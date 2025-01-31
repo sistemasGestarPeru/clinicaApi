@@ -78,7 +78,7 @@ class VentaController extends Controller
             $pagoData['Fecha'] = $fecha;
             $pagoData['CodigoCuentaBancaria'] = null;
         }
-        
+
         $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
         $pagoValidator->validate();
 
@@ -593,9 +593,21 @@ class VentaController extends Controller
                             WHEN tdv.CodigoSUNAT IS NULL THEN false
                             ELSE true
                         END as Canje
-                    ")
+                    "),
 
-                    
+                    DB::raw("CASE
+                    WHEN (SELECT SUM(nc.MontoTotal) FROM documentoventa AS nc 
+                          WHERE nc.CodigoMotivoNotaCredito IS NOT NULL 
+                          AND nc.CodigoDocumentoReferencia IS NOT NULL 
+                          AND nc.CodigoDocumentoReferencia = dv.Codigo) = dv.MontoTotal THEN 0
+                    ELSE dv.MontoTotal + COALESCE((
+                        SELECT SUM(nc.MontoTotal) FROM documentoventa AS nc 
+                        WHERE nc.CodigoMotivoNotaCredito IS NOT NULL 
+                        AND nc.CodigoDocumentoReferencia IS NOT NULL 
+                        AND nc.CodigoDocumentoReferencia = dv.Codigo
+                    ), 0)
+                    END AS SaldoFinal")
+
                 )
                 ->where('dv.CodigoSede', $codigoSede)
                 // ->where('dv.Vigente', 1)
@@ -1085,6 +1097,71 @@ class VentaController extends Controller
 
             return $resultados;
         } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+
+
+
+
+    // GENNERAR DATA PDF
+    // BOLETA 
+
+    public function boletaVentaPDF($venta){
+        try{
+            $query = DB::table('documentoventa as dv')
+            ->join('detalledocumentoventa as dcv', 'dcv.CodigoVenta', '=', 'dv.Codigo')
+            ->join('sedesrec as s', 's.Codigo', '=', 'dv.CodigoSede')
+            ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+            ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
+            ->join('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
+            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
+            ->leftJoin('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
+            ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
+            ->join('personas as vendedor', 'vendedor.Codigo', '=', 'dv.CodigoTrabajador')
+            ->select(
+                'e.Nombre as empresaNombre',
+                'e.Ruc as ruc',
+                'e.Direccion as direccion',
+                DB::raw("'Lambayeque' AS departamento"),
+                DB::raw("'Chiclayo' AS provincia"),
+                DB::raw("'Chiclayo' AS distrito"),
+                's.Nombre AS sede',
+                'dv.Serie AS serie',
+                DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
+                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as cliente"),
+                'td.Nombre as documentoIdentidad',
+                'p.NumeroDocumento as numDocumento',
+                'mp.Nombre as FormaPago',
+                'p.Direccion as clienteDireccion',
+                'dv.Fecha as fechaEmision',
+                DB::raw("'Soles' as moneda"),
+                'dv.MontoTotal as totalPagar',
+                'dv.IGVTotal as igv',
+                'dv.TotalGravado as opGravadas',
+                DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+            )
+            ->where('dv.Codigo', $venta)
+            ->first();
+
+            $detalleQuery = DB::table('detalledocumentoventa as ddv')
+                ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->select([
+                    'ddv.Cantidad as cantidad',
+                    DB::raw("'unidad' AS unidad"),
+                    'ddv.Descripcion as descripcion',
+                    DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("0 as descuento"),
+                    'ddv.MontoTotal as total'
+                ])
+                ->where('ddv.CodigoVenta', $venta)
+                ->get();
+
+            return response()->json(['data' => $query, 'productos' => $detalleQuery], 200);
+
+        }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
