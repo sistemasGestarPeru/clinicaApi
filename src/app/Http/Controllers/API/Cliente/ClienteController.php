@@ -97,10 +97,15 @@ class ClienteController extends Controller
     public function registrarClienteEmpresa(ClienteEmpresaRegistrarRequest $request)
     {
         try {
-            return (new ClienteEmpresa(RecaudacionClienteEmpresa::create($request->all())))
-                ->additional(['msg' => 'Empresa registrada correctamente']);
+            // Crear la persona y capturar su instancia
+            $clienteEmpresa = RecaudacionClienteEmpresa::create($request->all());
+    
+            return response()->json([
+                'msg' => 'Cliente registrado correctamente',
+                'codigo' => $clienteEmpresa->Codigo
+            ]);
         } catch (\Exception $e) {
-            return response()->json('Error al registrar la empresa', 400);
+            return response()->json(['error' => 'Error al registrar el cliente'], 400);
         }
     }
 
