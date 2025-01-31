@@ -432,7 +432,8 @@ class VentaController extends Controller
                     ELSE 0
                 END AS MontoIGV,
                 tg.Tipo AS TipoGravado,
-                tg.Codigo AS CodigoTipoGravado
+                tg.Codigo AS CodigoTipoGravado,
+                tg.Porcentaje AS Porcentaje
             ')
             ->leftJoin('detalledocumentoventa as ddv', function ($join) use ($idContrato) {
                 $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')

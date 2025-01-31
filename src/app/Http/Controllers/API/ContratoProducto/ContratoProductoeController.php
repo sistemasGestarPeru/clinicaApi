@@ -199,21 +199,25 @@ class ContratoProductoeController extends Controller
         }
     }
 
-    public function anularContrato(Request $request)
+    public function anularContrato(Request $request) 
     {
         $codigo = $request->input('codigoContrato');
     
         DB::beginTransaction();
         try {
-            // Verificar si hay ventas asociadas
-            $documentoVenta = DB::table('documentoventa as dv')
-                ->join('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
-                ->where('cp.Codigo', $codigo)
+            // Verificar si hay documentos de venta asociados
+            $existeDocumentoVenta = DB::table('documentoventa as dv')
+                ->where('dv.CodigoContratoProducto', $codigo)
                 ->where('dv.Vigente', 1)
                 ->exists();
     
-            // Si no hay ventas asociadas, actualizar el contrato y compromisos
-            if (!$documentoVenta) {
+            // Sumar los montos totales de los documentos de venta
+            $sumaMontoTotal = DB::table('documentoventa as dv')
+                ->where('dv.CodigoContratoProducto', $codigo)
+                ->sum('dv.MontoTotal');
+    
+            // Permitir anulación si no hay documentos o si la suma de montos es 0
+            if (!$existeDocumentoVenta || $sumaMontoTotal == 0.0) {
                 DB::table('contratoproducto')
                     ->where('Codigo', $codigo)
                     ->update(['Vigente' => 0]);
@@ -224,7 +228,7 @@ class ContratoProductoeController extends Controller
                     ->update(['Vigente' => 0]);
     
                 DB::commit();
-                
+    
                 return response()->json([
                     'message' => 'Contrato anulado correctamente',
                     'id' => 1
@@ -232,7 +236,7 @@ class ContratoProductoeController extends Controller
             } else {
                 DB::rollBack();
                 return response()->json([
-                    'message' => 'No se puede anular contrato porque tiene documentos de venta asociados.',
+                    'message' => 'No se puede anular contrato porque tiene documentos de venta con montos pendientes.',
                     'id' => 2
                 ], 200);
             }
