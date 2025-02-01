@@ -417,61 +417,50 @@ class VentaController extends Controller
             )
             ->first();
 
-            $detalle = DB::table('detallecontrato as dc')
-            ->selectRaw('
-                (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) AS MontoTotal,
-                CASE
-                    WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0))
-                    WHEN p.Tipo = "S" THEN 1
-                END AS Cantidad,
-                dc.Descripcion,
-                dc.CodigoProducto,
-                p.Tipo,
-                CASE
-                    WHEN tg.Tipo = "G" THEN ROUND(dc.MontoTotal - (dc.MontoTotal / (1 + (tg.Porcentaje / 100))), 2)
-                    ELSE 0
-                END AS MontoIGV,
-                tg.Tipo AS TipoGravado,
-                tg.Codigo AS CodigoTipoGravado,
-                tg.Porcentaje AS Porcentaje
-            ')
-            ->leftJoin('detalledocumentoventa as ddv', function ($join) use ($idContrato) {
-                $join->on('dc.CodigoProducto', '=', 'ddv.CodigoProducto')
-                    ->whereIn('ddv.CodigoVenta', function ($query) use ($idContrato) {
-                        $query->select('Codigo')
-                            ->from('documentoventa')
-                            ->where('CodigoContratoProducto', $idContrato);
-                    });
-            })
-            ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-            ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'dc.CodigoProducto')
-            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-            ->where('dc.CodigoContrato', $idContrato)
-            ->groupBy(
-                'dc.CodigoProducto', 
-                'dc.Descripcion', 
-                'dc.Cantidad', 
-                'dc.MontoTotal', 
-                'p.Tipo', 
-                'tg.Tipo', 
-                'tg.Porcentaje',
-                'tg.Codigo' 
+            $detalle = DB::table('Producto as P')
+            ->joinSub(
+                DB::table('DetalleContrato as DC')
+                    ->leftJoinSub(
+                        DB::table('DocumentoVenta as DV')
+                            ->join('DetalleDocumentoVenta as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
+                            ->where('DV.CodigoContratoProducto', $idContrato)
+                            ->where('DV.Vigente', 1)
+                            ->groupBy('DDV.CodigoProducto')
+                            ->select(
+                                'DDV.CodigoProducto',
+                                DB::raw('SUM(DDV.Cantidad) AS CantidadBoleteada'),
+                                DB::raw('SUM(DDV.MontoTotal) AS MontoBoleteado')
+                            ),
+                        'Bol', 
+                        'Bol.CodigoProducto', '=', 'DC.CodigoProducto'
+                    )
+                    ->where('DC.CodigoContrato', $idContrato)
+                    ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo')
+                    ->select(
+                        'DC.CodigoProducto',
+                        'DC.Descripcion',
+                        'DC.Codigo',
+                        DB::raw('SUM(DC.Cantidad) - COALESCE(Bol.CantidadBoleteada, 0) AS Cantidad'),
+                        DB::raw('SUM(DC.MontoTotal) - COALESCE(Bol.MontoBoleteado, 0) AS Monto')
+                    ),
+                'S', 
+                'P.Codigo', '=', 'S.CodigoProducto'
             )
-            ->havingRaw('
-                CASE
-                    WHEN p.Tipo = "B" THEN (dc.Cantidad - COALESCE(SUM(ddv.Cantidad), 0)) > 0
-                    WHEN p.Tipo = "S" THEN (dc.MontoTotal - COALESCE(SUM(ddv.MontoTotal), 0)) > 0
-                    ELSE 0
-                END
-            ')
+            ->join('SedeProducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
+            ->join('TipoGravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+            ->where('S.Monto', '>', 0)
+            ->orderBy('S.Descripcion')
+            ->select(
+                'S.CodigoProducto',
+                'S.Descripcion',
+                'P.Tipo',
+                DB::raw('CASE WHEN P.Tipo = "B" THEN S.Cantidad ELSE 1 END AS Cantidad'),
+                'S.Monto as MontoTotal',
+                'TG.Tipo AS TipoGravado',
+                'TG.Porcentaje AS Porcentaje',
+                'TG.Codigo AS CodigoTipoGravado'
+            )
             ->get();
-
-            // Convertir los valores a números en lugar de cadenas
-            $detalle = $detalle->map(function ($item) {
-                $item->MontoTotal = (float) $item->MontoTotal;
-                $item->MontoIGV = (float) $item->MontoIGV;
-                return $item;
-            });
 
             return response()->json(['contrato' => $contrato, 'detalle' => $detalle], 200);
         } catch (\Exception $e) {
