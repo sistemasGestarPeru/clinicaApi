@@ -49,7 +49,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('registro', [UserController::class, 'registro']);
 Route::post('acceso', [UserController::class, 'acceso']);
 Route::post('/consultaApp', [UserController::class, 'verificarAplicacion']);
-    
+
 /* RUTAS PUBLICAS PARA EL INDEX DE LA PAG WEB*/
 
 Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimos']);
@@ -110,14 +110,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('portadas/consultar/{id}', [PortadaController::class, 'consultarListado']);
 
     /***************************************************************************/
-    
+
     /***************************************************************************/
     /********************************* CONSULTA SIDEBAR *********************************/
     Route::get('/consultaTrab/empresa/{codigoPersona}', [ConsultasTrabajadorController::class, 'ConsultaEmpresasTrab']);
     Route::get('/consultaTrab/sedes/{codigoPersona}/{codigoEmpresa}', [ConsultasTrabajadorController::class, 'ConsultaSedesTrab']);
 
     /********************************* COMBOS *********************************/
-    
+
     Route::get('combos/listarTipoDocIdentidad', [ControladorGeneralController::class, 'listarTipoDocIdentidad']);
     Route::get('combos/listarTiposDocVenta/{sede}/{tipo}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
     Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
@@ -189,15 +189,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('venta/consultarNotaCredito', [VentaController::class, 'consultarNotaCredito']);
     Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
     Route::post('venta/registrarNotaCredito', [VentaController::class, 'registrarNotaCredito']);
-    
-    
-
-    Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
-    Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
+    Route::post('venta/serieCanje', [VentaController::class, 'serieCanje']);
+    Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
     Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
     Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
-    Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
+    Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
+
     Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
+    Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
 ;
 
     Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
@@ -250,7 +249,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** SEDE PRODUCTO **********************************/
     Route::post('sedeProducto/listarSedeProducto', [SedeProductoController::class, 'listarSedeProducto']);
 
-    
+
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 
@@ -261,7 +260,4 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
 
     /***************************************************************************/
-
-
-    
 });
