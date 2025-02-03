@@ -184,6 +184,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('caja/consultarEstadoCaja', [CajaController::class, 'consultarEstadoCaja']);
     Route::post('caja/registrarIngreso', [CajaController::class, 'registrarIngreso']);
     /********************************* VENTA *********************************/
+    Route::get('venta/consultarNotaCreditoVenta/{venta}', [VentaController::class, 'consultarNotaCreditoVenta']);
     Route::post('venta/consultarDocumentoVenta', [VentaController::class, 'consultarDocumentoVenta']);
     Route::post('venta/consultarNotaCredito', [VentaController::class, 'consultarNotaCredito']);
     Route::post('venta/registrarVenta', [VentaController::class, 'registrarVenta']);
@@ -197,8 +198,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
     Route::post('venta/consultaNumDocumentoVenta', [VentaController::class, 'consultaNumDocumentoVenta']);
     Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
-    Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
-    // Route::post('venta/consultarDatosVenta', [VentaController::class, 'consultarDatosVenta']);
+;
+
     Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
     Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
     Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);

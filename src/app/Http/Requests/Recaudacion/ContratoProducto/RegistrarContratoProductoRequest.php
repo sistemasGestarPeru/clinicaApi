@@ -22,8 +22,7 @@ class RegistrarContratoProductoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'CodigoPaciente' => 'required_without:CodigoEmpresa|integer',
-            'CodigoEmpresa' => 'required_without:CodigoPaciente|integer',
+            'CodigoPaciente' => 'required|integer|min:1',
             'CodigoSede' => 'required|integer|min:1',
             'CodigoTrabajador' => 'required|integer|min:1',
             'Total' => 'required|numeric|min:1',
@@ -34,10 +33,8 @@ class RegistrarContratoProductoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'CodigoPaciente.required_without' => 'Debe seleccionar un Paciente.',
-            'CodigoEmpresa.required_without' => 'Debe seleccionar una Empresa .',
+            'CodigoPaciente.required' => 'Debe seleccionar un Paciente.',
             'CodigoPaciente.min' => 'Debe seleccionar un Paciente válido.',
-            'CodigoEmpresa.min' => 'Debe seleccionar una Empresa válida.',
             'CodigoSede.required' => 'Debe seleccionar una Sede.',
             'CodigoTrabajador.required' => 'Trabajador no válido.',
             'CodigoTrabajador.min' => 'Trabajador no válido.',

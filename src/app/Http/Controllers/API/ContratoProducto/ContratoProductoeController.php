@@ -171,22 +171,16 @@ class ContratoProductoeController extends Controller
 
         try {
             $contratos = DB::table('clinica_db.contratoproducto as cp')
-            ->leftJoin('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-            ->leftJoin('clinica_db.clienteempresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
-            ->where('cp.CodigoSede', 1) // Filtro por CódigoSede
-            ->where('cp.Vigente', $codigoSede) // Filtro por Vigente
+            ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+            ->where('cp.CodigoSede', $codigoSede) // Filtro por CódigoSede
+            // ->where('cp.Vigente', 1) // Filtro por Vigente
             ->select(
                 'cp.Codigo as Codigo',
                 DB::raw("DATE(cp.Fecha) as Fecha"),
                 'cp.Total as Total',
                 'cp.TotalPagado as TotalPagado',
-                DB::raw("
-                    CASE
-                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
-                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
-                        ELSE 'No identificado'
-                    END as NombrePaciente
-                ")
+                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombrePaciente"),
+                'cp.Vigente as Vigente'
             )
             ->get();
 
@@ -253,23 +247,12 @@ class ContratoProductoeController extends Controller
     public function visualizarContrato($contrato){
             $contratoProducto = DB::table('contratoproducto as cp')
             ->select(
-                DB::raw("
-                    CASE
-                        WHEN cp.CodigoClienteEmpresa IS NULL THEN CONCAT(pPac.Nombres, ' ', pPac.Apellidos)
-                        ELSE ce.RazonSocial
-                    END AS Nombre
-                "),
-                DB::raw("
-                    CASE
-                        WHEN cp.CodigoClienteEmpresa IS NULL THEN CONCAT(td.Nombre, ': ', pPac.NumeroDocumento)
-                        ELSE ce.RUC
-                    END AS Documento
-                "),
+                DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
+                DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
                 DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
             )
             ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
-            ->leftJoin('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
-            ->leftJoin('clienteEmpresa as ce', 'ce.Codigo', '=', 'cp.CodigoClienteEmpresa')
+            ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
             ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
             ->where('cp.Codigo', $contrato)
             ->first();
