@@ -96,26 +96,30 @@ class PagoController extends Controller
 
         try {
             $pagos = DB::table('pago as p')
-            ->select(
+            ->select([
                 'p.Codigo',
                 DB::raw("CASE WHEN p.CodigoMedioPago = 2 THEN p.NumeroOperacion ELSE '-' END AS NumeroOperacion"),
                 'mp.Nombre',
                 DB::raw('DATE(p.Fecha) as Fecha'),
                 'p.Monto'
-            )
+            ])
             ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoPago', '=', 'p.Codigo')
-            ->leftJoin('documentoventa as d', function ($join) use ($codigoSede) {
-                $join->on('d.Codigo', '=', 'pdv.CodigoDocumentoVenta')
-                    ->where('d.CodigoSede', '=', $codigoSede);
-            })
+            ->join('Caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
             ->where('p.Vigente', 1)
-            // ->whereDate('p.Fecha', $fecha)
-            ->where(function ($query) {
-                $query->where('pdv.Vigente', 0)
-                    ->orWhereNull('pdv.Codigo');
+            ->where('CAJA.CodigoSede', $codigoSede)
+            ->whereNotExists(function ($query) use ($codigoSede) {
+                $query->select(DB::raw(1))
+                    ->from('pagodocumentoventa as pdv')
+                    ->join('documentoventa as d', function ($join) use ($codigoSede) {
+                        $join->on('d.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+                             ->where('d.CodigoSede', $codigoSede);
+                    })
+                    ->whereColumn('pdv.CodigoPago', 'p.Codigo')
+                    ->where('pdv.Vigente', 1);
             })
+            ->orderBy('p.Fecha', 'desc')
             ->get();
+        
 
 
             return response()->json($pagos, 200);

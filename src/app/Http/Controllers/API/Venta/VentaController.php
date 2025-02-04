@@ -152,10 +152,24 @@ class VentaController extends Controller
 
         DB::beginTransaction();
 
+        $ventaData['TotalGravado'] = $ventaData['TotalGravado'] * -1;
+        $ventaData['TotalExonerado'] = $ventaData['TotalExonerado'] * -1;
+        $ventaData['TotalInafecto'] = $ventaData['TotalInafecto'] * -1;
+        $ventaData['TotalGratis'] = $ventaData['TotalGratis'] * -1;
+        $ventaData['IGVTotal'] = $ventaData['IGVTotal'] * -1;
+        $ventaData['MontoTotal'] = $ventaData['MontoTotal'] * -1;
+        $ventaData['MontoPagado'] = $ventaData['MontoPagado'] * -1;
+
+
         try {
             $ventaCreada = Venta::create($ventaData);
 
             foreach ($detallesVentaData as $detalle) {
+                $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
+                $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
+                $detalle['MontoIGV'] = $detalle['MontoIGV'] * -1;
+                // $detalle['Descuento'] = $detalle['Descuento'] * -1;
+
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
                 DetalleVenta::create($detalle);
             }
@@ -520,6 +534,7 @@ class VentaController extends Controller
         $fecha = $request->input('fecha');
         $codigoSede = $request->input('codigoSede');
         $nombre = $request->input('nombre');
+        $documento = $request->input('documento');
 
         $venta = DB::table('documentoventa as dv')
             ->selectRaw("
@@ -567,6 +582,12 @@ class VentaController extends Controller
                     $q->where('p.Nombres', 'LIKE', "%$nombre%")
                         ->orWhere('p.Apellidos', 'LIKE', "%$nombre%")
                         ->orWhere('ce.RazonSocial', 'LIKE', "%$nombre%");
+                });
+            })
+            ->when($documento, function ($queryD) use ($documento) {
+                $queryD->where(function ($q) use ($documento) {
+                    $q->where('p.NumeroDocumento', 'LIKE', "%$documento%")
+                        ->orWhere('ce.RUC', 'LIKE', "%$documento%");
                 });
             })
             ->orderByDesc('dv.Codigo')
@@ -795,35 +816,43 @@ class VentaController extends Controller
     {
         $canjeData = $request->input('Canje');
 
+        if($canjeData['CodigoPersona'] == 0){
+            $canjeData['CodigoPersona'] = null;
+        }
+
+        if($canjeData['CodigoClienteEmpresa'] == 0){
+            $canjeData['CodigoClienteEmpresa'] = null;
+        }
+
         $NumSerieDoc = $this->consultaNumDocumentoVenta(new Request([
             'sede' =>  $canjeData['CodigoSede'],
-            'tipoDocumento' =>  $canjeData['CodigoTipoDocumentoVenta']
+            'tipoDocumento' =>  $canjeData['CodigoTipoDocumentoVenta'],
+            'serie' =>  $canjeData['Serie']
         ]));
 
         $data = $NumSerieDoc->getData();
 
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
         DB::beginTransaction();
         try {
             // 1. Obtener el registro original
-            $venta = DB::table('documentoventa')
-                ->where('Codigo', $canjeData['CodigoVenta'])
-                ->where('CodigoTipoDocumentoVenta', 3)
+                $venta = DB::table('documentoventa')
+                ->where('Codigo', $canjeData['CodigoDocumentoReferencia'])
+                ->where('Vigente',1)
                 ->first();
 
             if ($venta) {
                 // 2. Insertar en documentoventa con los valores obtenidos
                 $nuevoCodigoDocumentoVenta = DB::table('documentoventa')->insertGetId([
-                    'CodigoDocumentoReferencia' => $venta->Codigo,
-                    'CodigoTipoDocumentoVenta' => $canjeData['CodigoTipoDocumentoVenta'], // variableTipoDocumentoVenta
-                    'CodigoSede' => $venta->CodigoSede,
-                    'Serie' =>  $data->Serie, // variableSerie
-                    'Numero' => $data->Numero, // variableNumero
-                    'Fecha' => $fecha, // variableFecha
-                    'CodigoTrabajador' => $canjeData['CodigoTrabajador'], // variableCodigoTrabajador
-                    'CodigoPersona' => $venta->CodigoPersona,
-                    'CodigoClienteEmpresa' => $venta->CodigoClienteEmpresa,
+                    'CodigoDocumentoReferencia' => $canjeData['CodigoDocumentoReferencia'],
+                    'CodigoSede' => $canjeData['CodigoSede'],
+                    'Serie' => $canjeData['Serie'],
+                    'Numero' => $data->Numero,
+                    'CodigoTipoDocumentoVenta' => $canjeData['CodigoTipoDocumentoVenta'],
+                    'Fecha' =>  $canjeData['Fecha'],
+                    'CodigoPersona' => $canjeData['CodigoPersona'],
+                    'CodigoClienteEmpresa' => $canjeData['CodigoClienteEmpresa'],
+                    'CodigoCaja' => $canjeData['CodigoCaja'],
+                    'CodigoTrabajador' => $canjeData['CodigoTrabajador'],
                     'TotalGravado' => $venta->TotalGravado,
                     'TotalExonerado' => $venta->TotalExonerado,
                     'TotalInafecto' => $venta->TotalInafecto,
@@ -833,22 +862,24 @@ class VentaController extends Controller
                     'Estado' => $venta->Estado,
                     'EstadoFactura' => $venta->EstadoFactura,
                     'CodigoContratoProducto' => $venta->CodigoContratoProducto,
-                    'CodigoCaja' => $canjeData['CodigoCaja'] // variableCaja
+                    'CodigoAutorizador' => $venta->CodigoAutorizador,
+                    'CodigoMedico' => $venta->CodigoMedico,
+                    'CodigoPaciente' => $venta->CodigoPaciente,
+                    'TotalGratis' => $venta->TotalGratis,
                 ]);
 
                 // 3. Actualizar el campo Vigente en documentoventa
                 DB::table('documentoventa')
-                    ->where('Codigo', $canjeData['CodigoVenta'])
+                    ->where('Codigo', $canjeData['CodigoDocumentoReferencia'])
                     ->update(['Vigente' => 0]);
 
                 // 4. Actualizar el pagodocumentoventa con el nuevo código generado
                 DB::table('pagodocumentoventa')
-                    ->where('CodigoDocumentoVenta', $canjeData['CodigoVenta'])
+                    ->where('CodigoDocumentoVenta', $canjeData['CodigoDocumentoReferencia'])
                     ->update(['CodigoDocumentoVenta' => $nuevoCodigoDocumentoVenta]);
-
                 // 5. Actualizar el detallecontrato con el nuevo código generado
                 DB::table('detalledocumentoventa')
-                    ->where('CodigoVenta', $canjeData['CodigoVenta'])
+                    ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
                     ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
                 DB::commit();
                 return response()->json(['message' => 'Documento de venta canjeado correctamente.'], 201);
@@ -964,12 +995,6 @@ class VentaController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
-
-
-
-
-
 
 
 
