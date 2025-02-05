@@ -18,6 +18,7 @@ class Caja extends Model
         'FechaFin',
         'Estado',
         'CodigoSede',
-        'CodigoTrabajador'
+        'CodigoTrabajador',
+        'TotalEfectivo'
     ];
 }

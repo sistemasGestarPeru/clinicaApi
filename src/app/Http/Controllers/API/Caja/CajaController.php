@@ -37,9 +37,23 @@ class CajaController extends Controller
         DB::beginTransaction();
 
         try {
-
+            $cajaConsulta = DB::table('Caja')
+                ->select('TotalEfectivo')
+                ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
+                ->where('Estado', 'C')
+                ->where('CodigoSede', $cajaData['CodigoSede'])
+                ->orderByDesc('Codigo')
+                ->limit(1)
+            ->first();
+        
             $caja = Caja::create($cajaData);
             $codigo = $caja->Codigo;
+            $IngresoDineroData['Fecha'] = $fecha;
+            $IngresoDineroData['Monto'] = $cajaConsulta->TotalEfectivo;
+            $IngresoDineroData['Tipo'] = 'A';
+            $IngresoDineroData['CodigoCaja'] = $codigo;
+            IngresoDinero::create($IngresoDineroData);
+
             DB::commit();
             return response()->json([
                 'CodigoCaja' => $codigo,
@@ -156,31 +170,47 @@ class CajaController extends Controller
     public function consultarDatosCaja($caja){
         try{
 
-            $result = DB::table(DB::raw('(SELECT 1) as dummy')) // Usamos una tabla ficticia
+            $result = DB::table('CAJA')
+            ->leftJoin('IngresoDinero as apertura', function ($join) use ($caja) {
+                $join->on('apertura.CodigoCaja', '=', 'CAJA.Codigo')
+                     ->where('apertura.Vigente', 1)
+                     ->where('apertura.Tipo', 'A');
+            })
+            ->leftJoin('IngresoDinero as ingresos', function ($join) use ($caja) {
+                $join->on('ingresos.CodigoCaja', '=', 'CAJA.Codigo')
+                     ->where('ingresos.Vigente', 1);
+            })
+            ->leftJoin('Pago as pagos', function ($join) {
+                $join->on('pagos.CodigoCaja', '=', 'CAJA.Codigo')
+                     ->where('pagos.Vigente', 1)
+                     ->whereIn('pagos.CodigoMedioPago', function ($query) {
+                         $query->select('Codigo')
+                               ->from('mediopago')
+                               ->where('Nombre', 'LIKE', '%Efectivo%');
+                     });
+            })
+            ->leftJoin('Egreso as egresos', function ($join) {
+                $join->on('egresos.CodigoCaja', '=', 'CAJA.Codigo')
+                     ->where('egresos.Vigente', 1)
+                     ->whereIn('egresos.CodigoMedioPago', function ($query) {
+                         $query->select('Codigo')
+                               ->from('mediopago')
+                               ->where('Nombre', 'LIKE', '%Efectivo%');
+                     });
+            })
+            ->where('CAJA.Codigo', $caja)
+            ->where('CAJA.Estado', 'A')
             ->select([
-                DB::raw("(SELECT DATE_FORMAT(FechaInicio, '%d/%m/%Y') 
-                        FROM CAJA 
-                        WHERE Codigo = $caja and Estado = 'A') AS Fecha"),
-                DB::raw("(SELECT TIME(FechaInicio) 
-                        FROM CAJA 
-                        WHERE Codigo = $caja) AS Hora"),
-                DB::raw("(SELECT SUM(Monto) 
-                        FROM IngresoDinero 
-                        WHERE CodigoCaja = $caja AND Vigente = 1) AS Ingresos"),
-                DB::raw("(SELECT SUM(Monto) 
-                        FROM Pago 
-                        WHERE CodigoCaja = $caja AND Vigente = 1 AND 
-                                CodigoMedioPago = (SELECT Codigo 
-                                                FROM mediopago 
-                                                WHERE Nombre LIKE '%Efectivo%')) AS Recaudacion"),
-                DB::raw("(SELECT SUM(Monto) 
-                        FROM Egreso 
-                        WHERE CodigoCaja = $caja AND Vigente = 1 AND 
-                                CodigoMedioPago = (SELECT Codigo 
-                                                FROM mediopago 
-                                                WHERE Nombre LIKE '%Efectivo%')) AS Egresos"),
+                DB::raw("COALESCE((SELECT Monto FROM IngresoDinero WHERE CodigoCaja = CAJA.Codigo AND Vigente = 1 AND Tipo = 'A' LIMIT 1), 0) AS Apertura"),
+                DB::raw("DATE_FORMAT(FechaInicio, '%d/%m/%Y') AS Fecha"),
+                DB::raw("TIME(FechaInicio) AS Hora"),
+                DB::raw("COALESCE(SUM(ingresos.Monto), 0) AS Ingresos"),
+                DB::raw("COALESCE(SUM(pagos.Monto), 0) AS Recaudacion"),
+                DB::raw("COALESCE(SUM(egresos.Monto), 0) AS Egresos"),
             ])
+            ->groupBy('CAJA.Codigo')
             ->first();
+        
     
             return response()->json($result, 200);
         }catch(\Exception $e){
@@ -196,7 +226,7 @@ class CajaController extends Controller
             $fecha = date('Y-m-d H:i:s');
             $request->merge(['FechaFin' => $fecha]);
             $request->merge(['Estado' => 'C']);
-
+            $request->merge(['TotalEfectivo' => $request->Total]);
             $caja = Caja::where('Codigo', $request->CodigoCaja)->first();
             $caja->update($request->all());
 
@@ -214,16 +244,24 @@ class CajaController extends Controller
     public function registrarIngreso(Request $request)
     {
         $IngresoDineroData = $request->input('IngresoDinero');
-
+        $egreso = $request->input('Egreso');
+        DB::beginTransaction();
         try {
             $IngresoDineroData = $request->input('IngresoDinero');
 
             $IngresoDineroData['Tipo'] = 'I';
 
             IngresoDinero::create($IngresoDineroData);
-            return response()->json(['message' => 'Ingreso registrado correctamente'], 201);
             
+            DB::table('salidadinero')
+            ->where('Codigo', $egreso)
+            ->update([
+                'Confirmado' => 1
+            ]);
+            DB::commit();
+            return response()->json(['message' => 'Ingreso registrado correctamente', $egreso], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['message' => 'Error al registrar el ingreso', 'error' => $e->getMessage()], 400);
         }
     }
@@ -285,6 +323,38 @@ class CajaController extends Controller
                 'error' => $e->getMessage()
             ], 500); // Usar el código 500 para errores del servidor
         }
+    }
+
+
+
+    public function listarIngresosPendientes(Request $request){
+        $codigoSede = $request->input('codigoSede');
+        $codigoReceptor = $request->input('codigoReceptor');
+
+        try{
+            $results = DB::table('clinica_db.salidadinero AS sd')
+                ->join('Egreso AS e', 'e.Codigo', '=', 'sd.Codigo')
+                ->join('Caja AS c', 'c.Codigo', '=', 'e.CodigoCaja')
+                ->join('Personas AS p', 'p.Codigo', '=', 'e.CodigoTrabajador')
+                ->where('sd.Confirmado', 0)
+                ->where('e.Vigente', 1)
+                ->where('c.CodigoSede', $codigoSede)
+                ->where('sd.CodigoReceptor', $codigoReceptor)
+                ->whereNull('sd.CodigoCuentaBancaria')
+                ->select(
+                    'e.Codigo AS CodigoEgreso',
+                    'p.Codigo AS CodigoEmisor',
+                    'e.Monto',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS Emisor")
+                )
+            ->get();
+
+            return response()->json($results, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
+        }
+        
     }
     
 }
