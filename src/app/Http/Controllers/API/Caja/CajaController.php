@@ -4,12 +4,16 @@ namespace App\Http\Controllers\API\Caja;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Caja\RegistrarCajaRequest;
+use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\IngresoDinero\RegistrarIngresoDineroRequest;
 use App\Http\Resources\Recaudacion\Caja\CajaResource;
 use App\Models\Recaudacion\Caja;
+use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\IngresoDinero;
+use App\Models\Recaudacion\SalidaDinero;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class CajaController extends Controller
 {
@@ -266,6 +270,33 @@ class CajaController extends Controller
         }
     }
 
+    public function registrarSalida(Request $request){
+        $egreso = $request->input('Egreso');
+        $salidaDinero = $request->input('SalidaDinero');
+        DB::beginTransaction();
+        try{
+
+            //Validar Egreso
+            $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+            $egresoValidator->validate();
+
+            if (!isset($egreso['CodigoCuentaOrigen']) || !$egreso['CodigoCuentaOrigen']) {
+                $egreso['CodigoCuentaOrigen'] = null;
+            }            
+
+            $nuevoEgreso = Egreso::create($egreso);
+            $salidaDinero['Codigo'] = $nuevoEgreso->Codigo;
+
+            SalidaDinero::create($salidaDinero);
+            DB::commit();
+            return response()->json(['message' => 'Salida registrada correctamente'], 201);
+
+        }catch(\Exception $e){
+            DB::rollBack();
+            return response()->json(['message' => 'Error al registrar la salida', 'error' => $e->getMessage()], 400);
+        }
+    }
+
     public function consultarEstadoCaja(Request $request)
     {
         $codigoTrabajador = $request->input('CodigoTrabajador');
@@ -325,7 +356,32 @@ class CajaController extends Controller
         }
     }
 
+    public function listarTrabajadoresSalidaDinero($sede){
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d');
 
+        try{
+        $trabajadores = DB::table('trabajadors as t')
+            ->leftJoin('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
+            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+            ->where('t.Tipo', 'A')
+            ->where('t.Vigente', 1)
+            ->where('p.Vigente', 1)
+            ->where('ass.Vigente', 1)
+            ->where('ass.CodigoSede', $sede)
+            ->where('ass.FechaFin', '>=', $fecha)
+            ->select(
+                't.Codigo as Codigo',
+                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombre")
+            )
+            ->get();
+
+            return response()->json($trabajadores);
+
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar los trabajadores', 'error' => $e->getMessage()], 400);
+        }
+    }
 
     public function listarIngresosPendientes(Request $request){
         $codigoSede = $request->input('codigoSede');

@@ -18,6 +18,9 @@ class PagoServicio extends Model
         'Codigo',
         'CodigoMotivoPago',
         'Descripcion',
-        'Documento'
+        'TipoDocumento',
+        'Serie',
+        'Numero',
+        'FechaDocumento'
     ];
 }

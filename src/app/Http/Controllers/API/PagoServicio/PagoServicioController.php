@@ -64,7 +64,7 @@ class PagoServicioController extends Controller
             $results = DB::table('Egreso as e')
                 ->join('PagoServicio as ps', 'ps.Codigo', '=', 'e.Codigo')
                 ->join('MotivoPagoServicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
-                ->select('mps.Nombre', 'ps.Documento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
+                ->select('mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
                 // ->where(DB::raw('DATE(e.Fecha)'), $fecha)
                 ->get();
 
