@@ -110,33 +110,37 @@ class PagoController extends Controller
     public function buscarPago(Request $request)
     {
 
-        $fecha = $request->input('fecha');
         $codigoSede = $request->input('codigoSede');
 
         try {
-            $pagos = DB::table('pago as p')
-            ->select([
-                'p.Codigo',
-                DB::raw("CASE WHEN p.CodigoMedioPago = 2 THEN p.NumeroOperacion ELSE '-' END AS NumeroOperacion"),
-                'mp.Nombre',
-                DB::raw('DATE(p.Fecha) as Fecha'),
-                'p.Monto'
-            ])
+            $subquery = "
+            SELECT pdv.CodigoPago, SUM(pdv.Monto) AS MontoAsociado
+            FROM pagodocumentoventa AS pdv
+            JOIN documentoventa AS d ON d.Codigo = pdv.CodigoDocumentoVenta 
+            WHERE pdv.Vigente = 1
+            AND d.CodigoSede = $codigoSede
+            GROUP BY pdv.CodigoPago
+        ";
+        
+        $pagos = DB::table('pago as p')
             ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
             ->join('Caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
+            ->leftJoin(DB::raw("($subquery) AS PAG"), 'PAG.CodigoPago', '=', 'p.Codigo')
             ->where('p.Vigente', 1)
             ->where('CAJA.CodigoSede', $codigoSede)
-            ->whereNotExists(function ($query) use ($codigoSede) {
-                $query->select(DB::raw(1))
-                    ->from('pagodocumentoventa as pdv')
-                    ->join('documentoventa as d', function ($join) use ($codigoSede) {
-                        $join->on('d.Codigo', '=', 'pdv.CodigoDocumentoVenta')
-                             ->where('d.CodigoSede', $codigoSede);
-                    })
-                    ->whereColumn('pdv.CodigoPago', 'p.Codigo')
-                    ->where('pdv.Vigente', 1);
-            })
-            ->orderBy('p.Fecha', 'desc')
+            ->whereRaw('p.Monto >= COALESCE(PAG.MontoAsociado, 0)')
+            ->selectRaw("
+                p.Codigo,
+                CASE 
+                    WHEN mp.CodigoSUNAT = '001' THEN p.NumeroOperacion 
+                    ELSE '-' 
+                END AS NumeroOperacion,
+                mp.Nombre,
+                DATE(p.Fecha) AS Fecha,
+                p.Monto,
+                PAG.MontoAsociado,
+                (p.Monto - COALESCE(PAG.MontoAsociado, 0)) AS MontoPorAsociar
+            ")
             ->get();
         
 
@@ -152,45 +156,40 @@ class PagoController extends Controller
 
     public function buscarVentas(Request $request)
     {
-        $fecha = $request->input('fecha');
+        // $fecha = $request->input('fecha');
         $codigoSede = $request->input('CodigoSede');
-        $pago = $request->input('pago');
+        // $pago = $request->input('pago');
 
         try {
 
-                $ventas = DB::table('documentoventa as VENTA')
-                ->leftJoinSub(
-                    DB::table('documentoventa')
-                        ->select('CodigoDocumentoReferencia', DB::raw('SUM(MontoTotal) AS MontoTotalNC'))
-                        ->whereNotNull('CodigoMotivoNotaCredito')
-                        ->where('Vigente', 1)
-                        ->where('CodigoSede', $codigoSede)
-                        ->groupBy('CodigoDocumentoReferencia'),
-                    'NOTACREDITO',
-                    'NOTACREDITO.CodigoDocumentoReferencia',
-                    '=',
-                    'VENTA.Codigo'
-                )
-                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'VENTA.CodigoTipoDocumentoVenta')
-                ->whereNull('VENTA.CodigoMotivoNotaCredito')
-                ->where('VENTA.Vigente', 1)
-                ->where('VENTA.CodigoSede', $codigoSede)
-                ->whereRaw('((VENTA.MontoTotal - VENTA.MontoPagado) != 0 OR (VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) != 0)')
-                ->when($pago > 0, function ($query) use ($pago) {
-                    return $query->whereRaw('(VENTA.MontoTotal - VENTA.MontoPagado) >= ?', [$pago]);
-                }) // Se agrega la condición solo si $pago > 0
-                ->select(
-                    'VENTA.Codigo',
-                    'VENTA.MontoPagado',
-                    'VENTA.MontoTotal',
-                    DB::raw('COALESCE(NOTACREDITO.MontoTotalNC, 0) AS MontoTotalNC'),
-                    'tdv.Nombre',
-                    'VENTA.Serie',
-                    'VENTA.Numero',
-                    DB::raw('DATE(VENTA.Fecha) as Fecha')
-                )
-                ->orderByDesc('VENTA.Codigo')
-                ->get();
+            $subquery = "
+            SELECT CodigoDocumentoReferencia, SUM(MontoTotal) AS MontoTotalNC
+            FROM documentoventa 
+            WHERE CodigoMotivoNotaCredito IS NOT NULL
+            AND Vigente = 1
+            AND CodigoSede = $codigoSede
+            GROUP BY CodigoDocumentoReferencia
+        ";
+        
+        $ventas = DB::table('documentoventa as VENTA')
+            ->leftJoin(DB::raw("($subquery) AS NOTACREDITO"), 'NOTACREDITO.CodigoDocumentoReferencia', '=', 'VENTA.Codigo')
+            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'VENTA.CodigoTipoDocumentoVenta')
+            ->whereNull('VENTA.CodigoMotivoNotaCredito')
+            ->where('VENTA.Vigente', 1) // Se pasa como valor directo
+            ->where('VENTA.CodigoSede', $codigoSede) // Se pasa como valor directo
+            ->whereRaw('(VENTA.MontoTotal - VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) > 0')
+            ->orderByDesc('VENTA.Codigo')
+            ->selectRaw('
+                VENTA.Codigo, 
+                VENTA.MontoPagado, 
+                VENTA.MontoTotal, 
+                (VENTA.MontoTotal - VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) AS Saldo,
+                tdv.Nombre, 
+                VENTA.Serie, 
+                VENTA.Numero, 
+                DATE(VENTA.Fecha) AS Fecha
+            ')
+            ->get();
             
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
