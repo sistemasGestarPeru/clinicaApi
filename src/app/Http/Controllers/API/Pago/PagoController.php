@@ -50,6 +50,9 @@ class PagoController extends Controller
     {
         //
     }
+
+
+// ---------------------------------------------------------------------------------------
     public function registrarPago(RegistrarPagoRequest $request)
     {
         // Verificación de los datos
@@ -68,25 +71,41 @@ class PagoController extends Controller
             return response()->json(['message' => 'Error al registrar el Pago', 'error' => $e->getMessage()], 500);
         }
     }
+
+
     public function registrarPagoDocumentoVenta(Request $request)
     {
 
         $pagoDocData = $request->input('pagoDocVenta');
+        DB::beginTransaction();
         try {
             DB::table('pagodocumentoventa')->insert([
                 'CodigoPago' => $pagoDocData['CodigoPago'],
                 'CodigoDocumentoVenta' =>  $pagoDocData['CodigoDocumentoVenta'],
                 'Monto' => $pagoDocData['Monto']
             ]);
+
+            DB::table('documentoventa')
+            ->where('Codigo', $pagoDocData['CodigoDocumentoVenta'])
+            ->increment('MontoPagado', $pagoDocData['Monto']);
+
+            DB::commit();
             return response()->json([
                 'message' => 'Pago Asociado correctamente',
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
+
+
+ // ---------------------------------------------------------------------------------------
+
+
+
 
     public function buscarPago(Request $request)
     {
@@ -134,27 +153,45 @@ class PagoController extends Controller
     public function buscarVentas(Request $request)
     {
         $fecha = $request->input('fecha');
-        $codigoSede = $request->input('codigoSede');
-        $codigoPago = $request->input('codigoPago');
+        $codigoSede = $request->input('CodigoSede');
+        $pago = $request->input('pago');
 
         try {
 
-            $ventas = DB::table('documentoventa as dv')
-            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
-            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
-            ->whereNull('pdv.Codigo')
-            ->where('dv.Vigente', 1)
-            ->where('dv.CodigoSede', $codigoSede)
-            ->where('dv.MontoTotal', '>=', function ($query) use ($codigoPago) {
-                $query->select('p.Monto')
-                    ->from('pago as p')
-                    ->where('p.Codigo', $codigoPago)
-                    ->where('p.Vigente', 1)
-                    ->limit(1);
-            })
-            ->select('dv.Codigo', 'tdv.Nombre', 'dv.Serie', 'dv.Numero', DB::raw('DATE(dv.Fecha) as Fecha'), 'dv.MontoTotal', 'dv.MontoPagado')
-            ->get();
-
+                $ventas = DB::table('documentoventa as VENTA')
+                ->leftJoinSub(
+                    DB::table('documentoventa')
+                        ->select('CodigoDocumentoReferencia', DB::raw('SUM(MontoTotal) AS MontoTotalNC'))
+                        ->whereNotNull('CodigoMotivoNotaCredito')
+                        ->where('Vigente', 1)
+                        ->where('CodigoSede', $codigoSede)
+                        ->groupBy('CodigoDocumentoReferencia'),
+                    'NOTACREDITO',
+                    'NOTACREDITO.CodigoDocumentoReferencia',
+                    '=',
+                    'VENTA.Codigo'
+                )
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'VENTA.CodigoTipoDocumentoVenta')
+                ->whereNull('VENTA.CodigoMotivoNotaCredito')
+                ->where('VENTA.Vigente', 1)
+                ->where('VENTA.CodigoSede', $codigoSede)
+                ->whereRaw('((VENTA.MontoTotal - VENTA.MontoPagado) != 0 OR (VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) != 0)')
+                ->when($pago > 0, function ($query) use ($pago) {
+                    return $query->whereRaw('(VENTA.MontoTotal - VENTA.MontoPagado) >= ?', [$pago]);
+                }) // Se agrega la condición solo si $pago > 0
+                ->select(
+                    'VENTA.Codigo',
+                    'VENTA.MontoPagado',
+                    'VENTA.MontoTotal',
+                    DB::raw('COALESCE(NOTACREDITO.MontoTotalNC, 0) AS MontoTotalNC'),
+                    'tdv.Nombre',
+                    'VENTA.Serie',
+                    'VENTA.Numero',
+                    DB::raw('DATE(VENTA.Fecha) as Fecha')
+                )
+                ->orderByDesc('VENTA.Codigo')
+                ->get();
+            
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
             return response()->json([
