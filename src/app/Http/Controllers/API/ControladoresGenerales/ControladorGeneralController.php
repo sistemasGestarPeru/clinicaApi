@@ -239,6 +239,20 @@ class ControladorGeneralController extends Controller
         }
     }
 
+    public function listarBilleterasDigitalesEmpresa($empresa){
+        try{
+            $result = DB::table('billeteradigital as bd')
+            ->join('entidadbilleteradigital as ebd', 'ebd.Codigo', '=', 'bd.Codigo')
+            ->where('bd.CodigoEmpresa', $empresa)
+            ->where('bd.Vigente', 1)
+            ->where('ebd.Vigente', 1)
+            ->select('bd.Codigo', DB::raw("CONCAT(ebd.Nombre, ' - ', bd.Numero) AS Nombre"))
+            ->get();
+            return response()->json($result);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
 
     public function listarCuentasBancariasEmpresa($empresa)
     {
@@ -309,9 +323,9 @@ class ControladorGeneralController extends Controller
     }
 
     public function personalAutorizado($sede){
-        
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d');
         try{
-
             $trabajadores = DB::table('trabajadors as t')
             ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
             ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
@@ -321,6 +335,7 @@ class ControladorGeneralController extends Controller
             ->where('p.Vigente', 1)
             ->where('ass.Vigente', 1)
             ->where('ass.CodigoSede', $sede)
+            ->where('ass.FechaFin', '>=', $fecha)
             ->get();
             return response()->json($trabajadores);
         }catch(\Exception $e){
@@ -394,6 +409,33 @@ class ControladorGeneralController extends Controller
         }catch(\Exception $e){
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
+    }
+
+    public function listarMotivoAnulacionContrato(){
+        try{
+            $motivos = DB::table('MotivoAnulacionContrato')
+            ->where('Vigente', 1)
+            ->select('Codigo', 'Nombre', 'Descripcion')
+            ->get();
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarDonantes(){
+        try{
+            $personas = DB::table('personas')
+            ->select(
+                'Codigo',
+                DB::raw("CONCAT(Nombres, ' ', Apellidos) as Nombres")
+            )
+            ->where('Vigente', 1)
+            ->get();
+
+            return response()->json($personas);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }   
     }
 
 }

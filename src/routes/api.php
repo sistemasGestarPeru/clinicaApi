@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
 use App\Http\Controllers\API\Pago\PagoController;
+use App\Http\Controllers\API\PagoComision\PagoComisionController;
+use App\Http\Controllers\API\PagoDonante\PagoDonanteController;
 use App\Http\Controllers\API\PagoServicio\PagoProveedorController;
 use App\Http\Controllers\API\PagoServicio\PagoServicioController;
 use App\Http\Controllers\API\PagoTrabajadores\PagoTrabajadoresController;
@@ -29,6 +31,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
 use App\Http\Controllers\API\SedeProducto\SedeProductoController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -128,6 +131,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/empresasTrabajador/{codigoTrabajador}', [ControladorGeneralController::class, 'ConsultaEmpresasTrab']);
     Route::get('combos/listarMedioPago/{sede}', [ControladorGeneralController::class, 'listarMedioPago']);
     Route::get('combos/listarCuentasBancariasEmpresa/{empresa}', [ControladorGeneralController::class, 'listarCuentasBancariasEmpresa']);
+    Route::get('combos/listarBilleterasDigitalesEmpresa/{empresa}', [ControladorGeneralController::class, 'listarBilleterasDigitalesEmpresa']);
     Route::get('combos/listarMotivosAnulacion', [ControladorGeneralController::class, 'listarMotivosAnulacion']);
     Route::get('combos/cuentaDetraccion/{empresa}', [ControladorGeneralController::class, 'cuentaDetraccion']);
     Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
@@ -137,7 +141,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarMedicos/{sede}', [ControladorGeneralController::class, 'listarMedicos']);
     Route::get('combos/listarPacientes/{sede}', [ControladorGeneralController::class, 'listarPacientes']);
     Route::get('combos/listarMotivoNotaCredito', [ControladorGeneralController::class, 'listarMotivoNotaCredito']);
-
+    Route::get('combos/listarMotivoAnulacionContrato', [ControladorGeneralController::class, 'listarMotivoAnulacionContrato']);
+    Route::get('combos/listarDonantes', [ControladorGeneralController::class, 'listarDonantes']);
     /***************************************************************************/
     /********************************* CLIENTES *********************************/
     Route::apiResource("cliente", ClienteController::class);
@@ -245,6 +250,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoProveedor/listarComprasProveedores', [PagoProveedorController::class, 'listarComprasProveedores']);
     Route::post('pagoProveedor/listarCuotasProveedor', [PagoProveedorController::class, 'listarCuotasProveedor']);
 
+    /********************************** PAGO DONANTE **********************************/
+    Route::post('pagoDonante/registrarPagoDonante', [PagoDonanteController::class, 'registrarPagoDonante']);
+
+    /********************************** PAGO COMISION **********************************/
+    Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
+    Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);

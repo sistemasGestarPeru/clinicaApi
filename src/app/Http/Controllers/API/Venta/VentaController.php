@@ -604,19 +604,20 @@ class VentaController extends Controller
     public function consultarSerieNotaCredito(Request $request)
     {
         $sede = $request->input('sede');
-        $producto = $request->input('tipProd');
-        $tipoDoc = $request->input('tipoDoc');
-
+        $serie = $request->input('serie');
         try {
 
-            $result = DB::table('localdocumentoventa as ldv')
-                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
-                ->select('ldv.Codigo', 'ldv.Serie')
-                ->where('ldv.CodigoSede', $sede)
-                ->where('ldv.Vigente', 1)
-                ->where('ldv.TipoProducto', $producto)
-                ->where('tdv.CodigoSUNAT', '07')
-                ->get();
+            $result = DB::table('localdocumentoventa')
+            ->select('Codigo', 'Serie')
+            ->whereIn('CodigoSerieDocumentoVenta', function ($query) use ($serie, $sede) {
+                $query->select('Codigo')
+                    ->from('localdocumentoventa')
+                    ->where('Serie', $serie)
+                    ->where('Vigente', 1)
+                    ->where('CodigoSede', $sede);
+            })
+            ->where('Vigente', 1)
+            ->get();
 
             return response()->json($result);
         } catch (\Exception $e) {

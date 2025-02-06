@@ -5,26 +5,18 @@ namespace App\Models\Recaudacion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ContratoProducto extends Model
+class AnulacionContrato extends Model
 {
     use HasFactory;
-
     public $timestamps = false;
 
-    protected $table = 'contratoProducto';
+    protected $table = 'AnulacionContrato';
     protected $primaryKey = 'Codigo';
-
     protected $fillable = [
-        'NumContrato',
+        'Codigo',
         'Fecha',
-        'Total',
-        'TotalPagado',
-        'CodigoPaciente',
-        'CodigoClienteEmpresa',
-        'CodigoSede',
+        'CodigoMotivo',
         'CodigoTrabajador',
-        'Vigente',
-        'CodigoMedico',
-        'CodigoPaciente02'
+        'Comentario'
     ];
 }

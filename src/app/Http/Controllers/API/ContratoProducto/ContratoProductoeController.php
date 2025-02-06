@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\ContratoProducto;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\ContratoProducto\RegistrarContratoProductoRequest;
 use App\Http\Requests\Recaudacion\ContratoProducto\RegistrarDetalleContratoRequest;
+use App\Models\Recaudacion\AnulacionContrato;
 use App\Models\Recaudacion\CompromisoContrato;
 use App\Models\Recaudacion\ContratoProducto;
 use App\Models\Recaudacion\DetalleContrato;
@@ -196,6 +197,7 @@ class ContratoProductoeController extends Controller
     public function anularContrato(Request $request) 
     {
         $codigo = $request->input('codigoContrato');
+        $anularContrato = $request->input('anularContrato');
     
         DB::beginTransaction();
         try {
@@ -220,7 +222,9 @@ class ContratoProductoeController extends Controller
                     ->where('CodigoContrato', $codigo)
                     ->where('Vigente', 1)
                     ->update(['Vigente' => 0]);
-    
+                
+                AnulacionContrato::create($anularContrato);
+
                 DB::commit();
     
                 return response()->json([
