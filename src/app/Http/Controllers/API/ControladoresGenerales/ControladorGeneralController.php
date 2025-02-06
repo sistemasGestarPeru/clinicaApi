@@ -417,6 +417,7 @@ class ControladorGeneralController extends Controller
             ->where('Vigente', 1)
             ->select('Codigo', 'Nombre', 'Descripcion')
             ->get();
+            return response()->json($motivos);
         }catch(\Exception $e){
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }

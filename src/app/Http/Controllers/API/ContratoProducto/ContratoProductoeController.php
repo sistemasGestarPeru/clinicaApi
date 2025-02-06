@@ -223,6 +223,7 @@ class ContratoProductoeController extends Controller
                     ->where('Vigente', 1)
                     ->update(['Vigente' => 0]);
                 
+                $anularContrato['Codigo'] = $codigo;
                 AnulacionContrato::create($anularContrato);
 
                 DB::commit();
