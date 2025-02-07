@@ -174,49 +174,74 @@ class CajaController extends Controller
     public function consultarDatosCaja($caja){
         try{
 
-            $result = DB::table('CAJA')
-            ->leftJoin('IngresoDinero as apertura', function ($join) use ($caja) {
-                $join->on('apertura.CodigoCaja', '=', 'CAJA.Codigo')
-                     ->where('apertura.Vigente', 1)
-                     ->where('apertura.Tipo', 'A');
-            })
-            ->leftJoin('IngresoDinero as ingresos', function ($join) use ($caja) {
-                $join->on('ingresos.CodigoCaja', '=', 'CAJA.Codigo')
-                     ->where('ingresos.Vigente', 1);
-            })
-            ->leftJoin('Pago as pagos', function ($join) {
-                $join->on('pagos.CodigoCaja', '=', 'CAJA.Codigo')
-                     ->where('pagos.Vigente', 1)
-                     ->whereIn('pagos.CodigoMedioPago', function ($query) {
-                         $query->select('Codigo')
-                               ->from('mediopago')
-                               ->where('Nombre', 'LIKE', '%Efectivo%');
-                     });
-            })
-            ->leftJoin('Egreso as egresos', function ($join) {
-                $join->on('egresos.CodigoCaja', '=', 'CAJA.Codigo')
-                     ->where('egresos.Vigente', 1)
-                     ->whereIn('egresos.CodigoMedioPago', function ($query) {
-                         $query->select('Codigo')
-                               ->from('mediopago')
-                               ->where('Nombre', 'LIKE', '%Efectivo%');
-                     });
-            })
-            ->where('CAJA.Codigo', $caja)
-            ->where('CAJA.Estado', 'A')
-            ->select([
-                DB::raw("COALESCE((SELECT Monto FROM IngresoDinero WHERE CodigoCaja = CAJA.Codigo AND Vigente = 1 AND Tipo = 'A' LIMIT 1), 0) AS Apertura"),
+            $datos = DB::table('Caja')
+            ->select(
                 DB::raw("DATE_FORMAT(FechaInicio, '%d/%m/%Y') AS Fecha"),
-                DB::raw("TIME(FechaInicio) AS Hora"),
-                DB::raw("COALESCE(SUM(ingresos.Monto), 0) AS Ingresos"),
-                DB::raw("COALESCE(SUM(pagos.Monto), 0) AS Recaudacion"),
-                DB::raw("COALESCE(SUM(egresos.Monto), 0) AS Egresos"),
-            ])
-            ->groupBy('CAJA.Codigo')
+                DB::raw("TIME(FechaInicio) AS Hora")
+            )
+            ->where('Codigo', $caja)
+            ->where('Estado', 'A')
             ->first();
+
+            $apertura = DB::table('IngresoDinero')
+                ->where('CodigoCaja', $caja)
+                ->where('Vigente', 1)
+                ->where('Tipo', 'A')
+                ->selectRaw('COALESCE(SUM(Monto), 0) as Apertura')
+                ->limit(1)
+                ->value('Apertura');
+            
+            // INGRESOS + APERTURA
+            $ingresos = DB::table('IngresoDinero')
+                ->where('CodigoCaja', $caja)
+                ->where('Vigente', 1)
+                ->selectRaw('COALESCE(SUM(Monto), 0) as Ingresos')
+                ->value('Ingresos');
+            
+            // EGRESOS SIN SALIDA DE DINERO INTERNO
+            $egresos = DB::table('Egreso as e')
+                ->join('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->where('e.CodigoCaja', $caja)
+                ->where('mp.CodigoSUNAT', '008')
+                ->where('e.Vigente', 1)
+                ->whereNotIn('e.Codigo', function ($query) {
+                    $query->select('Codigo')
+                        ->from('salidadinero');
+                })
+                ->selectRaw('COALESCE(SUM(e.Monto), 0) AS Egreso')
+                ->value('Egreso');
+            
+            // RECAUDACIÓN (PAGOS)
+            $recaudacion = DB::table('Pago as pag')
+                ->join('medioPago as mp', 'mp.Codigo', '=', 'pag.CodigoMedioPago')
+                ->where('pag.CodigoCaja', $caja)
+                ->where('pag.Vigente', 1)
+                ->where('mp.CodigoSUNAT', '008')
+                ->selectRaw('COALESCE(SUM(pag.Monto),0) as Recaudacion')
+                ->value('Recaudacion');
+            
+            // SALIDAS (SALIDAS DE DINERO INTERNAS)
+            $salida = DB::table('salidadinero as sdd')
+                ->join('egreso as e', 'e.Codigo', '=', 'sdd.Codigo')
+                ->join('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->where('e.CodigoCaja', $caja)
+                ->where('e.Vigente', 1)
+                ->where('mp.CodigoSUNAT', '008')
+                ->selectRaw('COALESCE(SUM(e.Monto), 0) AS Salida')
+                ->value('Salida');
+            
+            // RESULTADOS
+            $resultado = [
+                'Datos' => $datos,
+                'Apertura' => $apertura,
+                'Ingresos' => $ingresos,
+                'Egresos' => $egresos,
+                'Recaudacion' => $recaudacion,
+                'Salidas' => $salida
+            ];
+            
+            return response()->json($resultado);
         
-    
-            return response()->json($result, 200);
         }catch(\Exception $e){
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }

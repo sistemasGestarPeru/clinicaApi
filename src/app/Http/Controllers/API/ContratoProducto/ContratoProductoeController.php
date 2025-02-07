@@ -300,7 +300,8 @@ class ContratoProductoeController extends Controller
                         WHEN dv.Vigente = 0 THEN 'A' 
                         WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V' 
                     END AS TipoVenta"
-                )
+                ),
+                'tdv.CodigoSUNAT AS CodigoSUNAT'
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
