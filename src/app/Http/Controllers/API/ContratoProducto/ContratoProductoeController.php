@@ -114,6 +114,10 @@ class ContratoProductoeController extends Controller
             $contratoProductoData['CodigoPaciente'] = null;
         }
 
+        if (isset($contratoProductoData['CodigoPaciente02']) && $contratoProductoData['CodigoPaciente02'] == 0) {
+            $contratoProductoData['CodigoPaciente02'] = null;
+        }
+
         if (isset($contratoProductoData['CodigoClienteEmpresa']) && $contratoProductoData['CodigoClienteEmpresa'] == 0) {
             $contratoProductoData['CodigoClienteEmpresa'] = null;
         }
