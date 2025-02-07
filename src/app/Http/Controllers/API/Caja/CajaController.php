@@ -162,7 +162,7 @@ class CajaController extends Controller
                     END AS OPERACION,
                     
                     CASE 
-                            WHEN ps.Codigo IS NOT NULL THEN CONCAT(ps.TipoDocumento,' ',ps.Serie,'-',ps.Numero)
+                        WHEN ps.Codigo IS NOT NULL THEN CONCAT(ps.TipoDocumento,' ',ps.Serie,'-',ps.Numero)
                         WHEN pp.CodigoCuota IS NOT NULL THEN (
                                 SELECT CONCAT(tdv.Nombre,' ',Co.Serie, '-', LPAD(Co.Numero, 5, '0')) FROM Cuota as c 
                             INNER JOIN Compra as Co ON c.CodigoCompra = Co.Codigo

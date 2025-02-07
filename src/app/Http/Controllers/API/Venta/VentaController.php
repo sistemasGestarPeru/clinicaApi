@@ -222,6 +222,10 @@ class VentaController extends Controller
             $ventaData['CodigoClienteEmpresa'] = null;
         }
 
+        if (isset($ventaData['CodigoMedico']) && $ventaData['CodigoMedico'] == 0) {
+            $ventaData['CodigoMedico'] = null;
+        }
+
         //validar Detalles de Venta
         $detalleVentaValidar = Validator::make(
             ['detalleVenta' => $detallesVentaData],
