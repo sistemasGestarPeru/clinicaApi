@@ -115,7 +115,7 @@ class CajaController extends Controller
             // Consulta unida para obtener los movimientos de la caja
             $unionQuery = DB::select("
                 SELECT 
-                    Fecha,
+                    FECHA,
                     OPERACION,
                     DOCUMENTO,
                     MONTO,
@@ -135,26 +135,61 @@ class CajaController extends Controller
                     UNION ALL
     
                     SELECT 
-                        CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
+                        CONCAT(DATE_FORMAT(p.Fecha, '%d/%m/%Y'), ' ', TIME(p.Fecha)) AS FECHA,
                         'RECAUDACION' AS OPERACION,
-                        '' AS DOCUMENTO,
-                        Monto AS MONTO
-                    FROM Pago 
-                    WHERE CodigoCaja = $caja 
-                        AND Vigente = 1 
-                        AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
+                        CONCAT(dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS DOCUMENTO,
+                        p.Monto AS MONTO
+                    FROM Pago as p
+                    INNER JOIN pagodocumentoventa as pdv ON pdv.CodigoPago = p.Codigo
+                    INNER JOIN documentoventa as dv ON dv.Codigo = pdv.CodigoDocumentoVenta
+                    WHERE p.CodigoCaja = $caja 
+                        AND dv.CodigoMotivoNotaCredito IS NULL
+                        AND p.Vigente = 1 
+                        AND p.CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE CodigoSUNAT = '008')
     
                     UNION ALL
     
-                    SELECT 
-                        CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
-                        'EGRESO' AS OPERACION,
-                        '' AS DOCUMENTO,
-                        -Monto AS MONTO
-                    FROM Egreso 
-                    WHERE CodigoCaja = $caja 
-                        AND Vigente = 1 
-                        AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE Nombre LIKE '%Efectivo%')
+                SELECT 
+                    CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
+                    CASE
+                            WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
+                        WHEN pp.Codigo IS NOT NULL THEN 'PAGO A PROVEEDOR'
+                        WHEN sd.Codigo IS NOT NULL THEN 'SALIDA DE DINERO'
+                        WHEN dnc.Codigo IS NOT NULL THEN 'DEVOLUCIÓN NOTA CRÉDITO'
+                        WHEN pd.Codigo IS NOT NULL THEN 'PAGO DONANTE'
+                        WHEN pc.Codigo IS NOT NULL THEN 'PAGO COMISIÓN'
+                        WHEN pper.Codigo IS NOT NULL THEN 'PAGO PERSONAL'
+                    END AS OPERACION,
+                    
+                    CASE 
+                            WHEN ps.Codigo IS NOT NULL THEN CONCAT(ps.TipoDocumento,' ',ps.Serie,'-',ps.Numero)
+                        WHEN pp.CodigoCuota IS NOT NULL THEN (
+                                SELECT CONCAT(tdv.Nombre,' ',Co.Serie, '-', LPAD(Co.Numero, 5, '0')) FROM Cuota as c 
+                            INNER JOIN Compra as Co ON c.CodigoCompra = Co.Codigo
+                            INNER JOIN tipodocumentoventa as tdv ON tdv.Codigo = Co.CodigoTipoDocumentoVenta
+                            WHERE c.Codigo = pp.CodigoCuota AND c.Vigente = 1 AND Co.Vigente = 1)
+                            WHEN dnc.Codigo IS NOT NULL THEN (
+                                SELECT CONCAT(tdv.Nombre,' ',docv.Serie, '-', LPAD(docv.Numero, 5, '0')) 
+                            FROM DocumentoVenta as docv 
+                            INNER JOIN tipodocumentoventa as tdv ON tdv.Codigo = docv.CodigoTipoDocumentoVenta
+                            WHERE docv.Vigente = 1 AND docv.Codigo = dnc.CodigoDocumentoVenta)
+                        ELSE '-' 
+                        END
+                        AS DOCUMENTO,
+                    
+                    -e.Monto AS MONTO
+                        FROM Egreso as e
+                        LEFT JOIN PagoServicio AS ps ON ps.Codigo = e.Codigo
+                        LEFT JOIN PagoProveedor as pp ON pp.Codigo = e.Codigo
+                        LEFT JOIN SalidaDinero AS sd ON sd.Codigo = e.Codigo
+                        LEFT JOIN devolucionnotacredito as dnc ON dnc.Codigo = e.Codigo
+                        LEFT JOIN pagoDonante as pd ON pd.Codigo = e.Codigo
+                        LEFT JOIN pagoComision as pc ON pc.Codigo = e.Codigo
+                        LEFT JOIN pagopersonal as pper ON pper.Codigo = e.Codigo
+                        WHERE CodigoCaja = $caja 
+                    AND Vigente = 1 
+                    AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE CodigoSUNAT = '008')
+
                 ) AS result,
                 (SELECT @saldo := 0) AS init
                 ORDER BY FECHA;
