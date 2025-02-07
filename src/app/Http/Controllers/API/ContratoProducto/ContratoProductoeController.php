@@ -114,6 +114,10 @@ class ContratoProductoeController extends Controller
             $contratoProductoData['CodigoPaciente'] = null;
         }
 
+        if (isset($contratoProductoData['CodigoPaciente02']) && $contratoProductoData['CodigoPaciente02'] == 0) {
+            $contratoProductoData['CodigoPaciente02'] = null;
+        }
+
         if (isset($contratoProductoData['CodigoClienteEmpresa']) && $contratoProductoData['CodigoClienteEmpresa'] == 0) {
             $contratoProductoData['CodigoClienteEmpresa'] = null;
         }
@@ -296,7 +300,8 @@ class ContratoProductoeController extends Controller
                         WHEN dv.Vigente = 0 THEN 'A' 
                         WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V' 
                     END AS TipoVenta"
-                )
+                ),
+                'tdv.CodigoSUNAT AS CodigoSUNAT'
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
