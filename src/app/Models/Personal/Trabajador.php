@@ -18,5 +18,6 @@ class Trabajador extends Model
         'CodigoSistemaPensiones',
         'AutorizaDescuento',
         'Vigente',
+        'Tipo'
     ];
 }
