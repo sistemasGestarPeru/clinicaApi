@@ -62,6 +62,82 @@ class VentaController extends Controller
         //
     }
 
+    public function anularPago($venta, $pago){
+        try{
+
+            if($pago > 0){
+
+                $monto = DB::table('pagodocumentoventa')
+                ->where('CodigoPago', $pago)
+                ->where('CodigoDocumentoVenta', $venta)
+                ->where('Vigente', 1)
+                ->value('Monto');
+
+                DB::table('Pago')
+                    ->where('Codigo', $pago)
+                    ->update(['Vigente' => 0]);
+
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoPago', $pago)
+                    ->where('CodigoDocumentoVenta', $venta)
+                    ->update(['Vigente' => 0]);
+
+                DB::table('DocumentoVenta')
+                    ->where('Codigo', $venta)
+                    ->decrement('MontoPagado', $monto);
+            }
+
+            if($pago == 0){ 
+
+                $monto = DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $venta)
+                    ->where('Vigente', 1)
+                    ->sum('Monto'); 
+
+                DB::table('DocumentoVenta')
+                    ->where('Codigo', $venta)
+                    ->decrement('MontoPagado', $monto);
+
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $venta)
+                    ->update(['Vigente' => 0]);
+
+                DB::table('pago')
+                    ->whereIn('Codigo', function ($query) use ($venta) {
+                        $query->select('CodigoPago')
+                            ->from('pagodocumentoventa')
+                            ->where('CodigoDocumentoVenta', $venta);
+                    })
+                    ->update(['Vigente' => 0]);
+                
+            }else{
+                return response()->json(['message' => 'Error al anular pagos.'], 200);
+            }
+
+            return response()->json(['message' => 'Pago anulada correctamente.'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    public function listarPagosAsociados($venta){
+        
+        try{
+
+            $pago = DB::table('pago as p')
+            ->join('pagodocumentoventa as pdv', 'p.Codigo', '=', 'pdv.CodigoPago')
+            ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+            ->where('pdv.CodigoDocumentoVenta', $venta)
+            ->where('pdv.Vigente', 1)
+            ->where('p.Vigente', 1)
+            ->select('p.Codigo', 'mp.Nombre', 'p.Monto', 'p.Fecha', 'mp.CodigoSUNAT')
+            ->get();
+
+            return response()->json($pago, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function registrarPagoVenta(Request $request)
     {
@@ -746,7 +822,6 @@ class VentaController extends Controller
                 ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
                 ->where('CodigoSede', $sede)
                 ->where('Serie', $serie)
-                ->where('Vigente', 1)
                 ->orderBy('Codigo', 'desc')
                 ->first(['Numero']);
 
@@ -771,46 +846,57 @@ class VentaController extends Controller
     {
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d H:i:s');
-        $anulacionData = $request->input('Anulacion');
-        $anulacionData['Fecha'] = $fecha;
-        $anularPago = $anulacionData['Confirmacion'];
-        $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
 
+        $anulacionData = $request->input('Anulacion');
+        $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
+        $anularPago = $anulacionData['Confirmacion'];
+        $anulacionData['Fecha'] = $fecha;
+        
         if (!$codigoVenta || $codigoVenta == 0) {
             return response()->json(['error' => 'No se ha encontrado la venta a anular.'], 404);
         }
+
         DB::beginTransaction();
         try {
 
             Anulacion::create($anulacionData);
-            $venta = Venta::find($codigoVenta);
 
-            if (!$venta) {
-                return response()->json(['error' => 'Venta no encontrada.'], 404);
-            }
+            if($anularPago == 1){
 
-            $venta->Vigente = 0;
-            $venta->save();
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $codigoVenta)
+                    ->update(['Vigente' => 0]);
 
-            $pagoDocVenta = PagoDocumentoVenta::where('CodigoDocumentoVenta', $codigoVenta)->first();
+                // Obtener los códigos de pagos en efectivo a desactivar
+                $pagosEfectivo = DB::table('pagodocumentoventa as pdv')
+                    ->join('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
+                    ->join('medioPago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
+                    ->where('pdv.CodigoDocumentoVenta', $codigoVenta)
+                    ->where('pg.Vigente', 1)
+                    ->where('pdv.Vigente', 1)
+                    ->where('mp.CodigoSUNAT', '008')
+                    ->pluck('pdv.CodigoPago'); // Obtener solo los códigos de pago
 
-            if (!$pagoDocVenta) {
-                return response()->json(['error' => 'Pago Documento Venta no encontrado.'], 404);
-            }
+                // Marcar como no vigentes los pagos en efectivo encontrados
+                DB::table('pago')
+                    ->whereIn('Codigo', $pagosEfectivo)
+                    ->update(['Vigente' => 0]);
 
-            $pagoDocVenta->Vigente = 0;
-            $pagoDocVenta->save();
+                // Marcar la venta como no vigente
+                DB::table('DocumentoVenta')
+                    ->where('Codigo', $codigoVenta)
+                    ->update(['Vigente' => 0]);
+            }else{
+                if($anularPago == 0){
+                // Marcar la venta como no vigente
+                    DB::table('DocumentoVenta')
+                    ->where('Codigo', $codigoVenta)
+                    ->update(['Vigente' => 0]);
 
-
-            if ($anularPago == 1) {
-
-                $pago = Pago::find($pagoDocVenta->CodigoPago);
-
-                if (!$pago) {
-                    return response()->json(['error' => 'Pago no encontrado.'], 404);
+                    DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $codigoVenta)
+                    ->update(['Vigente' => 0]);
                 }
-                $pago->Vigente = 0;
-                $pago->save();
             }
 
             DB::commit();

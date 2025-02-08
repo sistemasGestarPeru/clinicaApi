@@ -342,7 +342,15 @@ class CajaController extends Controller
 
             if (!isset($egreso['CodigoCuentaOrigen']) || !$egreso['CodigoCuentaOrigen']) {
                 $egreso['CodigoCuentaOrigen'] = null;
-            }            
+            }
+            
+            if (!isset($salidaDinero['CodigoReceptor']) || !$salidaDinero['CodigoReceptor']) {
+                $salidaDinero['CodigoReceptor'] = null;
+            }
+
+            if (!isset($salidaDinero['CodigoCuentaBancaria']) || !$salidaDinero['CodigoCuentaBancaria']) {
+                $salidaDinero['CodigoCuentaBancaria'] = null;
+            }
 
             $nuevoEgreso = Egreso::create($egreso);
             $salidaDinero['Codigo'] = $nuevoEgreso->Codigo;

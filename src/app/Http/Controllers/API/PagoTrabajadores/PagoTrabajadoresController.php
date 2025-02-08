@@ -200,7 +200,7 @@ class PagoTrabajadoresController extends Controller
                     $egresos['CodigoCuentaOrigen'] = null;
                 }
 
-                $nuevoEgresoId = DB::table('egreso')->insertGetId($egresos);
+                $nuevoEgresoId = Egreso::create($egresos)->Codigo;
 
                 $planilla = $planillas[$index];
 

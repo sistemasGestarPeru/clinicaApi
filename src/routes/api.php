@@ -218,7 +218,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('venta/facturaVentaPDF/{venta}', [VentaController::class, 'facturaVentaPDF']);
     Route::get('venta/notaCreditoPDF/{venta}', [VentaController::class, 'notaCreditoPDF']);
     Route::get('venta/notaVentaPDF/{venta}', [VentaController::class, 'notaVentaPDF']);
-
+    Route::get('venta/listarPagosAsociados/{venta}', [VentaController::class, 'listarPagosAsociados']);
+    Route::get('venta/anularPago/{venta}/{pago}', [VentaController::class, 'anularPago']);
     /********************************* PAGOS *********************************/
     Route::post('pago/registrarPago', [PagoController::class, 'registrarPago']);
     Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);

@@ -26,7 +26,7 @@ class GuardarEgresoRequest extends FormRequest
             'Monto' => 'required|numeric|min:0.01',
             'CodigoCaja' => 'required|integer|min:1',
             'CodigoTrabajador' => 'required|integer|min:1',
-            'CodigoMedioPago' => 'required|integer|min:1',
+            'CodigoMedioPago' => 'required|integer|min:0',
             //'CodigoCuentaOrigen' => 'required|integer|min:1', //Modificar luego
         ];
     }

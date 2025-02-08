@@ -171,14 +171,28 @@ class ContratoProductoeController extends Controller
     {
         $fecha = $request->input('fecha');
         $codigoSede = $request->input('codigoSede');
-    
+        $nombre = $request->input('nombre');
+        $documento = $request->input('documento');
        // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
 
         try {
             $contratos = DB::table('clinica_db.contratoproducto as cp')
             ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
             ->where('cp.CodigoSede', $codigoSede) // Filtro por CódigoSede
-            // ->where('cp.Vigente', 1) // Filtro por Vigente
+            ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
+            ->when($nombre, function ($query) use ($nombre) {
+                $query->where(function ($q) use ($nombre) {
+                    $q->where('p.Nombres', 'LIKE', "%$nombre%")
+                        ->orWhere('p.Apellidos', 'LIKE', "%$nombre%");
+                });
+            })
+            ->when($documento, function ($queryD) use ($documento) {
+                $queryD->where(function ($q) use ($documento) {
+                    $q->where('p.NumeroDocumento', 'LIKE', "%$documento%");
+                });
+            })
+            ->orderByDesc('cp.Codigo')
+
             ->select(
                 'cp.Codigo as Codigo',
                 DB::raw("DATE(cp.Fecha) as Fecha"),
@@ -283,36 +297,44 @@ class ContratoProductoeController extends Controller
 
         try{
             $ventas = DB::table('documentoventa as dv')
-            ->select(
-                'dv.Codigo as Venta',
-                'dv.CodigoContratoProducto as Contrato',
-                DB::raw("CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Documento"),
-                DB::raw(
-                    "CASE 
+                ->selectRaw("
+                    dv.Codigo AS Venta,
+                    dv.CodigoContratoProducto AS Contrato,
+                    CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
+                    CASE 
                         WHEN e.Codigo IS NOT NULL THEN mpe.Nombre 
                         WHEN p.Codigo IS NOT NULL THEN mp.Nombre 
-                    END AS MedioPago"
-                ),
-                'dv.MontoPagado',
-                DB::raw(
-                    "CASE 
+                    END AS MedioPago,
+                    dv.MontoPagado,
+                    CASE 
                         WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N' 
                         WHEN dv.Vigente = 0 THEN 'A' 
                         WHEN dv.CodigoMotivoNotaCredito IS NULL THEN 'V' 
-                    END AS TipoVenta"
-                ),
-                'tdv.CodigoSUNAT AS CodigoSUNAT'
-            )
-            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
-            ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
-            ->leftJoin('Pago as p', 'p.Codigo', '=', 'pdv.CodigoPago')
-            ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-            ->leftJoin('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
-            ->leftJoin('egreso as e', 'e.Codigo', '=', 'dnc.Codigo')
-            ->leftJoin('mediopago as mpe', 'mpe.Codigo', '=', 'e.CodigoMedioPago')
-            ->where('dv.CodigoContratoProducto', $codigo)
-            ->orderBy('dv.Codigo', 'asc')
-            ->get();
+                    END AS TipoVenta,
+                    tdv.CodigoSUNAT AS CodigoSUNAT,
+                    COALESCE(
+                        (SELECT dv.MontoTotal + SUM(nc.MontoTotal) 
+                        FROM documentoventa AS nc 
+                        WHERE nc.CodigoMotivoNotaCredito IS NOT NULL 
+                        AND nc.CodigoDocumentoReferencia = dv.Codigo
+                        ), 
+                        dv.MontoTotal
+                    ) AS SaldoFinal
+                ")
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+                ->leftJoin('documentoventa as NOTACREDITO', function ($join) {
+                    $join->on('NOTACREDITO.CodigoDocumentoReferencia', '=', 'dv.Codigo')
+                        ->whereNotNull('NOTACREDITO.CodigoMotivoNotaCredito');
+                })
+                ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->leftJoin('Pago as p', 'p.Codigo', '=', 'pdv.CodigoPago')
+                ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+                ->leftJoin('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->leftJoin('egreso as e', 'e.Codigo', '=', 'dnc.Codigo')
+                ->leftJoin('mediopago as mpe', 'mpe.Codigo', '=', 'e.CodigoMedioPago')
+                ->where('dv.CodigoContratoProducto', $codigo)
+                ->orderBy('dv.Codigo', 'ASC')
+                ->get();
 
             return response()->json($ventas);
 
