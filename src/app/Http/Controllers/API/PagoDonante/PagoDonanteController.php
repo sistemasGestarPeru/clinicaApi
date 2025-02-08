@@ -88,9 +88,31 @@ class PagoDonanteController extends Controller
         }
     }
 
-    public function listarPagosDonante()
+    public function listarPagosDonante(Request $request)
     {
-        
+        $data = $request->input('data');
+        try{
+            $resultados = DB::table('pagodonante as pd')
+                ->select(
+                    'e.Codigo',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Donante"),
+                    DB::raw('DATE(e.Fecha) as Fecha'),
+                    'e.Monto as Monto'
+                )
+                ->join('Egreso as e', 'e.Codigo', '=', 'pd.Codigo')
+                ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+                ->join('Personas as p', 'p.Codigo', '=', 'pd.CodigoDonante')
+                ->where('c.CodigoSede', $data['CodigoSede'])  // Puedes cambiar el 1 por una variable dinámica $codigoSede
+                ->where('e.Vigente', 1)
+                ->get();
+                return response()->json($resultados, 200);  
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al listar los pagos del donante',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function consultarPagoDonante(string $id)

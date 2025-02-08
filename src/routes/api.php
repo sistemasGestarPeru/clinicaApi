@@ -258,7 +258,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************** PAGO DONANTE **********************************/
     Route::post('pagoDonante/registrarPagoDonante', [PagoDonanteController::class, 'registrarPagoDonante']);
-
+    Route::post('pagoDonante/listarPagosDonante', [PagoDonanteController::class, 'listarPagosDonante']);
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
