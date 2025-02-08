@@ -38,29 +38,48 @@ class CajaController extends Controller
         $cajaData['FechaInicio'] = $fecha;
         $cajaData['Estado'] = 'A';
         
-        DB::beginTransaction();
+        
 
         try {
-            $cajaConsulta = DB::table('Caja')
-                ->select('TotalEfectivo')
-                ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
-                ->where('Estado', 'C')
-                ->where('CodigoSede', $cajaData['CodigoSede'])
-                ->orderByDesc('Codigo')
-                ->limit(1)
-            ->first();
+            DB::beginTransaction();
+            $totalEfectivo = DB::table('Caja')
+            ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
+            ->where('Estado', 'C')
+            ->where('CodigoSede', $cajaData['CodigoSede'])
+            ->orderByDesc('Codigo')
+            ->limit(1)
+            ->value('TotalEfectivo'); // Devuelve el valor directamente o NULL
+        
+            $totalEfectivo = $totalEfectivo ?? 0; // Si es NULL, asignar 0
         
             $caja = Caja::create($cajaData);
-            $codigo = $caja->Codigo;
-            $IngresoDineroData['Fecha'] = $fecha;
-            $IngresoDineroData['Monto'] = $cajaConsulta->TotalEfectivo;
-            $IngresoDineroData['Tipo'] = 'A';
-            $IngresoDineroData['CodigoCaja'] = $codigo;
-            IngresoDinero::create($IngresoDineroData);
+            
+            if (!$caja) {
+                return response()->json([
+                    'error' => 'Error al registrar la caja',
+                    'resp' => false
+                ], 400);
+            }
+
+            // Crear el ingreso de dinero
+            $IngresoDineroData = [
+                'Fecha'      => $fecha,
+                'Monto'      => $totalEfectivo,
+                'Tipo'       => 'A',
+                'CodigoCaja' => $caja->Codigo
+            ];
+            $ingreso = IngresoDinero::create($IngresoDineroData);
+
+            if (!$ingreso) {
+                return response()->json([
+                    'error' => 'Error al registrar el ingreso de dinero por Apertura',
+                    'resp' => false
+                ], 400);
+            }
 
             DB::commit();
             return response()->json([
-                'CodigoCaja' => $codigo,
+                'CodigoCaja' =>  $caja->Codigo,
                 'resp' => true
             ], 201);
 
