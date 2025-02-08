@@ -62,6 +62,7 @@ class VentaController extends Controller
         //
     }
 
+
     public function registrarPagoVenta(Request $request)
     {
         date_default_timezone_set('America/Lima');
@@ -81,6 +82,33 @@ class VentaController extends Controller
 
         $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
         $pagoValidator->validate();
+
+        if(isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0){
+            $pagoData['CodigoCuentaBancaria'] = null;
+        }
+
+        if(isset($pagoData['CodigoBilleteraDigital']) && $pagoData['CodigoBilleteraDigital'] == 0){
+            $pagoData['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($pagoData['CodigoSUNAT'] == '008') {
+            $pagoData['CodigoCuentaBancaria'] = null;
+            $pagoData['CodigoBilleteraDigital'] = null;
+            $pagoData['Lote'] = null;
+            $pagoData['Referencia'] = null;
+            $pagoData['NumeroOperacion'] = null;
+
+        }else if($pagoData['CodigoSUNAT'] == '003'){
+            $pagoData['Lote'] = null;
+            $pagoData['Referencia'] = null;
+
+        }else if($pagoData['CodigoSUNAT'] == '005' || $pagoData['CodigoSUNAT'] == '006'){
+            $pagoData['CodigoCuentaBancaria'] = null;
+            $pagoData['CodigoBilleteraDigital'] = null;
+        }
+    
+
+
 
         DB::beginTransaction();
 
@@ -240,12 +268,32 @@ class VentaController extends Controller
             $pagoData['CodigoCaja'] = $ventaData['CodigoCaja'];
             $pagoData['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
 
-            if ($pagoData['CodigoMedioPago'] == 1) {
-                $pagoData['Fecha'] = $fecha;
-                $pagoData['CodigoCuentaBancaria'] = null;
-            }
             $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
             $pagoValidator->validate();
+
+            if(isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0){
+                $pagoData['CodigoCuentaBancaria'] = null;
+            }
+
+            if(isset($pagoData['CodigoBilleteraDigital']) && $pagoData['CodigoBilleteraDigital'] == 0){
+                $pagoData['CodigoBilleteraDigital'] = null;
+            }
+
+            if ($pagoData['CodigoSUNAT'] == '008') {
+                $pagoData['CodigoCuentaBancaria'] = null;
+                $pagoData['CodigoBilleteraDigital'] = null;
+                $pagoData['Lote'] = null;
+                $pagoData['Referencia'] = null;
+                $pagoData['NumeroOperacion'] = null;
+    
+            }else if($pagoData['CodigoSUNAT'] == '003'){
+                $pagoData['Lote'] = null;
+                $pagoData['Referencia'] = null;
+    
+            }else if($pagoData['CodigoSUNAT'] == '005' || $pagoData['CodigoSUNAT'] == '006'){
+                $pagoData['CodigoCuentaBancaria'] = null;
+                $pagoData['CodigoBilleteraDigital'] = null;
+            }
         }
 
         DB::beginTransaction();

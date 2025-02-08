@@ -21,6 +21,9 @@ class Pago extends Model
         'NumeroOperacion',
         'Fecha',
         'Monto',
-        'Vigente'
+        'Vigente',
+        'Lote',
+        'Referencia',
+        'CodigoBilleteraDigital'
     ];
 }
