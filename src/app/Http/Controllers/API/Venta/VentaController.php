@@ -1323,7 +1323,8 @@ class VentaController extends Controller
                 ->join('detalledocumentoventa as dcv', 'dcv.CodigoVenta', '=', 'dv.Codigo')
                 ->join('sedesrec as s', 's.Codigo', '=', 'dv.CodigoSede')
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
-                ->join('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa') // Cambio aquí
+                ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
+                ->leftJoin('personas as pEmp', 'pEmp.Codigo', '=', 'dv.CodigoPersona')
                 ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
                 ->leftJoin('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
                 ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
@@ -1338,11 +1339,23 @@ class VentaController extends Controller
                     's.Nombre AS sede',
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
-                    'ce.RazonSocial as cliente', // Cambio aquí
-                    DB::raw("'RUC' as documentoIdentidad"),
-                    'ce.RUC as numDocumento', // Cambio aquí
+                    DB::raw("CASE
+                                WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(pEmp.Nombres, ' ', pEmp.Apellidos)
+                                WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN e.RazonSocial
+                                ELSE 'N/A'
+                            END AS cliente"),
+                    DB::raw("'RUC' AS documentoIdentidad"),
+                    DB::raw("CASE
+                                WHEN dv.CodigoPersona IS NOT NULL THEN pEmp.NumeroDocumento
+                                WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN ce.RUC
+                                ELSE 'N/A'
+                            END AS numDocumento"),
                     'mp.Nombre as FormaPago',
-                    'ce.Direccion as clienteDireccion', // Cambio aquí
+                    DB::raw("CASE
+                                WHEN dv.CodigoPersona IS NOT NULL THEN pEmp.Direccion
+                                WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN ce.Direccion
+                                ELSE 'N/A'
+                            END AS clienteDireccion"),
                     'dv.Fecha as fechaEmision',
                     DB::raw("'Soles' as moneda"),
                     'dv.MontoTotal as totalPagar',
@@ -1350,9 +1363,10 @@ class VentaController extends Controller
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor")
                 )
-                ->where('dv.Codigo', $venta)
+                ->where('dv.Codigo', 431)
                 ->distinct()
                 ->first();
+
 
 
                 $detalleQuery = DB::table('detalledocumentoventa as ddv')
