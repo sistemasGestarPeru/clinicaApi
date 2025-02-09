@@ -28,4 +28,20 @@ class Persona extends Model
         'CodigoDepartamento',
         'Vigente'
     ];
+
+    // Mutadores para convertir los valores en mayúsculas
+    public function setNombresAttribute($value)
+    {
+        $this->attributes['Nombres'] = strtoupper($value);
+    }
+
+    public function setApellidosAttribute($value)
+    {
+        $this->attributes['Apellidos'] = strtoupper($value);
+    }
+
+    public function setDireccionAttribute($value)
+    {
+        $this->attributes['Direccion'] = strtoupper($value);
+    }
 }
