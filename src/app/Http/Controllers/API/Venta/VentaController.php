@@ -983,7 +983,6 @@ class VentaController extends Controller
             if ($venta) {
                 // 2. Insertar en documentoventa con los valores obtenidos
                 $nuevoCodigoDocumentoVenta = DB::table('documentoventa')->insertGetId([
-                    'CodigoDocumentoReferencia' => $canjeData['CodigoDocumentoReferencia'],
                     'CodigoSede' => $canjeData['CodigoSede'],
                     'Serie' => $canjeData['Serie'],
                     'Numero' => $data->Numero,
@@ -1011,7 +1010,7 @@ class VentaController extends Controller
                 // 3. Actualizar el campo Vigente en documentoventa
                 DB::table('documentoventa')
                     ->where('Codigo', $canjeData['CodigoDocumentoReferencia'])
-                    ->update(['Vigente' => 0]);
+                    ->update(['Vigente' => 0, 'CodigoDocumentoReferencia' => $nuevoCodigoDocumentoVenta]);
 
                 // 4. Actualizar el pagodocumentoventa con el nuevo código generado
                 DB::table('pagodocumentoventa')

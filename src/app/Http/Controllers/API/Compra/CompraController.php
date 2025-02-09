@@ -98,9 +98,6 @@ class CompraController extends Controller
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
                 ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial')
-                ->where('c.Vigente', '=', 1)
-                ->where('c.RUC', '=', 1)
-                ->where('c.RUC', '=', 1)
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
 

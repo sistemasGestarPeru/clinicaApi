@@ -306,6 +306,8 @@ class ContratoProductoeController extends Controller
                         WHEN p.Codigo IS NOT NULL THEN mp.Nombre 
                     END AS MedioPago,
                     dv.MontoPagado,
+                    dv.Vigente AS VentaVigente,
+                    DATE(dv.Fecha) AS FechaVenta,
                     CASE 
                         WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N' 
                         WHEN dv.Vigente = 0 THEN 'A' 
