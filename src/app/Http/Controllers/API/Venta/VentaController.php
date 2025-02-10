@@ -964,13 +964,13 @@ class VentaController extends Controller
             $canjeData['CodigoClienteEmpresa'] = null;
         }
 
-        $NumSerieDoc = $this->consultaNumDocumentoVenta(new Request([
-            'sede' =>  $canjeData['CodigoSede'],
-            'tipoDocumento' =>  $canjeData['CodigoTipoDocumentoVenta'],
-            'serie' =>  $canjeData['Serie']
-        ]));
+        // $NumSerieDoc = $this->consultaNumDocumentoVenta(new Request([
+        //     'sede' =>  $canjeData['CodigoSede'],
+        //     'tipoDocumento' =>  $canjeData['CodigoTipoDocumentoVenta'],
+        //     'serie' =>  $canjeData['Serie']
+        // ]));
 
-        $data = $NumSerieDoc->getData();
+        // $data = $NumSerieDoc->getData();
 
         DB::beginTransaction();
         try {
@@ -980,12 +980,16 @@ class VentaController extends Controller
                 ->where('Vigente',1)
                 ->first();
 
+                $detalleVenta = DB::table('detalledocumentoventa')
+                ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
+                ->get();
+
             if ($venta) {
                 // 2. Insertar en documentoventa con los valores obtenidos
                 $nuevoCodigoDocumentoVenta = DB::table('documentoventa')->insertGetId([
                     'CodigoSede' => $canjeData['CodigoSede'],
                     'Serie' => $canjeData['Serie'],
-                    'Numero' => $data->Numero,
+                    'Numero' => $canjeData['Numero'],
                     'CodigoTipoDocumentoVenta' => $canjeData['CodigoTipoDocumentoVenta'],
                     'Fecha' =>  $canjeData['Fecha'],
                     'CodigoPersona' => $canjeData['CodigoPersona'],
@@ -1007,6 +1011,22 @@ class VentaController extends Controller
                     'TotalGratis' => $venta->TotalGratis,
                 ]);
 
+                // Insertar en detalledocumentoventa con los valores obtenidos
+            
+                foreach ($detalleVenta as $detalle) {
+                    DB::table('detalledocumentoventa')->insert([
+                        'Numero' => $detalle->Numero,
+                        'Descripcion' => $detalle->Descripcion,
+                        'Cantidad' => $detalle->Cantidad,
+                        'MontoTotal' => $detalle->MontoTotal,
+                        'MontoIGV' => $detalle->MontoIGV,
+                        'CodigoVenta' => $nuevoCodigoDocumentoVenta,
+                        'CodigoProducto' => $detalle->CodigoProducto,
+                        'Descuento' => $detalle->Descuento,
+                        'CodigoTipoGravado' => $detalle->CodigoTipoGravado,
+                    ]);
+                }
+            
                 // 3. Actualizar el campo Vigente en documentoventa
                 DB::table('documentoventa')
                     ->where('Codigo', $canjeData['CodigoDocumentoReferencia'])
@@ -1016,10 +1036,12 @@ class VentaController extends Controller
                 DB::table('pagodocumentoventa')
                     ->where('CodigoDocumentoVenta', $canjeData['CodigoDocumentoReferencia'])
                     ->update(['CodigoDocumentoVenta' => $nuevoCodigoDocumentoVenta]);
+
+
                 // 5. Actualizar el detallecontrato con el nuevo código generado
-                DB::table('detalledocumentoventa')
-                    ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
-                    ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
+                // DB::table('detalledocumentoventa')
+                //     ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
+                //     ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
                 DB::commit();
                 return response()->json(['message' => 'Documento de venta canjeado correctamente.'], 201);
             } else {
