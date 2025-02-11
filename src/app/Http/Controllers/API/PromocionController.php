@@ -80,8 +80,7 @@ class PromocionController extends Controller
     public function index()
     {
         try {
-            Promocion
-                ::where('vigente', true)
+            Promocion::where('vigente', true)
                 ->whereDate('fecha_fin', '<', now())
                 ->update(['vigente' => false]);
 
@@ -249,6 +248,9 @@ class PromocionController extends Controller
 
     public function listarVigentes()
     {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d');
+
         try {
             // Actualizar el estado de las promociones cuya fecha de finalización ha pasado
             // Promocion
@@ -257,12 +259,10 @@ class PromocionController extends Controller
             //     ->update(['vigente' => false]);
 
             // Obtener las promociones vigentes después de la actualización
-            $promocionesVigentes = Promocion
-                ::where('vigente', true)
-                ->whereDate('fecha_fin', '<', now())
+            $promocionesVigentes = Promocion::where('vigente', true)
+                ->whereDate('fecha_fin', '<', $fecha)
                 ->orderBy('id', 'asc')
                 ->get();
-
             $promocionesArray = [];
             foreach ($promocionesVigentes as $promocion) {
                 $promocionesArray[] = [
