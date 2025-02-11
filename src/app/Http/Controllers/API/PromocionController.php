@@ -260,7 +260,7 @@ class PromocionController extends Controller
 
             // Obtener las promociones vigentes después de la actualización
             $promocionesVigentes = Promocion::where('vigente', true)
-                ->whereDate('fecha_fin', '<', $fecha)
+                ->whereDate('fecha_fin', '>=', $fecha)
                 ->orderBy('id', 'asc')
                 ->get();
             $promocionesArray = [];
