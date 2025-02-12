@@ -116,11 +116,11 @@ class PromocionController extends Controller
 
             // Cargar el archivo PDF (si se proporciona)
             $urlFile = null;
-            if ($request->hasFile('file')) {
+            if ($request->hasFile('file') && $request->file('file')->isValid()) {
                 $uploadConfig['file'] = $request->file('file');
                 $urlFile = $this->uploadFile($uploadConfig);
             }
-
+            
             // Crear una nueva instancia de Promocion
             $promocion = new Promocion();
 
@@ -272,6 +272,7 @@ class PromocionController extends Controller
                     'file' => $promocion->file,
                     'fecha_inicio' => $promocion->fecha_inicio,
                     'fecha_fin' => $promocion->fecha_fin,
+                    'sedes' => $promocion->sedes,
                 ];
             }
 

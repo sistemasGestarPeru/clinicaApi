@@ -7,6 +7,7 @@ use App\Http\Requests\Portada\ActualizarRequest;
 use App\Http\Requests\Portada\RegistroRequest;
 use App\Http\Resources\PortadaResource;
 use App\Models\Portada;
+use App\Models\Sede;
 use Illuminate\Http\Request;
 use Google\Cloud\Storage\StorageClient;
 
@@ -311,6 +312,22 @@ class PortadaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las portadas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function listarSedes()
+    {
+        try{
+            $sedes = Sede::select('id', 'nombre')
+            ->where('vigente', 1)
+            ->get();
+            return response()->json($sedes);
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al obtener las sedes',
                 'error' => $e->getMessage()
             ], 500);
         }
