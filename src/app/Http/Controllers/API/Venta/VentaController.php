@@ -241,17 +241,27 @@ class VentaController extends Controller
         );
         $detalleVentaValidar->validate();
 
-        //Validar Egreso
-        if ($dataEgreso['CodigoCuentaOrigen'] == 0) {
-            $dataEgreso['CodigoCuentaOrigen'] = null;
+        if (isset($ventaData['CodigoClienteEmpresa']) && $ventaData['CodigoClienteEmpresa'] == 0) {
+            $ventaData['CodigoClienteEmpresa'] = null;
         }
 
-        $dataEgreso['CodigoCaja'] = $ventaData['CodigoCaja'];
-        $dataEgreso['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
+        if (!empty($dataEgreso) && is_array($dataEgreso)){
+            //Validar Egreso
+            if ($dataEgreso['CodigoCuentaOrigen'] == 0) {
+                $dataEgreso['CodigoCuentaOrigen'] = null;
+            }
 
-        //Validar Egreso
-        $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
-        $egresoValidator->validate();
+            if ($dataEgreso['CodigoMedioPago'] == 1) {
+                $egreso['CodigoCuentaOrigen'] = null;
+            }
+
+            $dataEgreso['CodigoCaja'] = $ventaData['CodigoCaja'];
+            $dataEgreso['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
+
+            //Validar Egreso
+            $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
+            $egresoValidator->validate();
+        }
 
 
         DB::beginTransaction();
@@ -278,18 +288,17 @@ class VentaController extends Controller
                 DetalleVenta::create($detalle);
             }
 
-            if ($dataEgreso['CodigoMedioPago'] == 1) {
-                $egreso['CodigoCuentaOrigen'] = null;
+            if(!empty($dataEgreso) && is_array($dataEgreso)){
+
+                $egresoCreado = Egreso::create($dataEgreso);
+
+                $dataDevolucion = [
+                    'Codigo' => $egresoCreado->Codigo,
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                ];
+
+                DevolucionNotaCredito::create($dataDevolucion);
             }
-
-            $egresoCreado = Egreso::create($dataEgreso);
-
-            $dataDevolucion = [
-                'Codigo' => $egresoCreado->Codigo,
-                'CodigoDocumentoVenta' => $ventaCreada->Codigo,
-            ];
-
-            DevolucionNotaCredito::create($dataDevolucion);
 
             DB::commit();
 
@@ -1201,7 +1210,18 @@ class VentaController extends Controller
                 'dv.Numero',
                 'cp.Codigo as CodigoContrato',
                 'cp.NumContrato',
-                DB::raw('DATE(cp.Fecha) as FechaContrato')
+                DB::raw('DATE(cp.Fecha) as FechaContrato'),
+                // Subconsulta para verificar si existe al menos un pago activo
+                DB::raw("
+                    COALESCE(
+                        (
+                            SELECT SUM(Monto) 
+                            FROM pagoDocumentoVenta pdv 
+                            WHERE pdv.CodigoDocumentoVenta = dv.Codigo 
+                            AND pdv.Vigente = 1
+                        ), 0
+                    ) AS PagoActivo
+                ")
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
@@ -1213,8 +1233,7 @@ class VentaController extends Controller
             ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
             ->where('dv.Codigo', $CodVenta)
             ->first();
-
-            
+        
             $detalle = DB::table('Producto as P')
             ->joinSub(
                 DB::table('DetalleDocumentoVenta as DDNC')
@@ -1264,9 +1283,7 @@ class VentaController extends Controller
                 TG.Codigo AS CodigoTipoGravado
             ')
             ->get();
-
-
-            
+       
             return response()->json(['venta' => $venta, 'detalle' => $detalle], 200);
 
         }catch(\Exception $e){
@@ -1421,8 +1438,8 @@ class VentaController extends Controller
                     ->leftJoin('personas as clienteN', 'dv.CodigoPersona', '=', 'clienteN.Codigo')
                     ->join('personas as vendedor', 'vendedor.Codigo', '=', 'dv.CodigoTrabajador')
                     ->leftJoin('tipo_documentos as td', 'td.Codigo', '=', 'clienteN.CodigoTipoDocumento')
-                    ->join('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
-                    ->join('egreso as eg', 'eg.Codigo', '=', 'dnc.Codigo')
+                    ->leftJoin('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                    ->leftJoin('egreso as eg', 'eg.Codigo', '=', 'dnc.Codigo')
                     ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'eg.CodigoMedioPago')
                     ->select([
                         'e.Nombre as empresaNombre',
