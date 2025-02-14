@@ -360,7 +360,7 @@ class ControladorGeneralController extends Controller
 
     public function listarMedicos($sede){ //Para Contrato y Ventas
         date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
+        $fecha = date('Y-m-d');
         try{
 
             $resultado = DB::table('trabajadors as t')

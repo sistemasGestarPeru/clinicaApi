@@ -468,7 +468,8 @@ class TrabajadorController extends Controller
                 'NumeroDocumento',
                 'CodigoTipoDocumento',
                 'CodigoNacionalidad',
-                'CodigoDepartamento'
+                'CodigoDepartamento',
+
             )
             ->where('Codigo', '=', $Codigo)
             ->where('Vigente', '=', 1)
@@ -481,7 +482,8 @@ class TrabajadorController extends Controller
                 'FechaNacimiento',
                 'CodigoSistemaPensiones',
                 'AutorizaDescuento',
-                'Vigente'
+                'Vigente',
+                'Tipo'
             )
             ->where('Codigo', '=', $Codigo)
             

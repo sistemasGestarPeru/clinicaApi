@@ -135,13 +135,26 @@ class PagoProveedorController extends Controller
                 'C.Codigo',
                 'C.Fecha',
                 'C.Monto',
-                DB::raw('COALESCE(SUM(e.Monto), 0) AS MontoTotalPagado'),
-                DB::raw('(C.Monto - COALESCE(SUM(e.Monto), 0)) AS MontoRestante')
+                DB::raw("
+                    CASE
+                        WHEN tm.Siglas = 'PEN' THEN COALESCE(SUM(e.Monto), 0)
+                        ELSE COALESCE(SUM(PP.MontoMonedaExtranjera), 0)
+                    END AS MontoTotalPagado
+                "),
+                DB::raw("
+                    CASE
+                        WHEN tm.Siglas = 'PEN' THEN (C.Monto - COALESCE(SUM(e.Monto), 0))
+                        ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
+                    END AS MontoRestante
+                "),
+                'C.TipoMoneda AS CodMoneda',
+                'tm.Siglas AS TipoMoneda'
             )
             ->leftJoin('PagoProveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
             ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
+            ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
             ->where('C.CodigoCompra', '=', $codigoCompra)
-            ->groupBy('C.Codigo', 'C.Fecha', 'C.Monto')
+            ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas')
             ->get();
 
             return response()->json($resultado, 200);

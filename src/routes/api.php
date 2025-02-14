@@ -206,8 +206,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
     Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
-;
-
     Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
     Route::post('venta/registrarPagoVenta', [VentaController::class, 'registrarPagoVenta']);
     Route::post('venta/consultarSerie', [VentaController::class, 'consultarSerie']);

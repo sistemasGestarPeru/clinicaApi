@@ -77,13 +77,27 @@ class CompraController extends Controller
 
     public function listarProducto(Request $request)
     {
-
+        $sede = $request->input('sede');
+        $nombre = $request->input('nombre');
         try {
-            $productos = DB::table('producto')
-                ->select('Codigo', 'Nombre', DB::raw("'G' as TipoGravado"))
-                ->where('Tipo', 'B')
-                ->where('Vigente', 1)
+            $productos = DB::table('sedeproducto as sp')
+                ->select(
+                    'p.Codigo',
+                    'p.Nombre',
+                    'tg.Tipo as TipoGravado',
+                    'tg.Porcentaje'
+                )
+                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+                ->where('p.Tipo', 'B') // Filtro por Tipo = 'B'
+                ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
+                ->where('p.Vigente', 1) // Filtro por Vigente en producto
+                ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
+                ->where('p.Nombre', 'LIKE', "%{$nombre}%") // Filtro por Nombre
                 ->get();
+
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al listar los productos', $e], 500);
@@ -110,7 +124,7 @@ class CompraController extends Controller
     public function listarPagosAdelantados(Request $request)
     {
         $Proveedor = $request->input('proveedor');
-
+        $Moneda = $request->input('moneda');
         try {
             $result = DB::table('PagoProveedor as pp')
             ->join('Egreso as e', 'e.Codigo', '=', 'pp.Codigo')
@@ -118,7 +132,6 @@ class CompraController extends Controller
             ->select(
                 'e.Codigo as CodigoE',
                 'tp.Siglas as TipoMoneda',
-                'e.Fecha',
                 DB::raw("
                     CASE 
                         WHEN pp.TipoMoneda = 1 THEN e.Monto
@@ -127,6 +140,7 @@ class CompraController extends Controller
                 ")
             )
             ->where('pp.CodigoProveedor', $Proveedor)
+            ->where('pp.TipoMoneda', $Moneda)
             ->whereNull('pp.CodigoCuota')
             ->get();
             return response()->json($result, 200);
@@ -144,8 +158,6 @@ class CompraController extends Controller
         $cuotas = $request->input('cuota');
         $egreso = $request->input('egreso');
         $proveedor = $request->input('proveedor');
-
-        $egreso['CodigoCaja'] = 65;
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
 
 
@@ -176,7 +188,6 @@ class CompraController extends Controller
             foreach ($cuotas as $cuota) {
 
                 $cuota['CodigoCompra'] = $idCompra;
-                $cuota['TipoMoneda'] = 'S';
                 $cutaData = Cuota::create($cuota);
                 $idCuota = $cutaData->Codigo;
 

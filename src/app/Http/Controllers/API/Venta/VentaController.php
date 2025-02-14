@@ -1167,9 +1167,6 @@ class VentaController extends Controller
     }
 
 
-
-
-
     public function consultarNotaCreditoVenta($CodVenta){
 
         try{
@@ -1301,7 +1298,6 @@ class VentaController extends Controller
     {
         try {
             $query = DB::table('documentoventa as dv')
-                ->join('detalledocumentoventa as dcv', 'dcv.CodigoVenta', '=', 'dv.Codigo')
                 ->join('sedesrec as s', 's.Codigo', '=', 'dv.CodigoSede')
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
@@ -1331,10 +1327,12 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
                 ->distinct()
                 ->first();
+
 
             $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
@@ -1343,7 +1341,7 @@ class VentaController extends Controller
                     DB::raw("'unidad' AS unidad"),
                     'ddv.Descripcion as descripcion',
                     DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
-                    DB::raw("0 as descuento"),
+                    'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
@@ -1404,8 +1402,6 @@ class VentaController extends Controller
                 ->where('dv.Codigo', 431)
                 ->distinct()
                 ->first();
-
-
 
                 $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
