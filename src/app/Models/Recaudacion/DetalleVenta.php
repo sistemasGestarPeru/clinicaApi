@@ -23,6 +23,7 @@ class DetalleVenta extends Model
         'CodigoVenta',
         'CodigoProducto',
         'Descuento',
-        'CodigoTipoGravado'
+        'CodigoTipoGravado',
+        'CodigoDetalleContrato'
     ];
 }

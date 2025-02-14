@@ -485,7 +485,8 @@ class VentaController extends Controller
                     DB::raw("CASE WHEN tg.Tipo = 'G' THEN ROUND(ddv.MontoTotal - (ddv.MontoTotal / (1 + (tg.Porcentaje / 100))), 2) ELSE 0 END AS MontoIGV"),
                     'tg.Tipo AS TipoGravado',
                     'tg.Codigo AS CodigoTipoGravado',
-                    'tg.Porcentaje'
+                    'tg.Porcentaje',
+                    'ddv.Descuento'
                 )
                 ->get();
 
@@ -560,13 +561,14 @@ class VentaController extends Controller
                     'S',
                     'P.Codigo',
                     '=',
-                    'S.CodigoProducto'
+                    'S.CodigoProducto',
                 )
                 ->join('SedeProducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
                 ->join('TipoGravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
                 ->where('S.Monto', '>', 0)
                 ->orderBy('S.Descripcion')
                 ->select(
+                    'S.Codigo AS CodigoDetalleContrato',
                     'S.CodigoProducto',
                     'S.Descripcion',
                     'P.Tipo',
@@ -574,7 +576,7 @@ class VentaController extends Controller
                     'S.Monto as MontoTotal',
                     'TG.Tipo AS TipoGravado',
                     'TG.Porcentaje AS Porcentaje',
-                    'TG.Codigo AS CodigoTipoGravado'
+                    'TG.Codigo AS CodigoTipoGravado',
                 )
                 ->get();
 
@@ -1397,7 +1399,8 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
-                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor")
+                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', 431)
                 ->distinct()
@@ -1410,7 +1413,7 @@ class VentaController extends Controller
                     DB::raw("'unidad' AS unidad"),
                     'ddv.Descripcion as descripcion',
                     DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
-                    DB::raw("0 as descuento"),
+                    'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
@@ -1543,6 +1546,7 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
                 ->distinct()
@@ -1555,7 +1559,7 @@ class VentaController extends Controller
                     DB::raw("'unidad' AS unidad"),
                     'ddv.Descripcion as descripcion',
                     DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
-                    DB::raw("0 as descuento"),
+                    'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
