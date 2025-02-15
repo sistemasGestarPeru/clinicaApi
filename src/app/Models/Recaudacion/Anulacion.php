@@ -17,6 +17,7 @@ class Anulacion extends Model
         'Fecha',
         'CodigoDocumentoVenta',
         'CodigoMotivo',
-        'CodigoTrabajador'
+        'CodigoTrabajador',
+        'Comentario'
     ];
 }
