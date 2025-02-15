@@ -65,6 +65,7 @@ class PagoComisionController extends Controller
             if ($egreso['CodigoCuentaOrigen'] == 0) {
                 $egreso['CodigoCuentaOrigen'] = null;
             }
+            
 
             $egreso = Egreso::create($egreso);
 

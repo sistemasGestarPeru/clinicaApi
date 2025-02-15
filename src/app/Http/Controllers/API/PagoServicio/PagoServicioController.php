@@ -84,9 +84,14 @@ class PagoServicioController extends Controller
         $pagoServicio = $request->input('pagoServicio');
         $egreso = $request->input('egreso');
 
-        if($egreso['CodigoMedioPago'] == 1){
+        if ($egreso['CodigoCuentaOrigen'] == 0) {
             $egreso['CodigoCuentaOrigen'] = null;
         }
+
+        if ($egreso['CodigoMedioPago'] == 1) {
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
 
         //Validar PagoServicio
         $pagoServicioValidator = Validator::make($pagoServicio, (new RegistrarPagoServicioRequest())->rules());

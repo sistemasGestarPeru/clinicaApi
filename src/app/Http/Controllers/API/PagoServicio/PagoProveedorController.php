@@ -108,6 +108,7 @@ class PagoProveedorController extends Controller
             )
             ->where('CU.Vigente', 1)
             ->where('C.Vigente', 1)
+            
             ->groupBy(
                 'C.Codigo',
                 'C.Fecha',
@@ -116,7 +117,9 @@ class PagoProveedorController extends Controller
                 'P.Codigo',
                 'P.RazonSocial'
             )
+            
             ->havingRaw('SUM(CASE WHEN PP.Codigo IS NULL THEN 1 ELSE 0 END) > 0')
+            ->orderBy('C.Fecha', 'DESC')
             ->get();
 
             return response()->json($resultado, 200);

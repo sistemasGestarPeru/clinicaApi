@@ -119,13 +119,16 @@ class PagoTrabajadoresController extends Controller
 
         DB::beginTransaction();
         try {
-
+            if ($egreso['CodigoCuentaOrigen'] == 0) {
+                $egreso['CodigoCuentaOrigen'] = null;
+            }
 
                 if ($egreso['CodigoMedioPago'] == 1) {
                     $egreso['CodigoCuentaOrigen'] = null;
                 }
 
-                $nuevoEgresoId = DB::table('egreso')->insertGetId($egreso);
+                $nuevoEgresoId = Egreso::create($egreso)->Codigo;
+
                 $trabajador['Mes'] = $trabajador['Mes'] . '-' . $fechaActual;
                 $trabajador['Codigo'] = $nuevoEgresoId;
                 PagoPlanilla::create($trabajador);
@@ -195,6 +198,10 @@ class PagoTrabajadoresController extends Controller
         try {
 
             foreach ($egreso as $index => $egresos) {
+
+                if ($egresos['CodigoCuentaOrigen'] == 0) {
+                    $egresos['CodigoCuentaOrigen'] = null;
+                }
 
                 if ($egresos['CodigoMedioPago'] == 1) {
                     $egresos['CodigoCuentaOrigen'] = null;
