@@ -260,6 +260,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
+    Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);

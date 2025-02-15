@@ -69,6 +69,16 @@ class PagoComisionController extends Controller
             $egreso = Egreso::create($egreso);
 
             $pagoComision['Codigo'] = $egreso->Codigo;
+
+
+            if($pagoComision['CodigoDocumentoVenta'] == 0){
+                $pagoComision['CodigoDocumentoVenta'] = null;
+            }
+
+            if  ($pagoComision['CodigoContrato'] == 0) {
+                $pagoComision['CodigoContrato'] = null;
+            }
+
             PagoComision::create($pagoComision);
             DB::commit();
 
@@ -120,5 +130,65 @@ class PagoComisionController extends Controller
     public function actualizarPagoComision(Request $request, string $id)
     {
         
+    }
+
+    public function listarDocumentos(Request $request){
+
+        $medico = $request->input('medico');
+        $sede = $request->input('sede');
+        $termino = $request->input('termino');
+        $tipoComision = $request->input('tipoComision');
+
+        try{
+
+            if ($tipoComision == 'C') {
+                $query = DB::table('ContratoProducto as cp')
+                    ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+                    ->leftJoin('pagoComision as pc', 'cp.Codigo', '=', 'pc.CodigoContrato')
+                    ->select([
+                        'cp.Codigo as Codigo',
+                        DB::raw("LPAD(cp.NumContrato, 5, '0') AS Documento"),
+                        DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                        DB::raw("DATE(cp.Fecha) as Fecha")
+                    ])
+                    ->where('cp.CodigoMedico', $medico)
+                    ->where('cp.CodigoSede', $sede)
+                    ->where('cp.Vigente', 1)
+                    ->whereNull('pc.Codigo')
+                    ->where(function ($query) use ($termino) {
+                        $query->where('p.Nombres', 'LIKE', "%{$termino}%")
+                              ->orWhere('p.Apellidos', 'LIKE', "%{$termino}%");
+                    });
+                    
+            }else{
+                $query = DB::table('DocumentoVenta as dv')
+                ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPaciente')
+                ->leftJoin('pagoComision as pc', 'dv.Codigo', '=', 'pc.CodigoDocumentoVenta')
+                ->select([
+                    'dv.Codigo as Codigo',
+                    DB::raw("CONCAT(dv.Serie,' - ',LPAD(dv.Numero, 5, '0')) as Documento"),
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                    DB::raw("DATE(dv.Fecha) as Fecha")
+                ])
+                ->where('dv.CodigoMedico', $medico)
+                ->where('dv.Vigente', 1)
+                ->where('dv.CodigoSede', $sede)
+                ->whereNull('dv.CodigoMotivoNotaCredito')
+                ->whereNull('dv.CodigoContratoProducto')
+                ->whereNull('pc.Codigo')
+                ->where(function ($query) use ($termino) {
+                    $query->where('p.Nombres', 'LIKE', "%{$termino}%")
+                          ->orWhere('p.Apellidos', 'LIKE', "%{$termino}%");
+                });
+            }
+
+            return response()->json($query->get(), 200);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al buscar los documentos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

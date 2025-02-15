@@ -113,38 +113,35 @@ class PagoController extends Controller
         $codigoSede = $request->input('codigoSede');
 
         try {
-            $subquery = "
-            SELECT pdv.CodigoPago, SUM(pdv.Monto) AS MontoAsociado
-            FROM pagodocumentoventa AS pdv
-            JOIN documentoventa AS d ON d.Codigo = pdv.CodigoDocumentoVenta 
-            WHERE pdv.Vigente = 1
-            AND d.CodigoSede = $codigoSede
-            GROUP BY pdv.CodigoPago
-        ";
-        
-        $pagos = DB::table('pago as p')
-            ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-            ->join('Caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
-            ->leftJoin(DB::raw("($subquery) AS PAG"), 'PAG.CodigoPago', '=', 'p.Codigo')
-            ->where('p.Vigente', 1)
-            ->where('CAJA.CodigoSede', $codigoSede)
-            ->whereRaw('p.Monto >= COALESCE(PAG.MontoAsociado, 0)')
-            ->selectRaw("
-                p.Codigo,
-                CASE 
-                    WHEN mp.CodigoSUNAT = '001' THEN p.NumeroOperacion 
-                    ELSE '-' 
-                END AS NumeroOperacion,
-                mp.Nombre,
-                DATE(p.Fecha) AS Fecha,
-                p.Monto,
-                PAG.MontoAsociado,
-                (p.Monto - COALESCE(PAG.MontoAsociado, 0)) AS MontoPorAsociar
-            ")
-            ->get();
-        
+            $subquery = DB::table('pagodocumentoventa as pdv')
+                ->join('documentoventa as d', 'd.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+                ->where('pdv.Vigente', 1)
+                ->where('d.CodigoSede', $codigoSede)
+                ->groupBy('pdv.CodigoPago')
+                ->select('pdv.CodigoPago', DB::raw('SUM(pdv.Monto) AS MontoAsociado'));
 
-
+            $pagos = DB::table('pago as p')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+                ->join('Caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
+                ->leftJoinSub($subquery, 'PAG', 'PAG.CodigoPago', '=', 'p.Codigo')
+                ->where('p.Vigente', 1)
+                ->where('CAJA.CodigoSede', $codigoSede)
+                ->whereRaw('p.Monto > COALESCE(PAG.MontoAsociado, 0)')
+                ->selectRaw("
+                    p.Codigo,
+                    CASE 
+                        WHEN mp.CodigoSUNAT = '008' THEN '-'
+                        WHEN mp.CodigoSUNAT IN ('005','006') THEN CONCAT(p.Lote, ' - ', p.Referencia)
+                        ELSE p.NumeroOperacion
+                    END AS NumeroOperacion,
+                    mp.Nombre,
+                    DATE(p.Fecha) AS Fecha,
+                    p.Monto,
+                    COALESCE(PAG.MontoAsociado, 0) AS MontoAsociado,
+                    (p.Monto - COALESCE(PAG.MontoAsociado, 0)) AS MontoPorAsociar
+                ")
+                ->get();
+        
             return response()->json($pagos, 200);
 
         } catch (\Exception $e) {

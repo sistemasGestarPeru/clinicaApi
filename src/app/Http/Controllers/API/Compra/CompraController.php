@@ -111,7 +111,7 @@ class CompraController extends Controller
 
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
-                ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial')
+                ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial', 'p.Codigo as CodigoProveedor')
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
 
@@ -132,6 +132,7 @@ class CompraController extends Controller
             ->select(
                 'e.Codigo as CodigoE',
                 'tp.Siglas as TipoMoneda',
+                'tp.Codigo as CodigoMoneda',
                 DB::raw("
                     CASE 
                         WHEN pp.TipoMoneda = 1 THEN e.Monto

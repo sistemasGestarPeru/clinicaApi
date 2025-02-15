@@ -16,6 +16,8 @@ class PagoComision extends Model
     protected $fillable = [
         'Codigo',
         'CodigoMedico',
-        'Comentario'
+        'Comentario',
+        'CodigoContrato',
+        'CodigoDocumentoVenta'
     ];
 }

@@ -148,7 +148,8 @@ class PagoProveedorController extends Controller
                     END AS MontoRestante
                 "),
                 'C.TipoMoneda AS CodMoneda',
-                'tm.Siglas AS TipoMoneda'
+                'tm.Siglas AS TipoMoneda',
+                
             )
             ->leftJoin('PagoProveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
             ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')

@@ -386,6 +386,7 @@ class VentaController extends Controller
 
             foreach ($detallesVentaData as $detalle) {
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
+                $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
                 DetalleVenta::create($detalle);
             }
 
@@ -876,17 +877,15 @@ class VentaController extends Controller
                     ->where('CodigoDocumentoVenta', $codigoVenta)
                     ->update(['Vigente' => 0]);
 
-                // Obtener los códigos de pagos en efectivo a desactivar
+                // Obtener los códigos de pagos a desactivar
                 $pagosEfectivo = DB::table('pagodocumentoventa as pdv')
                     ->join('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
-                    ->join('medioPago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
                     ->where('pdv.CodigoDocumentoVenta', $codigoVenta)
                     ->where('pg.Vigente', 1)
                     ->where('pdv.Vigente', 1)
-                    ->where('mp.CodigoSUNAT', '008')
-                    ->pluck('pdv.CodigoPago'); // Obtener solo los códigos de pago
+                    ->pluck('pdv.CodigoPago'); 
 
-                // Marcar como no vigentes los pagos en efectivo encontrados
+                // Marcar como no vigentes los pagos encontrados
                 DB::table('pago')
                     ->whereIn('Codigo', $pagosEfectivo)
                     ->update(['Vigente' => 0]);
@@ -1327,7 +1326,7 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
-                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
+                    DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
                 ->distinct()
