@@ -312,9 +312,6 @@ class VentaController extends Controller
 
     public function registrarVenta(Request $request)
     {
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
-
         $ventaData = $request->input('venta');
         $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
@@ -365,6 +362,7 @@ class VentaController extends Controller
             }
 
             if ($pagoData['CodigoSUNAT'] == '008') {
+                $pagoData['Fecha'] = $ventaData['Fecha'];
                 $pagoData['CodigoCuentaBancaria'] = null;
                 $pagoData['CodigoBilleteraDigital'] = null;
                 $pagoData['Lote'] = null;
