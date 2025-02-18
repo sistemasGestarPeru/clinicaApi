@@ -9,6 +9,7 @@ use App\Http\Requests\Venta\RegistrarDetalleVentaRequest;
 use App\Http\Requests\Venta\RegistrarVentaRequest;
 use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
+use App\Models\Recaudacion\Detraccion;
 use App\Models\Recaudacion\DevolucionNotaCredito;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\Pago;
@@ -67,7 +68,7 @@ class VentaController extends Controller
             $resultados = DB::table('cuentabancaria as cb')
                 ->join('entidadbancaria as eb', 'cb.CodigoEntidadBancaria', '=', 'eb.Codigo')
                 ->join('empresas as e', 'e.Codigo', '=', 'cb.CodigoEmpresa')
-                ->select('eb.Nombre', 'eb.Siglas', 'cb.Numero', 'cb.CCI', 'e.PorcentajeDetraccion')
+                ->select('cb.Codigo','eb.Nombre', 'eb.Siglas', 'cb.Numero', 'cb.CCI', 'e.PorcentajeDetraccion')
                 ->where('cb.CodigoEmpresa', $empresa)
                 ->where('cb.Detraccion', 1)
                 ->where('e.Vigente', 1)
@@ -333,6 +334,7 @@ class VentaController extends Controller
         $ventaData = $request->input('venta');
         $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
+        $detraccion = $request->input('detraccion');
 
         //Validar Venta
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
@@ -422,6 +424,12 @@ class VentaController extends Controller
                     ->where('Codigo', $ventaData['CodigoContratoProducto'])
                     ->increment('TotalPagado', $pagoData['Monto']);
             }
+
+            if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)){
+                $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
+                Detraccion::create($detraccion);
+            }
+
             DB::commit();
 
             return response()->json(['message' => 'Venta registrada correctamente.'], 201);
