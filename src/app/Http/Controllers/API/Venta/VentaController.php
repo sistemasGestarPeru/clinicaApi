@@ -62,6 +62,24 @@ class VentaController extends Controller
         //
     }
 
+    public function cuentaDetraccion($empresa){
+        try{
+            $resultados = DB::table('cuentabancaria as cb')
+                ->join('entidadbancaria as eb', 'cb.CodigoEntidadBancaria', '=', 'eb.Codigo')
+                ->join('empresas as e', 'e.Codigo', '=', 'cb.CodigoEmpresa')
+                ->select('eb.Nombre', 'eb.Siglas', 'cb.Numero', 'cb.CCI', 'e.PorcentajeDetraccion')
+                ->where('cb.CodigoEmpresa', $empresa)
+                ->where('cb.Detraccion', 1)
+                ->where('e.Vigente', 1)
+                ->where('cb.Vigente', 1)
+                ->where('eb.Vigente', 1)
+                ->first();
+            return response()->json($resultados, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function anularPago($venta, $pago){
         try{
 
