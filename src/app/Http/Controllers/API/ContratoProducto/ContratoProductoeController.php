@@ -76,7 +76,7 @@ class ContratoProductoeController extends Controller
             ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
             ->where('p.Vigente', 1) // Filtro por Vigente en producto
             ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
-            ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
+            ->where('p.Nombre', 'LIKE', "{$nombreProducto}%") // Filtro por Nombre
             ->get();
 
             return response()->json($producto);
@@ -179,16 +179,16 @@ class ContratoProductoeController extends Controller
             $contratos = DB::table('clinica_db.contratoproducto as cp')
             ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
             ->where('cp.CodigoSede', $codigoSede) // Filtro por CódigoSede
-            ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
+            // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
             ->when($nombre, function ($query) use ($nombre) {
                 $query->where(function ($q) use ($nombre) {
-                    $q->where('p.Nombres', 'LIKE', "%$nombre%")
-                        ->orWhere('p.Apellidos', 'LIKE', "%$nombre%");
+                    $q->where('p.Nombres', 'LIKE', "$nombre%")
+                        ->orWhere('p.Apellidos', 'LIKE', "$nombre%");
                 });
             })
             ->when($documento, function ($queryD) use ($documento) {
                 $queryD->where(function ($q) use ($documento) {
-                    $q->where('p.NumeroDocumento', 'LIKE', "%$documento%");
+                    $q->where('p.NumeroDocumento', 'LIKE', "$documento%");
                 });
             })
             ->orderByDesc('cp.Codigo')

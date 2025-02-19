@@ -225,7 +225,7 @@ class ClienteController extends Controller
                     ->join('clinica_db.tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
 
                     ->select('p.Codigo as Codigo', 'p.Nombres as Nombres', 'p.Apellidos as Apellidos', 'p.NumeroDocumento as NumeroDocumento', 'td.Siglas as DescTipoDocumento')
-                    ->where('p.Nombres', 'like', '%' . $nombre . '%')
+                    ->where('p.Nombres', 'like', $nombre . '%')
                     ->where('s.Codigo', '=', $sede)
                     ->where('p.Vigente', '=', 1)
                     ->get();
@@ -240,7 +240,7 @@ class ClienteController extends Controller
                 ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
                 ->join('clinica_db.clienteempresa as e', 'e.CodigoDepartamento', '=', 'd.Codigo')
                 ->select('e.Codigo as Codigo', 'e.RazonSocial as RazonSocial', 'e.RUC as RUC')
-                ->where('e.RazonSocial', 'like', '%' . $nombre . '%')
+                ->where('e.RazonSocial', 'like', $nombre . '%')
                 ->where('s.Codigo', '=', $sede)
                 ->where('e.Vigente', '=', 1)
                 ->get();
