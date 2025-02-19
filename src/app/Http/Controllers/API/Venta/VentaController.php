@@ -406,6 +406,9 @@ class VentaController extends Controller
 
             foreach ($detallesVentaData as $detalle) {
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
+                if (!isset($detalle['Descuento'])) {
+                    $detalle['Descuento'] = 0;
+                }
                 $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
                 DetalleVenta::create($detalle);
             }
