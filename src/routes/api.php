@@ -16,6 +16,7 @@ use App\Http\Controllers\API\PagoComision\PagoComisionController;
 use App\Http\Controllers\API\PagoDonante\PagoDonanteController;
 use App\Http\Controllers\API\PagoServicio\PagoProveedorController;
 use App\Http\Controllers\API\PagoServicio\PagoServicioController;
+use App\Http\Controllers\API\PagosVarios\PagosVariosController;
 use App\Http\Controllers\API\PagoTrabajadores\PagoTrabajadoresController;
 use App\Http\Controllers\API\Personal\AsignacionSedeController;
 use App\Http\Controllers\API\Personal\ContratoLaboralController;
@@ -137,6 +138,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarSistemaPension', [ControladorGeneralController::class, 'listarSistemaPension']);
     Route::get('combos/listarMotivoPagoServicio', [ControladorGeneralController::class, 'listarMotivoPagoServicio']);
     Route::get('combos/personalAutorizado/{sede}', [ControladorGeneralController::class, 'personalAutorizado']);
+    Route::get('combos/personal/{sede}', [ControladorGeneralController::class, 'personal']);
     Route::get('combos/listarTipoMoneda', [ControladorGeneralController::class, 'listarTipoMoneda']);
     Route::get('combos/listarMedicos/{sede}', [ControladorGeneralController::class, 'listarMedicos']);
     Route::get('combos/listarPacientes/{sede}', [ControladorGeneralController::class, 'listarPacientes']);
@@ -264,6 +266,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
+
+    /********************************** PAGOS VARIOS **********************************/
+    Route::post('pagosVarios/registrarPagoVarios', [PagosVariosController::class, 'registrarPagoVarios']);
+    Route::post('pagosVarios/listarPagosVarios', [PagosVariosController::class, 'listarPagosVarios']);
+
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
