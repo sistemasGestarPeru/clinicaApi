@@ -614,24 +614,23 @@ class VentaController extends Controller
     public function buscarCliente(Request $request)
     {
         $numDocumento = $request->input('numDocumento');
-        $codSede = $request->input('codSede');
+        $nombDoc = $request->input('nombDoc');
         $codDocumento = $request->input('codDocumento');
 
-        $primerosDosDigitos = substr($numDocumento, 0, 2);
         try {
-            if ($primerosDosDigitos == '20') {
+            if ($nombDoc == 'RUC') {
                 $cliente = DB::table('clienteempresa as ce')
-                    ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'ce.CodigoDepartamento')
+                    // ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'ce.CodigoDepartamento')
                     ->where('ce.RUC', $numDocumento)
                     ->where('ce.Vigente', 1)
-                    ->where('s.Codigo', $codSede)
+                    // ->where('s.Codigo', $codSede)
                     ->select('ce.Codigo', 'ce.RazonSocial as NombreCompleto', DB::raw('0 as TipoCliente'))
                     ->first();
             } else {
                 $cliente = DB::table('personas as p')
-                    ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
-                    ->where('s.Codigo', $codSede)
-                    ->where('s.Vigente', 1)
+                    // ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
+                    // ->where('s.Codigo', $codSede)
+                    // ->where('s.Vigente', 1)
                     ->where('p.NumeroDocumento', $numDocumento)
                     ->where('p.CodigoTipoDocumento', $codDocumento)
                     ->where('p.Vigente', 1)
