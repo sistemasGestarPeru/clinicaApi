@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\PagoTrabajadores;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\PagoTrabajadores\PagoPlanilla;
 use Exception;
@@ -86,20 +87,9 @@ class PagoTrabajadoresController extends Controller
         $trabajador = $request->input('trabajador');
         $egreso = $request->input('egreso');
 
-        $egresoValidator = Validator::make($egreso, [
-            'Fecha' => 'required|date',
-            'Monto' => 'required|integer',
-            'CodigoCaja' => 'required|integer',
-            'CodigoTrabajador' => 'required|integer',
-            'CodigoMedioPago' => 'required|integer',
-        ]);
-
-        if ($egresoValidator->fails()) {
-            return response()->json([
-                'error' => $egresoValidator->errors(),
-                'mensaje' => "Error al registrar datos de Egreso"
-            ], 400);
-        }
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
 
         $trabajadorValidator = Validator::make($trabajador, [
             'CodigoSistemaPensiones' => 'required|integer',
@@ -117,16 +107,32 @@ class PagoTrabajadoresController extends Controller
         }
 
 
+        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($egreso['CodigoSUNAT'] == '008') {
+            $egreso['CodigoCuentaOrigen'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+            $egreso['NumeroOperacion'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '003'){
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+            $egreso['CodigoCuentaBancaria'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
         DB::beginTransaction();
         try {
-            if ($egreso['CodigoCuentaOrigen'] == 0) {
-                $egreso['CodigoCuentaOrigen'] = null;
-            }
-
-                if ($egreso['CodigoMedioPago'] == 1) {
-                    $egreso['CodigoCuentaOrigen'] = null;
-                }
-
                 $nuevoEgresoId = Egreso::create($egreso)->Codigo;
 
                 $trabajador['Mes'] = $trabajador['Mes'] . '-' . $fechaActual;
@@ -199,12 +205,28 @@ class PagoTrabajadoresController extends Controller
 
             foreach ($egreso as $index => $egresos) {
 
-                if ($egresos['CodigoCuentaOrigen'] == 0) {
+                if(isset($egresos['CodigoCuentaOrigen']) && $egresos['CodigoCuentaOrigen'] == 0){
                     $egresos['CodigoCuentaOrigen'] = null;
                 }
-
-                if ($egresos['CodigoMedioPago'] == 1) {
+        
+                if(isset($egresos['CodigoBilleteraDigital']) && $egresos['CodigoBilleteraDigital'] == 0){
+                    $egresos['CodigoBilleteraDigital'] = null;
+                }
+        
+                if ($egresos['CodigoSUNAT'] == '008') {
                     $egresos['CodigoCuentaOrigen'] = null;
+                    $egresos['CodigoBilleteraDigital'] = null;
+                    $egresos['Lote'] = null;
+                    $egresos['Referencia'] = null;
+                    $egresos['NumeroOperacion'] = null;
+        
+                }else if($egresos['CodigoSUNAT'] == '003'){
+                    $egresos['Lote'] = null;
+                    $egresos['Referencia'] = null;
+        
+                }else if($egresos['CodigoSUNAT'] == '005' || $egresos['CodigoSUNAT'] == '006'){
+                    $egresos['CodigoCuentaBancaria'] = null;
+                    $egresos['CodigoBilleteraDigital'] = null;
                 }
 
                 $nuevoEgresoId = Egreso::create($egresos)->Codigo;

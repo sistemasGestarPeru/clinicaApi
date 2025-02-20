@@ -84,14 +84,6 @@ class PagoServicioController extends Controller
         $pagoServicio = $request->input('pagoServicio');
         $egreso = $request->input('egreso');
 
-        if ($egreso['CodigoCuentaOrigen'] == 0) {
-            $egreso['CodigoCuentaOrigen'] = null;
-        }
-
-        if ($egreso['CodigoMedioPago'] == 1) {
-            $egreso['CodigoCuentaOrigen'] = null;
-        }
-
 
         //Validar PagoServicio
         $pagoServicioValidator = Validator::make($pagoServicio, (new RegistrarPagoServicioRequest())->rules());
@@ -101,6 +93,29 @@ class PagoServicioController extends Controller
         $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
         $egresoValidator->validate();
 
+        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($egreso['CodigoSUNAT'] == '008') {
+            $egreso['CodigoCuentaOrigen'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+            $egreso['NumeroOperacion'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '003'){
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+            $egreso['CodigoCuentaBancaria'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
 
 
         DB::beginTransaction();

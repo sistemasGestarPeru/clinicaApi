@@ -59,15 +59,39 @@ class PagoDonanteController extends Controller
     {
         $egreso = $request->input('egreso');
         $pagoDonante = $request->input('pagoDonante');
+        
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+
+        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($egreso['CodigoSUNAT'] == '008') {
+            $egreso['CodigoCuentaOrigen'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+            $egreso['NumeroOperacion'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '003'){
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+            $egreso['CodigoCuentaBancaria'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+        
         DB::beginTransaction();
+        
         try{
     
-            //Validar Egreso
-            $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
-            $egresoValidator->validate();
-            if ($egreso['CodigoCuentaOrigen'] == 0) {
-                $egreso['CodigoCuentaOrigen'] = null;
-            }
             $egreso = Egreso::create($egreso);
 
             $pagoDonante['Codigo'] = $egreso->Codigo;

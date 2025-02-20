@@ -178,8 +178,28 @@ class CompraController extends Controller
 
             if ($compra['FormaPago'] == 'C') {
 
-                if ($egreso['CodigoCuentaOrigen'] == 0) {
+                if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
                     $egreso['CodigoCuentaOrigen'] = null;
+                }
+        
+                if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+                    $egreso['CodigoBilleteraDigital'] = null;
+                }
+        
+                if ($egreso['CodigoSUNAT'] == '008') {
+                    $egreso['CodigoCuentaOrigen'] = null;
+                    $egreso['CodigoBilleteraDigital'] = null;
+                    $egreso['Lote'] = null;
+                    $egreso['Referencia'] = null;
+                    $egreso['NumeroOperacion'] = null;
+        
+                }else if($egreso['CodigoSUNAT'] == '003'){
+                    $egreso['Lote'] = null;
+                    $egreso['Referencia'] = null;
+        
+                }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+                    $egreso['CodigoCuentaBancaria'] = null;
+                    $egreso['CodigoBilleteraDigital'] = null;
                 }
 
                 $nuevoEgreso = Egreso::create($egreso);

@@ -55,32 +55,45 @@ class PagoComisionController extends Controller
     {
         $egreso = $request->input('egreso');
         $pagoComision = $request->input('pagoComision');
+
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+
+        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($egreso['CodigoSUNAT'] == '008') {
+            $egreso['CodigoCuentaOrigen'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+            $egreso['NumeroOperacion'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '003'){
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+
+        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+            $egreso['CodigoCuentaBancaria'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
         DB::beginTransaction();
         try{
 
-            //Validar Egreso
-            $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
-            $egresoValidator->validate();
-
-            if ($egreso['CodigoCuentaOrigen'] == 0) {
-                $egreso['CodigoCuentaOrigen'] = null;
-            }
-            
-
             $egreso = Egreso::create($egreso);
-
             $pagoComision['Codigo'] = $egreso->Codigo;
-
-
-            if($pagoComision['CodigoDocumentoVenta'] == 0){
-                $pagoComision['CodigoDocumentoVenta'] = null;
-            }
-
-            if  ($pagoComision['CodigoContrato'] == 0) {
-                $pagoComision['CodigoContrato'] = null;
-            }
-
+            $pagoComision['CodigoDocumentoVenta'] = $pagoComision['CodigoDocumentoVenta'] == 0 ? null : $pagoComision['CodigoDocumentoVenta'];
+            $pagoComision['CodigoContrato'] = $pagoComision['CodigoContrato'] == 0 ? null : $pagoComision['CodigoContrato'];
+    
             PagoComision::create($pagoComision);
+            
             DB::commit();
 
             return response()->json([

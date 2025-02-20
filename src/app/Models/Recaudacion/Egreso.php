@@ -20,6 +20,10 @@ class Egreso extends Model
         'CodigoTrabajador',
         'CodigoMedioPago',
         'CodigoCuentaOrigen',
-        'Vigente'
+        'Vigente',
+        'CodigoBilleteraDigital',
+        'Lote',
+        'Referencia',
+        'NumeroOperacion',
     ];
 }

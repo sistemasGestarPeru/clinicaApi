@@ -21,6 +21,8 @@ class PagoServicio extends Model
         'TipoDocumento',
         'Serie',
         'Numero',
-        'FechaDocumento'
+        'FechaDocumento',
+        'IGV',
+        'CodigoProveedor'
     ];
 }
