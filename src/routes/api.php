@@ -146,6 +146,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarMotivoAnulacionContrato', [ControladorGeneralController::class, 'listarMotivoAnulacionContrato']);
     Route::get('combos/listarDonantes', [ControladorGeneralController::class, 'listarDonantes']);
     Route::get('combos/listarMotivoAnulacionContrato', [ControladorGeneralController::class, 'listarMotivoAnulacionContrato']);
+    Route::get('combos/listarCategoriaProducto', [ControladorGeneralController::class, 'listarCategoriaProducto']);
+
+
+    
     /***************************************************************************/
     /********************************* CLIENTES *********************************/
     Route::apiResource("cliente", ClienteController::class);
@@ -276,8 +280,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
 
     /********************************** SEDE PRODUCTO **********************************/
-    Route::post('sedeProducto/listarSedeProducto', [SedeProductoController::class, 'listarSedeProducto']);
-
+    Route::get('sedeProducto/listarSedeProducto/{sede}', [SedeProductoController::class, 'listarSedeProducto']);
+    Route::get('sedeProducto/listarProductosNoAsignados', [SedeProductoController::class, 'listarProductosNoAsignados']);
+    
 
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
