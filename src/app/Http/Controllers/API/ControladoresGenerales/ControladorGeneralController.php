@@ -460,4 +460,21 @@ class ControladorGeneralController extends Controller
         }   
     }
 
+
+    public function listarCategoriaProducto(){
+        try{
+            $categoria = DB::table('categoriaproducto')
+            ->select(
+                'Codigo',
+                'Nombre'
+            )
+            ->where('Vigente', 1)
+            ->get();
+
+            return response()->json($categoria);
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }   
+    }
+
 }
