@@ -178,21 +178,20 @@ class ContratoProductoeController extends Controller
         try {
             $contratos = DB::table('clinica_db.contratoproducto as cp')
             ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-            ->where('cp.CodigoSede', $codigoSede) // Filtro por CódigoSede
-            // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
-            ->when($nombre, function ($query) use ($nombre) {
-                $query->where(function ($q) use ($nombre) {
+            ->where('cp.CodigoSede', $codigoSede) // Filtrar por CódigoSede
+            ->when(!empty($nombre), function ($query) use ($nombre) {
+                return $query->where(function ($q) use ($nombre) {
                     $q->where('p.Nombres', 'LIKE', "$nombre%")
                         ->orWhere('p.Apellidos', 'LIKE', "$nombre%");
                 });
             })
-            ->when($documento, function ($queryD) use ($documento) {
-                $queryD->where(function ($q) use ($documento) {
-                    $q->where('p.NumeroDocumento', 'LIKE', "$documento%");
-                });
+            ->when(!empty($documento), function ($query) use ($documento) {
+                return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
+            })
+            ->when(empty($nombre) && empty($documento), function ($query) {
+                return $query->limit(50); 
             })
             ->orderByDesc('cp.Codigo')
-
             ->select(
                 'cp.Codigo as Codigo',
                 DB::raw("DATE(cp.Fecha) as Fecha"),

@@ -178,6 +178,9 @@ class CajaController extends Controller
                         WHEN pd.Codigo IS NOT NULL THEN 'PAGO DONANTE'
                         WHEN pc.Codigo IS NOT NULL THEN 'PAGO COMISIÓN'
                         WHEN pper.Codigo IS NOT NULL THEN 'PAGO PERSONAL'
+                        WHEN pvar.Codigo IS NOT NULL THEN 'PAGO VARIOS'
+                        WHEN pdet.Codigo IS NOT NULL THEN 'PAGO DETRACCION'
+                        ELSE 'OTRO'
                     END AS OPERACION,
                     
                     CASE 
@@ -205,6 +208,8 @@ class CajaController extends Controller
                         LEFT JOIN pagoDonante as pd ON pd.Codigo = e.Codigo
                         LEFT JOIN pagoComision as pc ON pc.Codigo = e.Codigo
                         LEFT JOIN pagopersonal as pper ON pper.Codigo = e.Codigo
+                        LEFT JOIN pagosvarios as pvar ON pvar.Codigo = e.Codigo
+                        LEFT JOIN pagodetraccion as pdet ON pdet.Codigo = e.Codigo
                         WHERE CodigoCaja = $caja 
                     AND Vigente = 1 
                     AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE CodigoSUNAT = '008')
@@ -326,14 +331,23 @@ class CajaController extends Controller
 
     public function registrarIngreso(Request $request)
     {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
         $IngresoDineroData = $request->input('IngresoDinero');
         $egreso = $request->input('Egreso');
+
+        $IngresoDineroData['Fecha'] = $fecha;
+        $IngresoDineroData['Tipo'] = 'I';
+
         DB::beginTransaction();
+
+        if(isset($IngresoDineroData['CodigoEmisor'])  && $IngresoDineroData['CodigoEmisor'] == 0 ){
+            $IngresoDineroData['CodigoEmisor'] = null;
+        }
+
         try {
-            $IngresoDineroData = $request->input('IngresoDinero');
-
-            $IngresoDineroData['Tipo'] = 'I';
-
+            
             IngresoDinero::create($IngresoDineroData);
             
             DB::table('salidadinero')

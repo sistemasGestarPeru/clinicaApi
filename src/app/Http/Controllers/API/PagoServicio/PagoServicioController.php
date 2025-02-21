@@ -56,6 +56,30 @@ class PagoServicioController extends Controller
         //
     }
 
+    public function consultarPagoServicio($codigo)
+    {
+        try {
+            $pagoServicio = PagoServicio::find($codigo);
+            $egreso = Egreso::find($codigo);
+
+            if ($pagoServicio) {
+                return response()->json([
+                    'pagoServicio' => $pagoServicio,
+                    'egreso' => $egreso
+                ], 200);
+            } else {
+                return response()->json([
+                    'error' => 'Pago del servicio no encontrado'
+                ], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al consultar el pago del servicio',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function listarPagos(Request $request)
     {
         $fecha = $request->input('fecha');
@@ -64,7 +88,7 @@ class PagoServicioController extends Controller
             $results = DB::table('Egreso as e')
                 ->join('PagoServicio as ps', 'ps.Codigo', '=', 'e.Codigo')
                 ->join('MotivoPagoServicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
-                ->select('mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
+                ->select('ps.Codigo', 'mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
                 // ->where(DB::raw('DATE(e.Fecha)'), $fecha)
                 ->get();
 

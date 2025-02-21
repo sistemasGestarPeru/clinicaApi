@@ -237,17 +237,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pago/consultarPago', [PagoController::class, 'consultarPago']);
     Route::post('pago/editarPago', [PagoController::class, 'editarPago']);
 
-    /********************************** PAGO SERVICIOS **********************************/
-    Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
-    Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
-
     /********************************** PAGO TRABAJADORES / PLANILLA  **********************************/
     Route::post('pagoTrabajadores/listarPagosRealizados', [PagoTrabajadoresController::class, 'listarPagosRealizados']);
     Route::post('pagoTrabajadores/listarTrabajadoresPlanilla', [PagoTrabajadoresController::class, 'listarTrabajadoresPlanilla']);
     Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
     Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
     Route::post('pagoTrabajadores/registrarPagoIndividual', [PagoTrabajadoresController::class, 'registrarPagoIndividual']);
-
 
     /********************************* Compras *********************************/
     Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
@@ -267,15 +262,22 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** PAGO DONANTE **********************************/
     Route::post('pagoDonante/registrarPagoDonante', [PagoDonanteController::class, 'registrarPagoDonante']);
     Route::post('pagoDonante/listarPagosDonante', [PagoDonanteController::class, 'listarPagosDonante']);
+    Route::get('pagoDonante/consultarPagoDonante/{codigo}', [PagoDonanteController::class, 'consultarPagoDonante']);
+    /********************************** PAGO SERVICIOS **********************************/
+    Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
+    Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
+    Route::get('pagoServicio/consultarPagoServicio/{codigo}', [PagoServicioController::class, 'consultarPagoServicio']);
+    
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
-
+    Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
     /********************************** PAGOS VARIOS **********************************/
     Route::post('pagosVarios/registrarPagoVarios', [PagosVariosController::class, 'registrarPagoVarios']);
     Route::post('pagosVarios/listarPagosVarios', [PagosVariosController::class, 'listarPagosVarios']);
-
+    Route::get('pagosVarios/consultarPagosVarios/{codigo}', [PagosVariosController::class, 'consultarPagosVarios']);
+    
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);

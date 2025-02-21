@@ -139,9 +139,30 @@ class PagoDonanteController extends Controller
         }
     }
 
-    public function consultarPagoDonante(string $id)
+    public function consultarPagoDonante($codigo)
     {
-        
+
+        try{
+            $pagoServicio = PagoDonante::find($codigo);
+            $egreso = Egreso::find($codigo);
+
+            if($pagoServicio){
+                return response()->json([
+                    'pagoDonante' => $pagoServicio,
+                    'egreso' => $egreso
+                ], 200);
+            }else{
+                return response()->json([
+                    'message' => 'Pago del donante no encontrado'
+                ], 404);
+            }
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al consultar el pago del donante',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function actualizarPagoDonante(Request $request)

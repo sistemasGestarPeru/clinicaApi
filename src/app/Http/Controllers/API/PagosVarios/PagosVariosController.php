@@ -86,7 +86,7 @@ class PagosVariosController extends Controller
             ->join('Egreso as e', 'e.Codigo', '=', 'pv.Codigo')
             ->join('Personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
             ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-            ->selectRaw('DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
+            ->selectRaw('e.Codigo ,DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
             ->where('e.Vigente', '=', 1)
             ->where('c.CodigoSede', '=', $sede)
             ->orderByDesc('e.Fecha')
@@ -99,7 +99,23 @@ class PagosVariosController extends Controller
 
     public function consultarPagosVarios($codigo){
         try{
+            // Obtener datos de pagosvarios
+            $pagosVarios = DB::table('pagosvarios')
+            ->select('CodigoReceptor', 'Tipo', 'Comentario', 'Motivo', 'Destino')
+            ->where('Codigo', $codigo)
+            ->first(); // Usamos first() para obtener un solo resultado
 
+            // Obtener datos de egreso
+            $egreso = DB::table('egreso')
+            ->select('Monto', 'Fecha')
+            ->where('Codigo', $codigo)
+            ->first(); // Usamos first() para obtener un solo resultado
+
+            // Retornar la respuesta en JSON
+            return response()->json([
+            'pagosVarios' => $pagosVarios,
+            'egreso' => $egreso
+            ]);
         }catch(\Exception $e){
             return response()->json(['error' => 'Error al consultar los pagos varios', 'message' => $e->getMessage()], 500);
         }

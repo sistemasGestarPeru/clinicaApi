@@ -136,9 +136,29 @@ class PagoComisionController extends Controller
         }
     }
 
-    public function consultarPagoComision(string $id)
+    public function consultarPagoComision($codigo)
     {
-        
+        try{
+            $pagoComision = PagoComision::find($codigo);
+            $egreso = Egreso::find($codigo);
+
+            if ($pagoComision) {
+                return response()->json([
+                    'pagoComision' => $pagoComision,
+                    'egreso' => $egreso
+                ], 200);
+            } else {
+                return response()->json([
+                    'error' => 'Pago de comisión no encontrado'
+                ], 404);
+            }
+            
+        }catch(\Exception $e){
+            return response()->json([
+                'error' => 'Error al consultar el pago de comisión',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function actualizarPagoComision(Request $request, string $id)
@@ -170,8 +190,8 @@ class PagoComisionController extends Controller
                     ->where('cp.Vigente', 1)
                     ->whereNull('pc.Codigo')
                     ->where(function ($query) use ($termino) {
-                        $query->where('p.Nombres', 'LIKE', "%{$termino}%")
-                              ->orWhere('p.Apellidos', 'LIKE', "%{$termino}%");
+                        $query->where('p.Nombres', 'LIKE', "{$termino}%")
+                              ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
                     });
                     
             }else{
@@ -191,8 +211,8 @@ class PagoComisionController extends Controller
                 ->whereNull('dv.CodigoContratoProducto')
                 ->whereNull('pc.Codigo')
                 ->where(function ($query) use ($termino) {
-                    $query->where('p.Nombres', 'LIKE', "%{$termino}%")
-                          ->orWhere('p.Apellidos', 'LIKE', "%{$termino}%");
+                    $query->where('p.Nombres', 'LIKE', "{$termino}%")
+                          ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
                 });
             }
 
