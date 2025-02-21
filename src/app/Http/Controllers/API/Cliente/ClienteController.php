@@ -214,37 +214,64 @@ class ClienteController extends Controller
 
         $tipo = $request->input('tipo');
         $nombre = $request->input('nombre');
-        $sede = $request->input('sede');
+        $documento = $request->input('documento');
 
         if ($tipo === 0) { //Cliente
             try {
 
-                $cliente = DB::table('clinica_db.sedesrec as s')
-                    ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
-                    ->join('clinica_db.personas as p', 'p.CodigoDepartamento', '=', 'd.Codigo')
+                $cliente = DB::table('clinica_db.personas as p')
                     ->join('clinica_db.tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
-
-                    ->select('p.Codigo as Codigo', 'p.Nombres as Nombres', 'p.Apellidos as Apellidos', 'p.NumeroDocumento as NumeroDocumento', 'td.Siglas as DescTipoDocumento')
-                    ->where('p.Nombres', 'like', $nombre . '%')
-                    ->where('s.Codigo', '=', $sede)
-                    ->where('p.Vigente', '=', 1)
+                    ->select(
+                        'p.Codigo',
+                        'p.Nombres',
+                        'p.Apellidos',
+                        'p.NumeroDocumento',
+                        'td.Siglas as DescTipoDocumento',
+                        'p.Vigente'
+                    )
+                    ->when(!empty($nombre), function ($query) use ($nombre) {
+                        return $query->where(function ($q) use ($nombre) {
+                            $q->where('p.Nombres', 'LIKE', "$nombre%")
+                            ->orWhere('p.Apellidos', 'LIKE', "$nombre%");
+                        });
+                    })
+                    ->when(!empty($documento), function ($query) use ($documento) {
+                        return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
+                    })
+                    ->when(empty($nombre) && empty($documento), function ($query) {
+                        return $query->limit(50); 
+                    })
                     ->get();
-
                 return response()->json($cliente);
             } catch (\Exception $e) {
                 return response()->json('Error al obtener los datos', 400);
             }
         } else { //Empresa
 
-            $cliente = DB::table('clinica_db.sedesrec as s')
-                ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
-                ->join('clinica_db.clienteempresa as e', 'e.CodigoDepartamento', '=', 'd.Codigo')
-                ->select('e.Codigo as Codigo', 'e.RazonSocial as RazonSocial', 'e.RUC as RUC')
-                ->where('e.RazonSocial', 'like', $nombre . '%')
-                ->where('s.Codigo', '=', $sede)
-                ->where('e.Vigente', '=', 1)
+            try{
+                $cliente = DB::table('clienteempresa as e')
+                ->select(
+                    'e.Codigo',
+                    'e.RazonSocial',
+                    'e.RUC',
+                    'e.Vigente'
+                )
+                ->when(!empty($nombre), function ($query) use ($nombre) {
+                    return $query->where('e.RazonSocial', 'LIKE', "$nombre%");
+                })
+                ->when(!empty($documento), function ($query) use ($documento) {
+                    return $query->where('e.RUC', 'LIKE', "$documento%");
+                })
+                ->when(empty($documento) && empty($documento), function ($query) {
+                    return $query->limit(50); 
+                })
                 ->get();
-            return response()->json($cliente);
+    
+                return response()->json($cliente);
+
+            }catch(\Exception $e){
+                return response()->json('Error al obtener los datos', 400);
+            }
         }
     }
 }

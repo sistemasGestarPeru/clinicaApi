@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
+use App\Http\Controllers\API\CategoriaProducto\CategoriaProductoController;
 use App\Http\Controllers\API\Cliente\ClienteController;
 use App\Http\Controllers\API\Compra\CompraController;
 use App\Http\Controllers\API\Consultas\ConsultasTrabajadorController;
@@ -284,6 +285,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('sedeProducto/listarProductosNoAsignados', [SedeProductoController::class, 'listarProductosNoAsignados']);
     Route::post('sedeProducto/registrarProductoSede', [SedeProductoController::class, 'registrarProductoSede']);
 
+/********************************** CATEGORIA PRODUCTO **********************************/
+    Route::get('categoriaProducto/listarCategoriaProducto', [CategoriaProductoController::class, 'listarCategoriaProducto']);
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 
