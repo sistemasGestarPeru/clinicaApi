@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\API\SedeProducto;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SedeProducto\RegistrarSedeProductoRequest;
+use App\Models\Recaudacion\SedeProducto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class SedeProductoController extends Controller
 {
@@ -103,7 +106,22 @@ class SedeProductoController extends Controller
     }
 
     public function registrarProductoSede(Request $request){
+        $sedeProductos = $request->input('sedeProductos');
         try{
+            
+            $dataValidar = Validator::make(
+                ['sedeProductos' => $sedeProductos],
+                (new RegistrarSedeProductoRequest())->rules(),
+            );
+            $dataValidar->validate();
+
+            //Registrar Detalle
+
+            foreach($sedeProductos as $sedeProducto){
+                SedeProducto::create($sedeProducto);
+            }
+
+            return response()->json(['message' => 'Productos registrados correctamente en la sede'], 200);
 
         }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
