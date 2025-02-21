@@ -48,22 +48,51 @@ class SedeProductoController extends Controller
         //
     }
 
-
-    public function listarSedeProducto(Request $request){
+    public function listarProductosNoAsignados(){
+        
         try{
-            $productos = DB::table('sedeproducto as sp')
-            ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+
+            $productos = DB::table('producto as p')
+            ->leftJoin('sedeproducto as sp', 'p.Codigo', '=', 'sp.CodigoProducto')
+            ->select(
+                'p.Codigo as CodigoProducto',
+                'p.Nombre',
+                DB::raw("
+                    CASE
+                        WHEN p.Tipo = 'S' THEN 'SERVICIO'
+                        WHEN p.Tipo = 'B' THEN 'BIEN'
+                    END AS TipoProducto
+                ")
+            )
+            ->where('p.Vigente', 1)
+            ->whereNull('sp.Codigo')
+            ->get();
+
+            return response()->json($productos, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function listarSedeProducto($sede){
+        try{
+
+            $productos = DB::table('producto as p')
+            ->join('sedeproducto as sp', 'p.Codigo', '=', 'sp.CodigoProducto')
+            ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
             ->join('sedesrec as s', 's.Codigo', '=', 'sp.CodigoSede')
-            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-            ->select([
-                'sp.Codigo',
+            ->select(
+                'sp.Codigo as CodProdSede',
+                'p.Codigo as CodProd',
                 's.Nombre as Sede',
                 'p.Nombre as Producto',
                 'sp.Precio',
                 'sp.Stock',
-                'tg.Tipo as TipoGravado',
-                'tg.Nombre as NombreGravado'
-            ])
+                'tg.Tipo as TipoGravado'
+            )
+            ->where('p.Vigente', 1)
+            ->where('sp.CodigoSede', $sede)
             ->get();
 
             return response()->json($productos, 200);

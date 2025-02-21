@@ -18,4 +18,21 @@ class Empresa extends Model
         'Correo',
         'Vigente'
     ];
+
+
+     // Mutadores para convertir los valores en mayúsculas
+     public function setNombresAttribute($value)
+     {
+         $this->attributes['Nombre'] = strtoupper($value);
+     }
+ 
+     public function setRazonSocialAttribute($value)
+     {
+         $this->attributes['RazonSocial'] = strtoupper($value);
+     }
+ 
+     public function setDireccionAttribute($value)
+     {
+         $this->attributes['Direccion'] = strtoupper($value);
+     }
 }
