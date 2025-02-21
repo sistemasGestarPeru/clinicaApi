@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
+use App\Http\Controllers\API\MotivoNotaCredito\MotivoNotaCreditoController;
 use App\Http\Controllers\API\Pago\PagoController;
 use App\Http\Controllers\API\PagoComision\PagoComisionController;
 use App\Http\Controllers\API\PagoDonante\PagoDonanteController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\API\Personal\DepartamentoController;
 use App\Http\Controllers\API\Personal\EmpresaController;
 use App\Http\Controllers\API\Personal\NacionalidadController;
 use App\Http\Controllers\API\Personal\SedeController as PersonalSedeController;
+use App\Http\Controllers\API\Personal\TipoDocumentoController;
 use App\Http\Controllers\API\Personal\TrabajadorController;
 use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\Producto\ProductoController;
@@ -289,6 +291,17 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 /********************************** CATEGORIA PRODUCTO **********************************/
     Route::get('categoriaProducto/listarCategoriaProducto', [CategoriaProductoController::class, 'listarCategoriaProducto']);
+
+/********************************** TIPOS DOCUMENTOS IDENTIDAD **********************************/
+
+    Route::get('tipoDocIdentidad/listarTipoDocumentos', [TipoDocumentoController::class, 'listarTipoDocumentos']);
+    Route::post('tipoDocIdentidad/registrarTipoDocumento', [TipoDocumentoController::class, 'registrarTipoDocumento']);
+
+    /********************************** MOTIVOS NOTA DE CREDITO **********************************/
+
+    Route::get('motivosNotaCredito/listarMotivos', [MotivoNotaCreditoController::class, 'listarMotivos']);
+    Route::post('motivosNotaCredito/registrarMotivos', [MotivoNotaCreditoController::class, 'registrarMotivos']);
+
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
 

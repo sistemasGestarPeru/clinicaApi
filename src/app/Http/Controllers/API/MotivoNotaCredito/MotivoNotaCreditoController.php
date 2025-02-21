@@ -1,20 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\API\Personal;
+namespace App\Http\Controllers\API\MotivoNotaCredito;
 
 use App\Http\Controllers\Controller;
-use App\Models\Personal\TipoDocumento;
+use App\Models\Recaudacion\MotivoNotaCredito;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
-class TipoDocumentoController extends Controller
+class MotivoNotaCreditoController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-
+        //
     }
 
     /**
@@ -49,25 +48,24 @@ class TipoDocumentoController extends Controller
         //
     }
 
-    public function registrarTipoDocumento(Request $request){
-        $tipoDocumento = $request->input('tipoDocumento');
 
+    public function registrarMotivos(Request $request){
+
+        $motivo = $request->input('motivo');
         try{
-            
-            TipoDocumento::create($tipoDocumento);
-
-            return response()->json(['message' => 'Tipo Documento registrado correctamente'], 200);
-        }catch (\Exception $e){
+            MotivoNotaCredito::create($motivo);
+            return response()->json(['message' => 'Motivo de Nota de Crédito registrado correctamente'], 200);
+        }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function listarTipoDocumentos()
-    {
+    public function listarMotivos(){
         try{
-            $tipoDocumento = TipoDocumento::all();
-            return response()->json($tipoDocumento);
-        }catch (\Exception $e){
+            $motivos = MotivoNotaCredito::all();
+            return response()->json($motivos, 200);
+            
+        }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
