@@ -266,12 +266,28 @@ class VentaController extends Controller
 
         if (!empty($dataEgreso) && is_array($dataEgreso)){
             //Validar Egreso
-            if ($dataEgreso['CodigoCuentaOrigen'] == 0) {
+            if(isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0){
                 $dataEgreso['CodigoCuentaOrigen'] = null;
             }
-
-            if ($dataEgreso['CodigoMedioPago'] == 1) {
-                $egreso['CodigoCuentaOrigen'] = null;
+    
+            if(isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0){
+                $dataEgreso['CodigoBilleteraDigital'] = null;
+            }
+    
+            if ($dataEgreso['CodigoSUNAT'] == '008') {
+                $dataEgreso['CodigoCuentaOrigen'] = null;
+                $dataEgreso['CodigoBilleteraDigital'] = null;
+                $dataEgreso['Lote'] = null;
+                $dataEgreso['Referencia'] = null;
+                $dataEgreso['NumeroOperacion'] = null;
+    
+            }else if($dataEgreso['CodigoSUNAT'] == '003'){
+                $dataEgreso['Lote'] = null;
+                $dataEgreso['Referencia'] = null;
+    
+            }else if($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006'){
+                $dataEgreso['CodigoCuentaBancaria'] = null;
+                $dataEgreso['CodigoBilleteraDigital'] = null;
             }
 
             $dataEgreso['CodigoCaja'] = $ventaData['CodigoCaja'];
