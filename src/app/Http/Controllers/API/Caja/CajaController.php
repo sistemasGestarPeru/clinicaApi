@@ -465,7 +465,7 @@ class CajaController extends Controller
         $trabajadores = DB::table('trabajadors as t')
             ->leftJoin('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
             ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            ->where('t.Tipo', 'A')
+            // ->where('t.Tipo', 'M')
             ->where('t.Vigente', 1)
             ->where('p.Vigente', 1)
             ->where('ass.Vigente', 1)

@@ -8,6 +8,8 @@ use App\Http\Controllers\API\Compra\CompraController;
 use App\Http\Controllers\API\Consultas\ConsultasTrabajadorController;
 use App\Http\Controllers\API\ContratoProducto\ContratoProductoeController;
 use App\Http\Controllers\API\ControladoresGenerales\ControladorGeneralController;
+use App\Http\Controllers\API\Detraccion\DetraccionController;
+use App\Http\Controllers\API\LocalDocumentoVenta\LocalDocumentoVentaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
@@ -35,7 +37,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
 use App\Http\Controllers\API\SedeProducto\SedeProductoController;
-
+use App\Http\Controllers\API\TipoDocumentoVenta\TipoDocumentoVentaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -298,13 +300,22 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('tipoDocIdentidad/registrarTipoDocumento', [TipoDocumentoController::class, 'registrarTipoDocumento']);
 
     /********************************** MOTIVOS NOTA DE CREDITO **********************************/
-
     Route::get('motivosNotaCredito/listarMotivos', [MotivoNotaCreditoController::class, 'listarMotivos']);
     Route::post('motivosNotaCredito/registrarMotivos', [MotivoNotaCreditoController::class, 'registrarMotivos']);
 
+/********************************** DETRACCION **********************************/
+    Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
+
+    /********************************** TIPOS DOCUMENTOS VENTA **********************************/
+    Route::get('tiposDocVenta/listarTipoDocumentoVenta', [TipoDocumentoVentaController::class, 'listarTipoDocumentoVenta']);
+    Route::post('tiposDocVenta/registrarDocVenta', [TipoDocumentoVentaController::class, 'registrarDocVenta']);
+
+    /********************************** SEDE DOCUMENTO VENTA **********************************/
+    Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);
+    Route::post('sedeDocVenta/registrarSedeDocVenta', [LocalDocumentoVentaController::class, 'registrarSedeDocVenta']);
+
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
-
     Route::get('departamento/listar', [DepartamentoController::class, 'index']);
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
