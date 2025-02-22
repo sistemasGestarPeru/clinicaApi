@@ -169,7 +169,7 @@ class ContratoProductoeController extends Controller
 
     public function buscarContratoProducto(Request $request)
     {
-        $fecha = $request->input('fecha');
+
         $codigoSede = $request->input('codigoSede');
         $nombre = $request->input('nombre');
         $documento = $request->input('documento');

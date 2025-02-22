@@ -54,6 +54,42 @@ class CompraController extends Controller
         //
     }
 
+    public function consultarCompra($codigo){
+        try{
+            $compra = Compra::find($codigo);
+            $detaleCompra = DB::table('detallecompra')
+            ->where('CodigoCompra', $codigo)
+            ->get();
+
+            $tipoMoneda = DB::table('cuota')
+                ->where('CodigoCompra', $codigo)
+                ->limit(1)
+                ->value('TipoMoneda');
+
+                $porcentaje = DB::table('tipogravado')
+                ->where('Tipo', 'G')
+                ->value('Porcentaje');
+
+                $razonSocial = DB::table('proveedor')
+                ->where('Codigo', $compra->CodigoProveedor)
+                ->value('RazonSocial');
+
+            if($compra == null){
+                return response()->json(['message' => 'No se encontró la venta'], 404);
+            }
+
+            return response()->json([
+                'compra' => $compra,
+                'detalleCompra' => $detaleCompra,
+                'tipoMoneda' => $tipoMoneda,
+                'porcentaje' => $porcentaje,
+                'razonSocial' => $razonSocial
+            ], 200);
+
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al consultar la venta'], 500);
+        }
+    }
 
     public function listarProveedor(Request $request)
     {

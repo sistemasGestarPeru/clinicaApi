@@ -253,7 +253,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
     Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
     Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
-
+    Route::get('compra/consultarCompra/{codigo}', [CompraController::class, 'consultarCompra']);
     Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
 
     /********************************** PAGO PROVEEDOR **********************************/

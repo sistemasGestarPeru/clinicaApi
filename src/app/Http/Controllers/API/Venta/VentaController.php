@@ -425,7 +425,7 @@ class VentaController extends Controller
                 if (!isset($detalle['Descuento'])) {
                     $detalle['Descuento'] = 0;
                 }
-                $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
+                // $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
                 DetalleVenta::create($detalle);
             }
 
@@ -1082,7 +1082,7 @@ class VentaController extends Controller
                 // 3. Actualizar el campo Vigente en documentoventa
                 DB::table('documentoventa')
                     ->where('Codigo', $canjeData['CodigoDocumentoReferencia'])
-                    ->update(['Vigente' => 0, 'CodigoDocumentoReferencia' => $nuevoCodigoDocumentoVenta]);
+                    ->update(['Vigente' => 0, 'Estado'=> 'C', 'CodigoDocumentoReferencia' => $nuevoCodigoDocumentoVenta]);
 
                 // 4. Actualizar el pagodocumentoventa con el nuevo código generado
                 DB::table('pagodocumentoventa')
@@ -1383,7 +1383,7 @@ class VentaController extends Controller
                     'ddv.Cantidad as cantidad',
                     DB::raw("'unidad' AS unidad"),
                     'ddv.Descripcion as descripcion',
-                    DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
@@ -1453,7 +1453,7 @@ class VentaController extends Controller
                     'ddv.Cantidad as cantidad',
                     DB::raw("'unidad' AS unidad"),
                     'ddv.Descripcion as descripcion',
-                    DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
@@ -1537,8 +1537,8 @@ class VentaController extends Controller
                         DB::raw("ABS(ddv.Cantidad) as cantidad"),
                         DB::raw("'unidad' AS unidad"),
                         'ddv.Descripcion as descripcion',
-                        DB::raw("ABS((ddv.MontoTotal / ddv.Cantidad)) as precioUnitario"),
-                        DB::raw("ABS(0) as descuento"),
+                        DB::raw("ABS(((ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad)) as precioUnitario"),
+                        DB::raw("ABS(ddv.Descuento) as descuento"),
                         DB::raw("ABS(ddv.MontoTotal) as total")
                     ])
                     ->where('ddv.CodigoVenta', $venta)
