@@ -284,8 +284,22 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
+    Route::post('producto/registrarTemporales', [ProductoController::class, 'registrarTemporales']);
+    Route::post('producto/registrarComboProducto', [ProductoController::class, 'registrarComboProducto']);
+
+    Route::get('producto/consultarProducto/{codigo}', [ProductoController::class, 'consultarProducto']);
+    Route::get('producto/consultarTemporal/{codigo}', [ProductoController::class, 'consultarTemporal']);
+    Route::get('producto/consultarComboProducto/{codigo}', [ProductoController::class, 'consultarComboProducto']);
+
+    Route::post('producto/actualizarProducto', [ProductoController::class, 'actualizarProducto']);
+    Route::post('producto/actualizarTemporales', [ProductoController::class, 'actualizarTemporales']);
+    Route::post('producto/actualizarComboProducto', [ProductoController::class, 'actualizarComboProducto']);
+
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
+
+
+
 
     /********************************** SEDE PRODUCTO **********************************/
     Route::get('sedeProducto/listarSedeProducto/{sede}', [SedeProductoController::class, 'listarSedeProducto']);
@@ -293,16 +307,23 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('sedeProducto/registrarProductoSede', [SedeProductoController::class, 'registrarProductoSede']);
 
     /********************************** CATEGORIA PRODUCTO **********************************/
+    Route::get('categoriaProducto/consultarCategoriaProducto/{codigo}', [CategoriaProductoController::class, 'consultarCategoriaProducto']);
     Route::get('categoriaProducto/listarCategoriaProducto', [CategoriaProductoController::class, 'listarCategoriaProducto']);
+    Route::post('categoriaProducto/actualizarCategoriaProducto', [CategoriaProductoController::class, 'actualizarCategoriaProducto']);
+    Route::post('categoriaProducto/registrarCategoriaProducto', [CategoriaProductoController::class, 'registrarCategoriaProducto']);
 
     /********************************** TIPOS DOCUMENTOS IDENTIDAD **********************************/
 
     Route::get('tipoDocIdentidad/listarTipoDocumentos', [TipoDocumentoController::class, 'listarTipoDocumentos']);
     Route::post('tipoDocIdentidad/registrarTipoDocumento', [TipoDocumentoController::class, 'registrarTipoDocumento']);
+    Route::post('tipoDocIdentidad/actualizarTipoDocumento', [TipoDocumentoController::class, 'actualizarTipoDocumento']);
+    Route::get('tipoDocIdentidad/consultarTipoDocumento/{codigo}', [TipoDocumentoController::class, 'consultarTipoDocumento']);
 
     /********************************** MOTIVOS NOTA DE CREDITO **********************************/
     Route::get('motivosNotaCredito/listarMotivos', [MotivoNotaCreditoController::class, 'listarMotivos']);
     Route::post('motivosNotaCredito/registrarMotivos', [MotivoNotaCreditoController::class, 'registrarMotivos']);
+    Route::post('motivosNotaCredito/actualizarMotivo', [MotivoNotaCreditoController::class, 'actualizarMotivo']);
+    Route::get('motivosNotaCredito/consultarMotivo/{codigo}', [MotivoNotaCreditoController::class, 'consultarMotivo']);
 
     /********************************** DETRACCION **********************************/
     Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
@@ -310,6 +331,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** TIPOS DOCUMENTOS VENTA **********************************/
     Route::get('tiposDocVenta/listarTipoDocumentoVenta', [TipoDocumentoVentaController::class, 'listarTipoDocumentoVenta']);
     Route::post('tiposDocVenta/registrarDocVenta', [TipoDocumentoVentaController::class, 'registrarDocVenta']);
+    Route::post('tiposDocVenta/actualizarDocVenta', [TipoDocumentoVentaController::class, 'actualizarDocVenta']);
+    Route::get('tiposDocVenta/consultarDocVenta/{codigo}', [TipoDocumentoVentaController::class, 'consultarDocVenta']);
 
     /********************************** SEDE DOCUMENTO VENTA **********************************/
     Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);

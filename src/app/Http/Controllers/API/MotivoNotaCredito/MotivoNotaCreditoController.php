@@ -49,23 +49,45 @@ class MotivoNotaCreditoController extends Controller
     }
 
 
-    public function registrarMotivos(Request $request){
+    public function registrarMotivos(Request $request)
+    {
 
         $motivo = $request->input('motivo');
-        try{
+        try {
             MotivoNotaCredito::create($motivo);
             return response()->json(['message' => 'Motivo de Nota de Crédito registrado correctamente'], 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function listarMotivos(){
-        try{
+    public function listarMotivos()
+    {
+        try {
             $motivos = MotivoNotaCredito::all();
             return response()->json($motivos, 200);
-            
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarMotivo(Request $request)
+    {
+        $motivo = $request->input('motivo');
+        try {
+            MotivoNotaCredito::where('Codigo', $motivo['Codigo'])->update($motivo);
+            return response()->json(['message' => 'Motivo de Nota de Crédito actualizado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarMotivo($codigo)
+    {
+        try {
+            $motivo = MotivoNotaCredito::where('Codigo', $codigo)->first();
+            return response()->json($motivo, 200);
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

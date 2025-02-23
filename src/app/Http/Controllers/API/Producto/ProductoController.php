@@ -4,6 +4,10 @@ namespace App\Http\Controllers\API\Producto;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Producto\RegistarProductoRequest;
+use App\Http\Requests\Producto\RegistrarProductoComboRequest;
+use App\Http\Requests\Producto\RegistrarTemporalRequest;
+use App\Models\Recaudacion\ComboProducto;
+use App\Models\Recaudacion\PrecioTemporal;
 use App\Models\Recaudacion\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +84,6 @@ class ProductoController extends Controller
         $producto = $request->all();
 
         try {
-
             Producto::create($producto);
             return response()->json(['message' => 'Producto registrado correctamente'], 200);
         } catch (\Exception $e) {
@@ -88,11 +91,60 @@ class ProductoController extends Controller
         }
     }
 
+    public function actualizarProducto(Request $request)
+    {
+        $producto = $request->all();
+        try {
+            Producto::where('Codigo', $producto['Codigo'])->update($producto);
+            return response()->json(['message' => 'Producto actualizado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarProducto($Codigo)
+    {
+        try {
+            $producto = Producto::where('Codigo', $Codigo)->first();
+            return response()->json($producto, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
 
+    //TEMPORAL
+    public function registrarTemporales(RegistrarTemporalRequest $request)
+    {
+        $producto = $request->all();
+        PrecioTemporal::create($producto);
+        return response()->json(['message' => 'Producto registrado correctamente'], 200);
+        try {
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
+    public function actualizarTemporales(Request $request)
+    {
+        $producto = $request->all();
+        try {
+            PrecioTemporal::where('Codigo', $producto['Codigo'])->update($producto);
+            return response()->json(['message' => 'Producto actualizado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
-    //PRECIO TEMPORAL
+    public function consultarTemporal($Codigo)
+    {
+        try {
+            $producto = PrecioTemporal::where('Codigo', $Codigo)->first();
+            return response()->json($producto, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function preciosTemporales($sede, $producto)
     {
@@ -105,6 +157,40 @@ class ProductoController extends Controller
                 ->where('Stock', '>', 0)
                 ->get();
             return response()->json($productos, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    //COMBO PRODUCTOS
+
+    public function registrarComboProducto(RegistrarProductoComboRequest $request)
+    {
+        try {
+            $producto = $request->all();
+            ComboProducto::create($producto);
+            return response()->json(['message' => 'Producto registrado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarComboProducto(Request $request)
+    {
+        $producto = $request->all();
+        try {
+            ComboProducto::where('Codigo', $producto['Codigo'])->update($producto);
+            return response()->json(['message' => 'Producto actualizado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarComboProducto($Codigo)
+    {
+        try {
+            $producto = ComboProducto::where('Codigo', $Codigo)->first();
+            return response()->json($producto, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

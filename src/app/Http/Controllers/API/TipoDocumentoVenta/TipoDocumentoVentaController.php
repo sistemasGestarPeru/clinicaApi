@@ -48,26 +48,47 @@ class TipoDocumentoVentaController extends Controller
         //
     }
 
-    public function registrarDocVenta(Request $request){
+    public function registrarDocVenta(Request $request)
+    {
 
-        $documento= $request->input('documento');
-        try{
+        $documento = $request->input('documento');
+        try {
             TipoDocumentosVenta::create($documento);
             return response()->json(['message' => 'Documento Venta registrado correctamente'], 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function listarTipoDocumentoVenta()
     {
-        try{
+        try {
 
             $documentos = TipoDocumentosVenta::all();
             return response()->json($documentos, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
-        }   
+        }
+    }
+
+    public function actualizarDocVenta(Request $request)
+    {
+        $documento = $request->input('documento');
+        try {
+            TipoDocumentosVenta::where('id', $documento['Codigo'])->update($documento);
+            return response()->json(['message' => 'Documento Venta actualizado correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarDocVenta($codigo)
+    {
+        try {
+            $documento = TipoDocumentosVenta::where('Codigo', $codigo)->first();
+            return response()->json($documento, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

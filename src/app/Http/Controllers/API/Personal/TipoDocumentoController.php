@@ -12,10 +12,7 @@ class TipoDocumentoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-
-    }
+    public function index() {}
 
     /**
      * Store a newly created resource in storage.
@@ -49,25 +46,50 @@ class TipoDocumentoController extends Controller
         //
     }
 
-    public function registrarTipoDocumento(Request $request){
+    public function registrarTipoDocumento(Request $request)
+    {
         $tipoDocumento = $request->input('tipoDocumento');
 
-        try{
-            
+        try {
+
             TipoDocumento::create($tipoDocumento);
 
             return response()->json(['message' => 'Tipo Documento registrado correctamente'], 200);
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarTipoDocumento(Request $request, $codigo)
+    {
+        $tipoDocumento = $request->input('tipoDocumento');
+
+        try {
+            $tipoDocumento = TipoDocumento::find($codigo);
+            $tipoDocumento->update($tipoDocumento);
+
+            return response()->json(['message' => 'Tipo Documento actualizado correctamente'], 200);
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function listarTipoDocumentos()
     {
-        try{
+        try {
             $tipoDocumento = TipoDocumento::all();
             return response()->json($tipoDocumento);
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarTipoDocumento($codigo)
+    {
+        try {
+            $tipoDocumento = TipoDocumento::find($codigo);
+            return response()->json($tipoDocumento);
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
