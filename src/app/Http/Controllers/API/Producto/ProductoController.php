@@ -66,11 +66,13 @@ class ProductoController extends Controller
                     'cp.Nombre as Categoria',
                     'p.Nombre as Producto',
                     DB::raw("CASE 
-                    WHEN p.Tipo = 'S' THEN 'Servicio'
-                    WHEN p.Tipo = 'B' THEN 'Bien'
+                    WHEN p.Tipo = 'S' THEN 'SERVICIO'
+                    WHEN p.Tipo = 'B' THEN 'BIEN'
+                    WHEN p.Tipo = 'C' THEN 'COMBO'
                     ELSE 'Desconocido'
                 END AS Tipo")
                 )
+                ->orderBY('p.Nombre', 'ASC')
                 ->get();
 
             return response()->json($productos, 200);
@@ -116,7 +118,7 @@ class ProductoController extends Controller
     //TEMPORAL
     public function registrarTemporales(RegistrarTemporalRequest $request)
     {
-        $producto = $request->all();
+        $producto = $request->input('temporal');
         PrecioTemporal::create($producto);
         return response()->json(['message' => 'Producto registrado correctamente'], 200);
         try {
@@ -164,13 +166,25 @@ class ProductoController extends Controller
 
     //COMBO PRODUCTOS
 
-    public function registrarComboProducto(RegistrarProductoComboRequest $request)
+    public function registrarComboProducto(Request $request)
     {
+        $combo = $request->input('combo');
+        $productos = $request->input('productos');
+
+        DB::beginTransaction();
         try {
-            $producto = $request->all();
-            ComboProducto::create($producto);
+
+            $codProducto = Producto::create($combo)->Codigo;
+
+            
+            foreach ($productos as $producto) {
+                $producto['CodigoCombo'] = $codProducto;
+                ComboProducto::create($producto);
+            }
+            DB::commit();
             return response()->json(['message' => 'Producto registrado correctamente'], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -192,6 +206,15 @@ class ProductoController extends Controller
             $producto = ComboProducto::where('Codigo', $Codigo)->first();
             return response()->json($producto, 200);
         } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function listarCombos(){
+        try{
+            $productos = Producto::where('Tipo', 'C')->get();
+            return response()->json($productos, 200);
+        }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

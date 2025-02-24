@@ -297,7 +297,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
-
+    Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
 
 
 

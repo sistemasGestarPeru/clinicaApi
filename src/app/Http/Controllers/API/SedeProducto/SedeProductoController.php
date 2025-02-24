@@ -64,6 +64,7 @@ class SedeProductoController extends Controller
                     CASE
                         WHEN p.Tipo = 'S' THEN 'SERVICIO'
                         WHEN p.Tipo = 'B' THEN 'BIEN'
+                        WHEN p.tipo = 'C' THEN 'COMBO'
                     END AS TipoProducto
                 ")
             )
@@ -107,6 +108,25 @@ class SedeProductoController extends Controller
 
     public function registrarProductoSede(Request $request){
         $sedeProductos = $request->input('sedeProductos');
+
+        foreach($sedeProductos as $sedeProducto){
+
+            if($sedeProducto['Tipo'] == 'COMBO'){
+                $existe = !DB::table('productocombo as pc')
+                    ->where('pc.CodigoCombo', $sedeProducto['CodigoProducto'])
+                    ->whereNotExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('sedeproducto as sp')
+                            ->whereColumn('sp.CodigoProducto', 'pc.CodigoProducto');
+                    })
+                ->exists();
+
+                if(!$existe){
+                    return response()->json(['error' => 'No se puede registrar el combo, uno o más productos no están registrados en la sede.'], 500);
+                }
+            }
+        }
+
         try{
             
             $dataValidar = Validator::make(
@@ -121,10 +141,10 @@ class SedeProductoController extends Controller
                 SedeProducto::create($sedeProducto);
             }
 
-            return response()->json(['message' => 'Productos registrados correctamente en la sede'], 200);
+            return response()->json(['message' => 'Productos registrados correctamente en la sede.'], 200);
 
         }catch(\Exception $e){
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error inesperado.', 'detalle' => $e->getMessage()], 500);
         }
     }
 }
