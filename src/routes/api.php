@@ -37,6 +37,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
 use App\Http\Controllers\API\SedeProducto\SedeProductoController;
+use App\Http\Controllers\API\SistemaPensiones\SistemaPensionesController;
 use App\Http\Controllers\API\TipoDocumentoVenta\TipoDocumentoVentaController;
 
 /*
@@ -300,7 +301,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
 
 
-
     /********************************** SEDE PRODUCTO **********************************/
     Route::get('sedeProducto/listarSedeProducto/{sede}', [SedeProductoController::class, 'listarSedeProducto']);
     Route::get('sedeProducto/listarProductosNoAsignados', [SedeProductoController::class, 'listarProductosNoAsignados']);
@@ -319,24 +319,39 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('tipoDocIdentidad/actualizarTipoDocumento', [TipoDocumentoController::class, 'actualizarTipoDocumento']);
     Route::get('tipoDocIdentidad/consultarTipoDocumento/{codigo}', [TipoDocumentoController::class, 'consultarTipoDocumento']);
 
-    /********************************** MOTIVOS NOTA DE CREDITO **********************************/
-    Route::get('motivosNotaCredito/listarMotivos', [MotivoNotaCreditoController::class, 'listarMotivos']);
-    Route::post('motivosNotaCredito/registrarMotivos', [MotivoNotaCreditoController::class, 'registrarMotivos']);
-    Route::post('motivosNotaCredito/actualizarMotivo', [MotivoNotaCreditoController::class, 'actualizarMotivo']);
-    Route::get('motivosNotaCredito/consultarMotivo/{codigo}', [MotivoNotaCreditoController::class, 'consultarMotivo']);
-
-    /********************************** DETRACCION **********************************/
-    Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
-
     /********************************** TIPOS DOCUMENTOS VENTA **********************************/
     Route::get('tiposDocVenta/listarTipoDocumentoVenta', [TipoDocumentoVentaController::class, 'listarTipoDocumentoVenta']);
     Route::post('tiposDocVenta/registrarDocVenta', [TipoDocumentoVentaController::class, 'registrarDocVenta']);
     Route::post('tiposDocVenta/actualizarDocVenta', [TipoDocumentoVentaController::class, 'actualizarDocVenta']);
     Route::get('tiposDocVenta/consultarDocVenta/{codigo}', [TipoDocumentoVentaController::class, 'consultarDocVenta']);
 
+    /********************************** SISTEMA PENSIONES **********************************/
+
+    Route::get('sistemaPension/listarSistemaPensiones', [SistemaPensionesController::class, 'listarSistemaPensiones']);
+    Route::post('sistemaPension/registrarSistemaPensiones', [SistemaPensionesController::class, 'registrarSistemaPensiones']);
+    Route::post('sistemaPension/actualizarSistemaPensiones', [SistemaPensionesController::class, 'actualizarSistemaPensiones']);
+    Route::get('sistemaPension/consultarSistemaPensiones/{codigo}', [SistemaPensionesController::class, 'consultarSistemaPensiones']);
+
+    /********************************** MOTIVO ANULACION CONTRATO **********************************/
+    /********************************** MOTIVO ANULACION VENTA **********************************/
+    /********************************** MOTIVOS NOTA DE CREDITO **********************************/
+    Route::get('motivosNotaCredito/listarMotivos', [MotivoNotaCreditoController::class, 'listarMotivos']);
+    Route::post('motivosNotaCredito/registrarMotivos', [MotivoNotaCreditoController::class, 'registrarMotivos']);
+    Route::post('motivosNotaCredito/actualizarMotivo', [MotivoNotaCreditoController::class, 'actualizarMotivo']);
+    Route::get('motivosNotaCredito/consultarMotivo/{codigo}', [MotivoNotaCreditoController::class, 'consultarMotivo']);
+
+    /********************************** PAGO SERVICIOS**********************************/
+
+    /********************************** DETRACCION **********************************/
+    Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
+
+
+
     /********************************** SEDE DOCUMENTO VENTA **********************************/
     Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);
     Route::post('sedeDocVenta/registrarSedeDocVenta', [LocalDocumentoVentaController::class, 'registrarSedeDocVenta']);
+    Route::get('sedeDocVenta/listarDocumentosReferencia/{sede}', [LocalDocumentoVentaController::class, 'listarDocumentosReferencia']);
+    
 
     /********************************* PRUEBAS *********************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);

@@ -50,7 +50,12 @@ class LocalDocumentoVentaController extends Controller
     }
 
     public function registrarSedeDocVenta(Request $request){
-        $sedeDocVenta = $request->input('sedeDocVenta');
+        $sedeDocVenta = $request->input('documento');
+
+        if($sedeDocVenta['CodigoSerieDocumentoVenta'] == 0){
+            $sedeDocVenta['CodigoSerieDocumentoVenta'] = null;
+        }
+
         try{
             LocalDocumentoVenta::create($sedeDocVenta);
             return response()->json(['message' => 'Sede Documento Venta registrado correctamente'], 200);
@@ -76,6 +81,27 @@ class LocalDocumentoVentaController extends Controller
             ->where('tdv.Vigente', 1)
             ->get();
             return response()->json($resultados, 200);
+        }catch(\Exception $e){
+            return response()->json($e, 500);
+        }
+    }
+
+    public function listarDocumentosReferencia($sede){
+        try{
+            $documentos = DB::table('localdocumentoventa as ldv')
+                ->join('tipodocumentoventa as tpv', 'ldv.CodigoTipoDocumentoVenta', '=', 'tpv.Codigo')
+                ->leftJoin('localdocumentoventa as subquery', function ($join) use ($sede) { 
+                    $join->on('ldv.Codigo', '=', 'subquery.CodigoSerieDocumentoVenta')
+                        ->where('subquery.CodigoSede', $sede)
+                        ->whereNotNull('subquery.CodigoSerieDocumentoVenta');
+                })
+                ->where('ldv.CodigoSede', $sede)
+                ->where('tpv.Tipo', 'V')
+                ->whereNotNull('tpv.CodigoSUNAT')
+                ->whereNull('subquery.CodigoSerieDocumentoVenta') 
+                ->select('ldv.Codigo', 'ldv.Serie', 'tpv.Nombre', 'ldv.TipoProducto')
+                ->get();
+            return response()->json($documentos, 200);
         }catch(\Exception $e){
             return response()->json($e, 500);
         }

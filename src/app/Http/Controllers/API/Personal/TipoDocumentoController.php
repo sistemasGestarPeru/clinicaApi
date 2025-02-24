@@ -60,13 +60,12 @@ class TipoDocumentoController extends Controller
         }
     }
 
-    public function actualizarTipoDocumento(Request $request, $codigo)
+    public function actualizarTipoDocumento(Request $request)
     {
         $tipoDocumento = $request->input('tipoDocumento');
 
         try {
-            $tipoDocumento = TipoDocumento::find($codigo);
-            $tipoDocumento->update($tipoDocumento);
+            TipoDocumento::where('Codigo', $tipoDocumento['Codigo'])->update($tipoDocumento);
 
             return response()->json(['message' => 'Tipo Documento actualizado correctamente'], 200);
         } catch (\Exception $e) {

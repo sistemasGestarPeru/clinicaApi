@@ -75,7 +75,7 @@ class TipoDocumentoVentaController extends Controller
     {
         $documento = $request->input('documento');
         try {
-            TipoDocumentosVenta::where('id', $documento['Codigo'])->update($documento);
+            TipoDocumentosVenta::where('Codigo', $documento['Codigo'])->update($documento);
             return response()->json(['message' => 'Documento Venta actualizado correctamente'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

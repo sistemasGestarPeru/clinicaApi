@@ -1360,7 +1360,7 @@ class VentaController extends Controller
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as cliente"),
-                    'td.Nombre as documentoIdentidad',
+                    'td.Siglas as documentoIdentidad',
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
                     'p.Direccion as clienteDireccion',
@@ -1443,7 +1443,7 @@ class VentaController extends Controller
                     DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
-                ->where('dv.Codigo', 431)
+                ->where('dv.Codigo', $venta)
                 ->distinct()
                 ->first();
 
@@ -1500,7 +1500,7 @@ class VentaController extends Controller
                         DB::raw("
                             CASE 
                                 WHEN dv.CodigoPersona IS NULL THEN 'RUC' 
-                                WHEN dv.CodigoClienteEmpresa IS NULL THEN td.Nombre 
+                                WHEN dv.CodigoClienteEmpresa IS NULL THEN td.Siglas 
                             END AS documentoIdentidad
                         "),
                         DB::raw("
@@ -1577,7 +1577,7 @@ class VentaController extends Controller
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as cliente"),
-                    'td.Nombre as documentoIdentidad',
+                    'td.Siglas as documentoIdentidad',
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
                     'p.Direccion as clienteDireccion',
