@@ -83,7 +83,7 @@ class PagoDonanteController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if($egreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
             }
 
         }else if($egreso['CodigoSUNAT'] == '003'){

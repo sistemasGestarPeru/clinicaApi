@@ -285,7 +285,7 @@ class VentaController extends Controller
                 $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
 
                 if($dataEgreso['Monto'] > $total){
-                    return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+                    return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
                 }
     
             }else if($dataEgreso['CodigoSUNAT'] == '003'){
