@@ -9,14 +9,16 @@ class Empresa extends Model
 {
     use HasFactory;
     public $timestamps = false;
-
+    protected $table = 'empresas';
+    protected $primaryKey = 'Codigo';
     protected $fillable = [
         'Nombre',
         'RazonSocial',
         'RUC',
         'Direccion',
         'Correo',
-        'Vigente'
+        'Vigente',
+        'PorcentajeDetraccion'
     ];
 
 

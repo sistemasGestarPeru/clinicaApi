@@ -9,7 +9,8 @@ class Sede extends Model
 {
     use HasFactory;
     public $timestamps = false;
-
+    protected $table = 'sedesrec';
+    protected $primaryKey = 'Codigo';
     protected $fillable = [
         'Nombre',
         'Direccion',

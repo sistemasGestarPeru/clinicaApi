@@ -47,4 +47,41 @@ class EmpresaController extends Controller
     {
         //
     }
+
+    public function listarEmpresas(){
+        try{
+            $empresa = Empresa::all();
+            return response()->json($empresa, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function registrarEmpresa(Request $request){
+        try{
+            Empresa::create($request->all());
+            return response()->json(['message' => 'Empresa registrada correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarEmpresa($codigo){
+        try{
+            $empresa = Empresa::find($codigo);
+            return response()->json($empresa, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarEmpresa(Request $request){
+        try{
+            $empresa = Empresa::find($request->Codigo);
+            $empresa->update($request->all());
+            return response()->json(['message' => 'Empresa actualizada correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

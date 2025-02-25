@@ -419,11 +419,21 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('unidadMedida/consultarUnidadMedidad/{codigo}', [UnidadMedidaController::class, 'consultarUnidadMedidad']);
     Route::get('unidadMedida/listarUnidadMedidad', [UnidadMedidaController::class, 'listarUnidadMedidad']);
 
+    /*********************************************************** EMPRESA ***********************************************************/
+    Route::get('empresa/listar', [EmpresaController::class, 'index']);
+    Route::get('empresa/listarEmpresas', [EmpresaController::class, 'listarEmpresas']);
+    Route::post('empresa/registrarEmpresa', [EmpresaController::class, 'registrarEmpresa']);
+    Route::post('empresa/actualizarEmpresa', [EmpresaController::class, 'actualizarEmpresa']);
+    Route::get('empresa/consultarEmpresa/{codigo}', [EmpresaController::class, 'consultarEmpresa']);
+    /*********************************************************** SEDE ***********************************************************/
+    Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
+
     /*********************************************************** PRUEBAS ***********************************************************/
 
+
+    
+
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
-    Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
-    Route::get('empresa/listar', [EmpresaController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
     /*******************************************************************************************************************************/
 });
