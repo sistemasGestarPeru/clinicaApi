@@ -9,7 +9,7 @@ use App\Models\Recaudacion\PagosVarios;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-
+use App\Models\Recaudacion\MontoCaja;
 class PagosVariosController extends Controller
 {
     /**
@@ -61,6 +61,12 @@ class PagosVariosController extends Controller
         $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
         $egresoValidator->validate();
         
+        $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+        if($egreso['Monto'] > $total){
+            return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+        }
+
         DB::beginTransaction();
         try{
 

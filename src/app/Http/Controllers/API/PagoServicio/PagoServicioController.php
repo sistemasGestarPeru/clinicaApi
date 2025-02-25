@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\PagoServicio\RegistrarPagoServicioRequest;
+use App\Models\Recaudacion\MontoCaja;
 
 class PagoServicioController extends Controller
 {
@@ -131,6 +132,12 @@ class PagoServicioController extends Controller
             $egreso['Lote'] = null;
             $egreso['Referencia'] = null;
             $egreso['NumeroOperacion'] = null;
+
+            $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+            if($egreso['Monto'] > $total){
+                return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+            }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
             $egreso['Lote'] = null;

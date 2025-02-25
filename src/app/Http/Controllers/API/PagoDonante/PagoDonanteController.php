@@ -7,6 +7,7 @@ use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Recaudacion\Egreso;
+use App\Models\Recaudacion\MontoCaja;
 use App\Models\Recaudacion\PagoDonante;
 use Illuminate\Support\Facades\DB;
 
@@ -78,6 +79,12 @@ class PagoDonanteController extends Controller
             $egreso['Lote'] = null;
             $egreso['Referencia'] = null;
             $egreso['NumeroOperacion'] = null;
+            
+            $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+            if($egreso['Monto'] > $total){
+                return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+            }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
             $egreso['Lote'] = null;

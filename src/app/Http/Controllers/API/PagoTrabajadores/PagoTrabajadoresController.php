@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\PagoTrabajadores;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
+use App\Models\Recaudacion\MontoCaja;
 use App\Models\Recaudacion\PagoTrabajadores\PagoPlanilla;
 use Exception;
 use Illuminate\Http\Request;
@@ -121,6 +122,12 @@ class PagoTrabajadoresController extends Controller
             $egreso['Lote'] = null;
             $egreso['Referencia'] = null;
             $egreso['NumeroOperacion'] = null;
+
+            $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+            if($egreso['Monto'] > $total){
+                return response()->json(['error' => 'No hay suficiente dinero en caja', 'Disponible' => $total ], 500);
+            }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
             $egreso['Lote'] = null;
