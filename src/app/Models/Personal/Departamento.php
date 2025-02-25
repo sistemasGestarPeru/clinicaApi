@@ -9,6 +9,8 @@ class Departamento extends Model
 {
     use HasFactory;
     public $timestamps = false;
+    protected $table = 'departamentos';
+    protected $primaryKey = 'Codigo';
 
     protected $fillable = [
         'Nombre',

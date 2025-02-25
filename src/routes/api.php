@@ -287,6 +287,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagosVarios/listarPagosVarios', [PagosVariosController::class, 'listarPagosVarios']);
     Route::get('pagosVarios/consultarPagosVarios/{codigo}', [PagosVariosController::class, 'consultarPagosVarios']);
 
+    /************************************************************ DETRACCION ************************************************************/
+    Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
+
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/registrarTemporales', [ProductoController::class, 'registrarTemporales']);
@@ -328,7 +331,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('tiposDocVenta/actualizarDocVenta', [TipoDocumentoVentaController::class, 'actualizarDocVenta']);
     Route::get('tiposDocVenta/consultarDocVenta/{codigo}', [TipoDocumentoVentaController::class, 'consultarDocVenta']);
 
-    /********************************** SISTEMA PENSIONES ************************************************************/
+    /************************************************************ SEDE DOCUMENTO VENTA ************************************************************/
+    Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);
+    Route::post('sedeDocVenta/registrarSedeDocVenta', [LocalDocumentoVentaController::class, 'registrarSedeDocVenta']);
+    Route::get('sedeDocVenta/listarDocumentosReferencia/{sede}', [LocalDocumentoVentaController::class, 'listarDocumentosReferencia']);
+    
+
+    /******************************************** SISTEMA PENSIONES ************************************************************/
 
     Route::get('sistemaPension/listarSistemaPensiones', [SistemaPensionesController::class, 'listarSistemaPensiones']);
     Route::post('sistemaPension/registrarSistemaPensiones', [SistemaPensionesController::class, 'registrarSistemaPensiones']);
@@ -359,20 +368,26 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('motivoPagoServicio/actualizarMotivoPagoServicios', [MotivoPagoServicioController::class, 'actualizarMotivoPagoServicios']);
     Route::get('motivoPagoServicio/consultarMotivoPagoServicios/{codigo}', [MotivoPagoServicioController::class, 'consultarMotivoPagoServicios']);
 
-    /************************************************************ DETRACCION ************************************************************/
-    Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
+/************************************************************ NACIONALIDAD ************************************************************/
+    Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
+    Route::post('nacionalidad/registrarNacionalidad', [NacionalidadController::class, 'registrarNacionalidad']);
+    Route::post('nacionalidad/actualizarNacionalidad', [NacionalidadController::class, 'actualizarNacionalidad']);
+    Route::get('nacionalidad/consultarNacionalidad/{codigo}', [NacionalidadController::class, 'consultarNacionalidad']);
+    Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
+
+/************************************************************ DEPARTAMENTO ************************************************************/
+    Route::get('departamento/listar', [DepartamentoController::class, 'index']);
+    Route::post('departamento/registrarDepartamento', [DepartamentoController::class, 'registrarDepartamento']);
+    Route::post('departamento/actualizarDepartamento', [DepartamentoController::class, 'actualizarDepartamento']);
+    Route::get('departamento/consultarDepartamento/{codigo}', [DepartamentoController::class, 'consultarDepartamento']);
+    Route::get('departamento/listarDepartamento', [DepartamentoController::class, 'listarDepartamento']);
 
 
 
-    /************************************************************ SEDE DOCUMENTO VENTA ************************************************************/
-    Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);
-    Route::post('sedeDocVenta/registrarSedeDocVenta', [LocalDocumentoVentaController::class, 'registrarSedeDocVenta']);
-    Route::get('sedeDocVenta/listarDocumentosReferencia/{sede}', [LocalDocumentoVentaController::class, 'listarDocumentosReferencia']);
     
 
     /*********************************************************** PRUEBAS ***********************************************************/
-    Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
-    Route::get('departamento/listar', [DepartamentoController::class, 'index']);
+    
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
     Route::get('empresa/listar', [EmpresaController::class, 'index']);

@@ -47,4 +47,41 @@ class DepartamentoController extends Controller
     {
         //
     }
+
+    public function listarDepartamento(){
+        try{
+            $departamento = Departamento::all();
+            return response()->json($departamento, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function registrarDepartamento(Request $request){
+        try{
+            Departamento::create($request->all());
+            return response()->json(['message' => 'Departamento registrado correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarDepartamento($codigo){
+        try{
+            $departamento = Departamento::find($codigo);
+            return response()->json($departamento, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarDepartamento(Request $request){
+        try{
+            $departamento = Departamento::find($request->Codigo);
+            $departamento->update($request->all());
+            return response()->json(['message' => 'Departamento actualizado correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

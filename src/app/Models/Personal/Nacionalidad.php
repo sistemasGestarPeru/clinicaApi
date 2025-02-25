@@ -10,8 +10,12 @@ class Nacionalidad extends Model
     use HasFactory;
     public $timestamps = false;
 
+    protected $table = 'nacionalidads';
+    protected $primaryKey = 'Codigo';
+
     protected $fillable = [
         'Nombre',
         'Vigente',
     ];
 }
+
