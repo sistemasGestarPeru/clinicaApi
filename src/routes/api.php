@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
 use App\Http\Controllers\API\CategoriaProducto\CategoriaProductoController;
@@ -9,11 +10,13 @@ use App\Http\Controllers\API\Consultas\ConsultasTrabajadorController;
 use App\Http\Controllers\API\ContratoProducto\ContratoProductoeController;
 use App\Http\Controllers\API\ControladoresGenerales\ControladorGeneralController;
 use App\Http\Controllers\API\Detraccion\DetraccionController;
+use App\Http\Controllers\API\EntidadBancaria\EntidadBancariaController;
 use App\Http\Controllers\API\LocalDocumentoVenta\LocalDocumentoVentaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
+use App\Http\Controllers\API\MedioPago\MedioPagoController;
 use App\Http\Controllers\API\MotivoAnulacionContrato\MotivoAnulacionContratoController;
 use App\Http\Controllers\API\MotivoAnulacionVenta\MotivoAnulacionVentaController;
 use App\Http\Controllers\API\MotivoNotaCredito\MotivoNotaCreditoController;
@@ -42,7 +45,8 @@ use App\Http\Controllers\API\Venta\VentaController;
 use App\Http\Controllers\API\SedeProducto\SedeProductoController;
 use App\Http\Controllers\API\SistemaPensiones\SistemaPensionesController;
 use App\Http\Controllers\API\TipoDocumentoVenta\TipoDocumentoVentaController;
-
+use App\Http\Controllers\API\TipoGravado\TipoGravadoController;
+use App\Http\Controllers\API\UnidadMedida\UnidadMedidaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -382,16 +386,44 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('departamento/consultarDepartamento/{codigo}', [DepartamentoController::class, 'consultarDepartamento']);
     Route::get('departamento/listarDepartamento', [DepartamentoController::class, 'listarDepartamento']);
 
+    /************************************************************ ENTIDAD BANCARIA ************************************************************/
+    Route::post('entidadBancaria/registrarEntidadBancaria', [EntidadBancariaController::class, 'registrarEntidadBancaria']);
+    Route::post('entidadBancaria/actualizarEntidadBancaria', [EntidadBancariaController::class, 'actualizarEntidadBancaria']);
+    Route::get('entidadBancaria/consultarEntidadBancaria/{codigo}', [EntidadBancariaController::class, 'consultarEntidadBancaria']);
+    Route::get('entidadBancaria/listarEntidadBancaria', [EntidadBancariaController::class, 'listarEntidadBancaria']);
 
+    /************************************************************ MEDIO PAGO ************************************************************/
 
-    
+    Route::post('medioPago/registrarMedioPago', [MedioPagoController::class, 'registrarMedioPago']);
+    Route::post('medioPago/actualizarMedioPago', [MedioPagoController::class, 'actualizarMedioPago']);
+    Route::get('medioPago/consultarMedioPago/{codigo}', [MedioPagoController::class, 'consultarMedioPago']);
+    Route::get('medioPago/listarMedioPago', [MedioPagoController::class, 'listarMedioPago']);
+
+    /************************************************************ TIPO GRAVADO ************************************************************/
+    Route::post('tipoGravado/registrarTipoGravado', [TipoGravadoController::class, 'registrarTipoGravado']);
+    Route::post('tipoGravado/actualizarTipoGravado', [TipoGravadoController::class, 'actualizarTipoGravado']);
+    Route::get('tipoGravado/consultarTipoGravado/{codigo}', [TipoGravadoController::class, 'consultarTipoGravado']);
+    Route::get('tipoGravado/listarTipoGravado', [TipoGravadoController::class, 'listarTipoGravado']);
+
+    /************************************************************ BILLETERA DIGITAL ************************************************************/
+
+    Route::post('billeteraDigital/registrarEntidadBilleteraDigital', [BilleteraDigitalController::class, 'registrarEntidadBilleteraDigital']);
+    Route::post('billeteraDigital/actualizarEntidadBilleteraDigital', [BilleteraDigitalController::class, 'actualizarEntidadBilleteraDigital']);
+    Route::get('billeteraDigital/consultarEntidadBilleteraDigital/{codigo}', [BilleteraDigitalController::class, 'consultarEntidadBilleteraDigital']);
+    Route::get('billeteraDigital/listarEntidadBilleteraDigital', [BilleteraDigitalController::class, 'listarEntidadBilleteraDigital']);
+
+    /************************************************************ UNIDAD DE MEDIDA ************************************************************/
+
+    Route::post('unidadMedida/registrarUnidadMedidad', [UnidadMedidaController::class, 'registrarUnidadMedidad']);
+    Route::post('unidadMedida/actualizarUnidadMedidad', [UnidadMedidaController::class, 'actualizarUnidadMedidad']);
+    Route::get('unidadMedida/consultarUnidadMedidad/{codigo}', [UnidadMedidaController::class, 'consultarUnidadMedidad']);
+    Route::get('unidadMedida/listarUnidadMedidad', [UnidadMedidaController::class, 'listarUnidadMedidad']);
 
     /*********************************************************** PRUEBAS ***********************************************************/
-    
+
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
     Route::get('empresa/listar', [EmpresaController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
-
     /*******************************************************************************************************************************/
 });

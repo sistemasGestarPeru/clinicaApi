@@ -68,10 +68,10 @@ class ProductoController extends Controller
                     DB::raw("CASE 
                     WHEN p.Tipo = 'S' THEN 'SERVICIO'
                     WHEN p.Tipo = 'B' THEN 'BIEN'
-                    WHEN p.Tipo = 'C' THEN 'COMBO'
                     ELSE 'Desconocido'
                 END AS Tipo")
                 )
+                ->where('p.Tipo', '!=', 'C')
                 ->orderBY('p.Nombre', 'ASC')
                 ->get();
 
