@@ -19,6 +19,7 @@ class Producto extends Model
         'Nombre',
         'Descripcion',
         'Tipo',
-        'Vigente'
+        'Vigente',
+        'CodigoUnidadMedida'
     ];
 }
