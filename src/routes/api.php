@@ -427,9 +427,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('empresa/consultarEmpresa/{codigo}', [EmpresaController::class, 'consultarEmpresa']);
     /*********************************************************** SEDE ***********************************************************/
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
-
+    Route::get('sedeEmpresa/listarSedes', [PersonalSedeController::class, 'listarSedes']);
+    Route::post('sedeEmpresa/registrarSede', [PersonalSedeController::class, 'registrarSede']);
+    Route::post('sedeEmpresa/actualizarSede', [PersonalSedeController::class, 'actualizarSede']);
+    Route::get('sedeEmpresa/consultarSede/{codigo}', [PersonalSedeController::class, 'consultarSede']);
+    Route::get('sedeEmpresa/listarEmpresas', [PersonalSedeController::class, 'listarEmpresas']);
     /*********************************************************** PRUEBAS ***********************************************************/
-
 
     
 
