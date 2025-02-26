@@ -66,7 +66,7 @@ class MotivoAnulacionContratoController extends Controller
         }
     }
 
-    public function consultarMotivoAnulacionVenta($codigo){
+    public function consultarMotivoAnulacionContrato($codigo){
         try{
             $motivoAnulacionContrato = MotivoAnulacionContrato::find($codigo);
             return response()->json($motivoAnulacionContrato, 200);
