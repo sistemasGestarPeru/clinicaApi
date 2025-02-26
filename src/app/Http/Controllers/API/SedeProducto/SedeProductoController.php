@@ -51,6 +51,52 @@ class SedeProductoController extends Controller
         //
     }
 
+    public function actualizarProductoSede(Request $request){
+        try{
+            $entidad = SedeProducto::find($request->input('Codigo'));
+            $entidad->update($request->all());
+            return response()->json(['message' => 'Producto actualizado correctamente en la sede.'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarProductoSede($codigo){
+
+        try {
+            // Buscar sedeProducto por su código
+            $sedeProducto = SedeProducto::find($codigo);
+        
+            // Verificar si se encontró la sedeProducto
+            if (!$sedeProducto) {
+                return response()->json(['error' => 'Producto no encontrado en la sede.'], 404);
+            }
+        
+            // Buscar datos del producto asociado
+            $productoData = DB::table('producto')
+                ->select(
+                    'Codigo as CodigoProducto',
+                    'Nombre',
+                    DB::raw("CASE 
+                                WHEN Tipo = 'S' THEN 'SERVICIO' 
+                                WHEN Tipo = 'B' THEN 'BIEN' 
+                                WHEN Tipo = 'C' THEN 'COMBO' 
+                            END AS TipoProducto")
+                )
+                ->where('Codigo', $sedeProducto->CodigoProducto)
+                ->first(); // Para obtener un solo resultado
+        
+            return response()->json([
+                'producto' => $productoData,
+                'sedeProducto' => $sedeProducto
+            ]);
+        
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+    }
+
     public function listarProductosNoAsignados(){
         
         try{
@@ -79,9 +125,13 @@ class SedeProductoController extends Controller
         }
     }
 
-    public function listarSedeProducto($sede){
-        try{
+    public function listarSedeProducto($sede,$codProd){
 
+        if($codProd == 0){
+            $codProd = null;
+        }
+
+        try{
             $productos = DB::table('producto as p')
             ->join('sedeproducto as sp', 'p.Codigo', '=', 'sp.CodigoProducto')
             ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
@@ -97,6 +147,9 @@ class SedeProductoController extends Controller
             )
             ->where('p.Vigente', 1)
             ->where('sp.CodigoSede', $sede)
+            ->when($codProd, function ($query, $codProd) {
+                return $query->where('sp.CodigoProducto', $codProd);
+            })
             ->get();
 
             return response()->json($productos, 200);
