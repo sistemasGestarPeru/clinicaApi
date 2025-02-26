@@ -212,14 +212,44 @@ class ProductoController extends Controller
         }
     }
 
-    public function consultarComboProducto($Codigo)
+    public function consultarComboProducto($codigo)
     {
+        
         try {
-            $producto = ComboProducto::where('Codigo', $Codigo)->first();
-            return response()->json($producto, 200);
+            // Consultar información del producto
+            $producto = DB::table('Producto')
+                ->select('Codigo', 'Nombre', 'Descripcion', 'CodigoCategoria')
+                ->where('Codigo', $codigo)
+                ->first(); // Para obtener un solo resultado
+        
+            // Consultar productos dentro del combo
+            $productosEnCombo = DB::table('productocombo as pc')
+                ->join('Producto as p', 'p.Codigo', '=', 'pc.Codigo')
+                ->select(
+                    'p.Codigo',
+                    'p.Nombre as Producto',
+                    'p.Vigente',
+                    'pc.Cantidad',
+                    'pc.Precio',
+                    DB::raw("CASE 
+                                WHEN p.Tipo = 'S' THEN 'SERVICIO' 
+                                WHEN p.Tipo = 'B' THEN 'BIEN' 
+                                ELSE 'Desconocido' 
+                            END AS Tipo")
+                )
+                ->where('pc.CodigoCombo', $codigo)
+                ->orderBy('p.Nombre', 'ASC')
+                ->get(); // Para obtener múltiples resultados
+        
+            // Retornar en JSON
+            return response()->json([
+                'combo' => $producto,
+                'productos' => $productosEnCombo
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+        
     }
 
     public function listarCombos(){
