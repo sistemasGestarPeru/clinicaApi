@@ -358,7 +358,20 @@ class VentaController extends Controller
         $detallesVentaData = $request->input('detalleVenta');
         $pagoData = $request->input('pago');
         $detraccion = $request->input('detraccion');
+        $temporales = $request->input('temporal');
 
+        $cantidadesPorTemporal = [];
+
+        if (!empty($temporales) && is_array($temporales)) { 
+        
+            foreach ($temporales as $temp) {
+                if (isset($temp['Temporal'], $temp['Cantidad']) && $temp['Temporal'] != 0) {
+                    $cantidadesPorTemporal[$temp['Temporal']] = 
+                        ($cantidadesPorTemporal[$temp['Temporal']] ?? 0) + $temp['Cantidad'];
+                }
+            }
+        }
+        
         //Validar Venta
         $ventaValidator = Validator::make($ventaData, (new RegistrarVentaRequest())->rules());
         $ventaValidator->validate();
@@ -455,10 +468,19 @@ class VentaController extends Controller
                 $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
                 Detraccion::create($detraccion);
             }
+            
+            if (!empty($cantidadesPorTemporal)) {
+                foreach ($cantidadesPorTemporal as $temporal => $cantidadReducir) {
+                    DB::table('preciotemporal')
+                        ->where('Codigo', $temporal)
+                        ->where('Stock', '>=', $cantidadReducir) // Evita stocks negativos
+                        ->decrement('Stock', $cantidadReducir);
+                }
+            }
 
             DB::commit();
 
-            return response()->json(['message' => 'Venta registrada correctamente.'], 201);
+            return response()->json(['message' => 'Venta registrada correctamente.', $cantidadesPorTemporal], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => $e->getMessage()], 500);
