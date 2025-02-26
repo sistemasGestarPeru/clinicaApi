@@ -65,6 +65,7 @@ class ProductoController extends Controller
                     'p.Codigo',
                     'cp.Nombre as Categoria',
                     'p.Nombre as Producto',
+                    'p.Vigente',
                     DB::raw("CASE 
                     WHEN p.Tipo = 'S' THEN 'SERVICIO'
                     WHEN p.Tipo = 'B' THEN 'BIEN'

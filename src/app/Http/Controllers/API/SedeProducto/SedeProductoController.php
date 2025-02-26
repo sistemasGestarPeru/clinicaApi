@@ -143,9 +143,9 @@ class SedeProductoController extends Controller
                 'p.Nombre as Producto',
                 'sp.Precio',
                 'sp.Stock',
-                'tg.Tipo as TipoGravado'
+                'tg.Tipo as TipoGravado',
+                'sp.Vigente'
             )
-            ->where('p.Vigente', 1)
             ->where('sp.CodigoSede', $sede)
             ->when($codProd, function ($query, $codProd) {
                 return $query->where('sp.CodigoProducto', $codProd);
