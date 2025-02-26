@@ -116,6 +116,17 @@ class ProductoController extends Controller
 
 
     //TEMPORAL
+
+    public function listarTemporales($codigo)
+    {
+        try {
+            $temporales = PrecioTemporal::where('CodigoProducto', $codigo)->get();
+            return response()->json($temporales, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function registrarTemporales(RegistrarTemporalRequest $request)
     {
         $producto = $request->input('temporal');
