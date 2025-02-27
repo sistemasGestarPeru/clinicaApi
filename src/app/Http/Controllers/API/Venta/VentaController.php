@@ -282,7 +282,7 @@ class VentaController extends Controller
                 $dataEgreso['Referencia'] = null;
                 $dataEgreso['NumeroOperacion'] = null;
 
-                $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
+                $total = MontoCaja::obtenerTotalCaja($ventaData['CodigoCaja']);
 
                 if($dataEgreso['Monto'] > $total){
                     return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
@@ -1280,6 +1280,8 @@ class VentaController extends Controller
                 'cp.Codigo as CodigoContrato',
                 'cp.NumContrato',
                 DB::raw('DATE(cp.Fecha) as FechaContrato'),
+                'dv.MontoTotal',
+                'dv.MontoPagado',
                 // Subconsulta para verificar si existe al menos un pago activo
                 DB::raw("
                     COALESCE(

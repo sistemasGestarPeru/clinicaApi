@@ -203,14 +203,59 @@ class ProductoController extends Controller
 
     public function actualizarComboProducto(Request $request)
     {
-        $producto = $request->all();
+        $combo = $request->input('combo');
+        $productos = $request->input('productos');
+        DB::beginTransaction();
         try {
-            ComboProducto::where('Codigo', $producto['Codigo'])->update($producto);
+            // Actualizar la información del combo
+            Producto::where('Codigo', $combo['Codigo'])->update($combo);
+
+            // Obtener productos actuales del combo en la base de datos
+            $productosActuales = ComboProducto::where('CodigoCombo', $combo['Codigo'])->get()->keyBy('CodigoProducto');
+
+            // Crear un array con los códigos de productos nuevos
+            $nuevosCodigos = collect($productos)->pluck('CodigoProducto')->toArray();
+
+            // Eliminar productos que ya no están en la nueva lista
+            foreach ($productosActuales as $codigoProducto => $producto) {
+                if (!in_array($codigoProducto, $nuevosCodigos)) {
+                    $producto->delete();
+                }
+            }
+
+            // Insertar o actualizar los productos nuevos
+            foreach ($productos as $producto) {
+                $producto['CodigoCombo'] = $combo['Codigo'];
+                
+                if (isset($productosActuales[$producto['CodigoProducto']])) {
+                    // Producto ya existe, verificamos si cambió algún dato
+                    $productoExistente = $productosActuales[$producto['CodigoProducto']];
+                    
+                    if (
+                        $productoExistente->Cantidad != $producto['Cantidad'] ||
+                        $productoExistente->Precio != $producto['Precio'] ||
+                        $productoExistente->Vigente != $producto['Vigente']
+                    ) {
+                        // Actualizar si hay cambios
+                        $productoExistente->update([
+                            'Cantidad' => $producto['Cantidad'],
+                            'Precio' => $producto['Precio'],
+                            'Vigente' => $producto['Vigente']
+                        ]);
+                    }
+                } else {
+                    // Producto no existe, se inserta
+                    ComboProducto::create($producto);
+                }
+            }
+            DB::commit();
             return response()->json(['message' => 'Producto actualizado correctamente'], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
     public function consultarComboProducto($codigo)
     {
@@ -224,7 +269,7 @@ class ProductoController extends Controller
         
             // Consultar productos dentro del combo
             $productosEnCombo = DB::table('productocombo as pc')
-                ->join('Producto as p', 'p.Codigo', '=', 'pc.Codigo')
+                ->join('Producto as p', 'p.Codigo', '=', 'pc.CodigoProducto')
                 ->select(
                     'p.Codigo',
                     'p.Nombre as Producto',

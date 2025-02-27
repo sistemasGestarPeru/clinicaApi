@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\TestimonioController;
 use App\Http\Controllers\API\MedicoController;
 use App\Http\Controllers\API\MedioPago\MedioPagoController;
+use App\Http\Controllers\API\Moneda\MonedaController;
 use App\Http\Controllers\API\MotivoAnulacionContrato\MotivoAnulacionContratoController;
 use App\Http\Controllers\API\MotivoAnulacionVenta\MotivoAnulacionVentaController;
 use App\Http\Controllers\API\MotivoNotaCredito\MotivoNotaCreditoController;
@@ -393,6 +394,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('entidadBancaria/consultarEntidadBancaria/{codigo}', [EntidadBancariaController::class, 'consultarEntidadBancaria']);
     Route::get('entidadBancaria/listarEntidadBancaria', [EntidadBancariaController::class, 'listarEntidadBancaria']);
 
+    Route::get('entidadBancaria/cuentaBancariaEmpresa/{empresa}', [EntidadBancariaController::class, 'cuentaBancariaEmpresa']);
+    Route::post('entidadBancaria/registrarCuentaBancaria', [EntidadBancariaController::class, 'registrarCuentaBancaria']);
+    Route::post('entidadBancaria/actualizarCuentaBancaria', [EntidadBancariaController::class, 'actualizarCuentaBancaria']);
+    Route::get('entidadBancaria/consultarCuentaBancaria/{codigo}', [EntidadBancariaController::class, 'consultarCuentaBancaria']);
+
     /************************************************************ MEDIO PAGO ************************************************************/
 
     Route::post('medioPago/registrarMedioPago', [MedioPagoController::class, 'registrarMedioPago']);
@@ -413,6 +419,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('billeteraDigital/consultarEntidadBilleteraDigital/{codigo}', [BilleteraDigitalController::class, 'consultarEntidadBilleteraDigital']);
     Route::get('billeteraDigital/listarEntidadBilleteraDigital', [BilleteraDigitalController::class, 'listarEntidadBilleteraDigital']);
 
+
+    Route::post('billeteraDigital/registrarBilleteraDigital', [BilleteraDigitalController::class, 'registrarBilleteraDigital']);
+    Route::post('billeteraDigital/actualizarBilleteraDigital', [BilleteraDigitalController::class, 'actualizarBilleteraDigital']);
+    Route::get('billeteraDigital/consultarBilleteraDigital/{codigo}', [BilleteraDigitalController::class, 'consultarBilleteraDigital']);
+    Route::get('billeteraDigital/listarBilleteraDigital/{empresa}', [BilleteraDigitalController::class, 'listarBilleteraDigital']);
+
     /************************************************************ UNIDAD DE MEDIDA ************************************************************/
 
     Route::post('unidadMedida/registrarUnidadMedidad', [UnidadMedidaController::class, 'registrarUnidadMedidad']);
@@ -420,12 +432,19 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('unidadMedida/consultarUnidadMedidad/{codigo}', [UnidadMedidaController::class, 'consultarUnidadMedidad']);
     Route::get('unidadMedida/listarUnidadMedidad', [UnidadMedidaController::class, 'listarUnidadMedidad']);
 
+    /************************************************************ MONEDA ************************************************************/
+    Route::post('moneda/registrarMoneda', [MonedaController::class, 'registrarMoneda']);
+    Route::post('moneda/actualizarMoneda', [MonedaController::class, 'actualizarMoneda']);
+    Route::get('moneda/consultarMoneda/{codigo}', [MonedaController::class, 'consultarMoneda']);
+    Route::get('moneda/listarMoneda', [MonedaController::class, 'listarMoneda']);
+
     /*********************************************************** EMPRESA ***********************************************************/
     Route::get('empresa/listar', [EmpresaController::class, 'index']);
     Route::get('empresa/listarEmpresas', [EmpresaController::class, 'listarEmpresas']);
     Route::post('empresa/registrarEmpresa', [EmpresaController::class, 'registrarEmpresa']);
     Route::post('empresa/actualizarEmpresa', [EmpresaController::class, 'actualizarEmpresa']);
     Route::get('empresa/consultarEmpresa/{codigo}', [EmpresaController::class, 'consultarEmpresa']);
+
     /*********************************************************** SEDE ***********************************************************/
     Route::get('sedeEmpresa/listar', [PersonalSedeController::class, 'index']);
     Route::get('sedeEmpresa/listarSedes', [PersonalSedeController::class, 'listarSedes']);
