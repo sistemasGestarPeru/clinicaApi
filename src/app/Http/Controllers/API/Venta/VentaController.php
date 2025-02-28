@@ -1381,6 +1381,7 @@ class VentaController extends Controller
                 ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
                 ->join('personas as vendedor', 'vendedor.Codigo', '=', 'dv.CodigoTrabajador')
                 ->select(
+                    'dv.Vigente',
                     'e.Nombre as empresaNombre',
                     'e.Ruc as ruc',
                     'e.Direccion as direccion',
@@ -1440,6 +1441,7 @@ class VentaController extends Controller
                 ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
                 ->join('personas as vendedor', 'vendedor.Codigo', '=', 'dv.CodigoTrabajador')
                 ->select(
+                    'dv.Vigente',
                     'e.Nombre as empresaNombre',
                     'e.Ruc as ruc',
                     'e.Direccion as direccion',
