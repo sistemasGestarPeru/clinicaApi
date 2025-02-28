@@ -694,13 +694,14 @@ class VentaController extends Controller
 
     public function buscarProductos(Request $request)
     {
-
         $nombreProducto = $request->input('nombreProducto');
         $sede = $request->input('codigoSede');
         $tipo = $request->input('tipo');
 
         try {
             $productos = DB::table('sedeproducto as sp')
+                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
                 ->select(
                     'p.Codigo',
                     'p.Nombre',
@@ -712,23 +713,32 @@ class VentaController extends Controller
                     'tg.CodigoSUNAT',
                     'sp.Stock'
                 )
-                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
-                ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
-                ->where('p.Vigente', 1) // Filtro por Vigente en producto
-                ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
-                ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
+                ->where('sp.CodigoSede', $sede) // Usar la sede proporcionada en la solicitud
+                ->where('sp.Vigente', 1)
+                ->where('p.Vigente', 1)
+                ->where('tg.Vigente', 1)
+                ->where('p.Nombre', 'LIKE', "{$nombreProducto}%")
                 ->where(function ($query) use ($tipo) {
-                    $query->where('p.Tipo', $tipo) // Filtro por Tipo
+                    $query->where('p.Tipo', $tipo)
                         ->orWhereNotExists(function ($subquery) use ($tipo) {
                             $subquery->select(DB::raw(1))
                                 ->from('producto')
                                 ->where('Tipo', $tipo)
-                                ->where('Vigente', 1); // Verificación de existencia
+                                ->where('Vigente', 1);
+                        })
+                        ->orWhere(function ($subquery) use ($tipo) { // <-- Aquí se añade use($tipo)
+                            $subquery->where('p.Tipo', 'C')
+                                ->whereNotExists(function ($innerQuery) use ($tipo) {
+                                    $innerQuery->select(DB::raw(1))
+                                        ->from('productocombo as pc')
+                                        ->join('producto as p2', 'p2.Codigo', '=', 'pc.CodigoProducto')
+                                        ->whereColumn('pc.CodigoCombo', 'p.Codigo')
+                                        ->where('p2.Tipo', '!=', $tipo);
+                                });
                         });
                 })
                 ->get();
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -871,9 +881,9 @@ class VentaController extends Controller
                     'ldv.TipoProducto as Codigo',
                     DB::raw("
                 CASE 
-                    WHEN ldv.TipoProducto = 'B' THEN 'Bien'
-                    WHEN ldv.TipoProducto = 'S' THEN 'Servicio'
-                    WHEN ldv.TipoProducto = 'T' THEN 'Todo'
+                    WHEN ldv.TipoProducto = 'B' THEN 'BIEN'
+                    WHEN ldv.TipoProducto = 'S' THEN 'SERVICIO'
+                    WHEN ldv.TipoProducto = 'T' THEN 'TODO'
                     ELSE 'Desconocido'
                 END AS TipoProducto
                 ")

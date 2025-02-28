@@ -86,18 +86,33 @@ class PagosVariosController extends Controller
     }
 
     public function listarPagosVarios(Request $request){
+        
         $sede = $request->input('CodigoSede');
+        $fechaInicio = $request->input('fechaInicio');
+        $fechaFin = $request->input('fechaFin');
+        $tipo = $request->input('tipo');
 
         try{
             $pagosVarios = DB::table('PagosVarios as pv')
             ->join('Egreso as e', 'e.Codigo', '=', 'pv.Codigo')
             ->join('Personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
             ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-            ->selectRaw('e.Codigo ,DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
-            ->where('e.Vigente', '=', 1)
-            ->where('c.CodigoSede', '=', $sede)
+            ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
+            ->where('e.Vigente', 1)
+            ->where('c.CodigoSede', $sede)
+            ->when(!empty($tipo), function ($query) use ($tipo) {
+                return $query->where('pv.Tipo', $tipo);
+            })
+            ->when(!empty($fechaInicio), function ($query) use ($fechaInicio) {
+                return $query->whereDate('e.Fecha', '>=', $fechaInicio);
+            })
+            ->when(!empty($fechaFin), function ($query) use ($fechaFin) {
+                return $query->whereDate('e.Fecha', '<=', $fechaFin);
+            })
             ->orderByDesc('e.Fecha')
             ->get();
+        
+        return response()->json($pagosVarios, 200);
             return response()->json($pagosVarios, 200);        
         }catch(\Exception $e){
             return response()->json(['error' => 'Error al listar los pagos varios', 'message' => $e->getMessage()], 500);

@@ -148,11 +148,28 @@ class PagoComisionController extends Controller
         try{
             $pagoComision = PagoComision::find($codigo);
             $egreso = Egreso::find($codigo);
+            $paciente  = DB::table('pagocomision as pc')
+            ->leftJoin('documentoventa as dv', 'dv.Codigo', '=', 'pc.CodigoDocumentoVenta')
+            ->leftJoin('contratoproducto as c', 'c.Codigo', '=', 'pc.CodigoContrato')
+            ->leftJoin('personas as pDV', 'pDV.Codigo', '=', 'dv.CodigoPaciente')
+            ->leftJoin('personas as pCON', 'pCON.Codigo', '=', 'c.CodigoPaciente')
+            ->selectRaw("
+                CASE 
+                    WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(pDV.Nombres, ' ', pDV.Apellidos)
+                    WHEN c.CodigoPaciente IS NOT NULL THEN CONCAT(pCON.Nombres, ' ', pCON.Apellidos)
+                    ELSE 'No encontrado'
+                END AS Paciente
+            ")
+            ->where('pc.Codigo', $codigo)
+            ->first();
+        
+
 
             if ($pagoComision) {
                 return response()->json([
                     'pagoComision' => $pagoComision,
-                    'egreso' => $egreso
+                    'egreso' => $egreso,
+                    'paciente' => $paciente
                 ], 200);
             } else {
                 return response()->json([
