@@ -238,9 +238,6 @@ class ClienteController extends Controller
                     ->when(!empty($documento), function ($query) use ($documento) {
                         return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
                     })
-                    ->when(empty($nombre) && empty($documento), function ($query) {
-                        return $query->limit(50); 
-                    })
                     ->get();
                 return response()->json($cliente);
             } catch (\Exception $e) {
@@ -262,9 +259,7 @@ class ClienteController extends Controller
                 ->when(!empty($documento), function ($query) use ($documento) {
                     return $query->where('e.RUC', 'LIKE', "$documento%");
                 })
-                ->when(empty($documento) && empty($documento), function ($query) {
-                    return $query->limit(50); 
-                })
+
                 ->get();
     
                 return response()->json($cliente);

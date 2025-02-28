@@ -188,9 +188,7 @@ class ContratoProductoeController extends Controller
             ->when(!empty($documento), function ($query) use ($documento) {
                 return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
             })
-            ->when(empty($nombre) && empty($documento), function ($query) {
-                return $query->limit(50); 
-            })
+
             ->orderByDesc('cp.Codigo')
             ->select(
                 'cp.Codigo as Codigo',
