@@ -7,7 +7,7 @@ use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Recaudacion\Egreso;
-use App\Models\Recaudacion\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\PagoDonante;
 use Illuminate\Support\Facades\DB;
 

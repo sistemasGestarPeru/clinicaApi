@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\PagoServicio\RegistrarPagoServicioRequest;
-use App\Models\Recaudacion\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 
 class PagoServicioController extends Controller
 {

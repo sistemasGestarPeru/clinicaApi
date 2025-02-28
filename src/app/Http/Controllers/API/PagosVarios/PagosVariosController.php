@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\PagosVarios;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use App\Models\Recaudacion\MontoCaja;
+
 class PagosVariosController extends Controller
 {
     /**

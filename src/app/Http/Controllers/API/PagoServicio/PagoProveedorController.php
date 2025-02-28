@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\PagoProveedor\PagoProveedorRequest as GuardarPagoProveedorRequest;
 use App\Models\Recaudacion\Egreso;
-use App\Models\Recaudacion\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\PagoProveedor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

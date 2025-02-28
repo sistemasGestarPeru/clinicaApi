@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Recaudacion;
+namespace App\Models\Recaudacion\ValidacionCaja;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,3 +35,5 @@ class MontoCaja extends Model
             ->value('Total');
     }
 }
+
+

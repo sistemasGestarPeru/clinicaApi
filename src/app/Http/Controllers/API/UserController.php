@@ -36,9 +36,10 @@ class UserController extends Controller
             ->orWhere('name', $request->identifier)
             ->first();
             if (!$user || !Hash::check($request->password, $user->password)) {
-                throw ValidationException::withMessages([
-                    'msg' => ['Las credenciales son incorrectas!'],
-                ]);
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'Credenciales incorrectas'
+                ], 401);
             }
 
             $trabajador = DB::table('personas as p')

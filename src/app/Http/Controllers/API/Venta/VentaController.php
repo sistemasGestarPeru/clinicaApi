@@ -12,7 +12,7 @@ use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\Detraccion;
 use App\Models\Recaudacion\DevolucionNotaCredito;
 use App\Models\Recaudacion\Egreso;
-use App\Models\Recaudacion\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
 use App\Models\Recaudacion\Venta;

@@ -257,7 +257,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoTrabajadores/buscarTrabajador', [PagoTrabajadoresController::class, 'buscarTrabajadorPago']);
     Route::post('pagoTrabajadores/registrarPlanilla', [PagoTrabajadoresController::class, 'registrarPlanilla']);
     Route::post('pagoTrabajadores/registrarPagoIndividual', [PagoTrabajadoresController::class, 'registrarPagoIndividual']);
-
+    Route::get('pagoTrabajadores/consultarPagoTrabajador', [PagoTrabajadoresController::class, 'consultarPagoTrabajador']);
     /********************************* Compras *********************************/
     Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
     Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
@@ -309,6 +309,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('producto/actualizarComboProducto', [ProductoController::class, 'actualizarComboProducto']);
 
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
+    Route::post('producto/listarProductoCombo', [ProductoController::class, 'listarProductoCombo']);   
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
     Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
     Route::get('producto/listarTemporales/{codigo}', [ProductoController::class, 'listarTemporales']);

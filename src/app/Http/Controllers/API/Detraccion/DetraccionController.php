@@ -5,7 +5,7 @@ namespace App\Http\Controllers\API\Detraccion;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 class DetraccionController extends Controller
 {
     /**

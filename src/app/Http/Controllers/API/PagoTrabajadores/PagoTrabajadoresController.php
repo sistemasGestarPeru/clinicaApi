@@ -55,6 +55,14 @@ class PagoTrabajadoresController extends Controller
     }
 
 
+    public function consultarPagoTrabajador($codigo){
+        try{
+
+        }catch(Exception $e){
+            return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al consultar el pago del trabajador'], 500);
+        }
+    }
+
     public function listarPagosRealizados(Request $request)
     {
         $fechaActual = date('Y-m-d'); // Asegúrate de que $fechaActual tenga el formato correcto

@@ -54,6 +54,35 @@ class ProductoController extends Controller
         //
     }
 
+    public function listarProductoCombo(Request $request)
+    {
+        $tipoProducto = $request->input('TipoProducto');
+        try {
+
+            $productos = DB::table('producto as p')
+                ->join('categoriaproducto as cp', 'cp.Codigo', '=', 'p.CodigoCategoria')
+                ->select(
+                    'p.Codigo',
+                    'cp.Nombre as Categoria',
+                    'p.Nombre as Producto',
+                    'p.Vigente',
+                    DB::raw("CASE 
+                    WHEN p.Tipo = 'S' THEN 'SERVICIO'
+                    WHEN p.Tipo = 'B' THEN 'BIEN'
+                    ELSE 'Desconocido'
+                END AS Tipo")
+                )
+                ->where('p.Tipo', '!=', 'C')
+                ->where('p.Tipo', $tipoProducto)
+                ->where('p.Vigente', 1)
+                ->orderBY('p.Nombre', 'ASC')
+                ->get();
+
+            return response()->json($productos, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function listarProducto(Request $request)
     {
