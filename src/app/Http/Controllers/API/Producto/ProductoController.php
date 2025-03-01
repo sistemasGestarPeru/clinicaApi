@@ -335,19 +335,13 @@ class ProductoController extends Controller
         }
     }
 
-    public function precioCombo($sede, $combo){
+        public function precioCombo($sede, $combo){
 
         try{
 
-            $precioCombo = DB::table('sedeproducto as sp')
-            ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-            ->where('sp.CodigoSede', $sede)
-            ->whereIn('p.Codigo', function ($query) use ($combo) {
-                $query->select('CodigoProducto')
-                    ->from('productocombo')
-                    ->where('CodigoCombo', $combo);
-            })
-            ->sum('sp.Precio');
+            $precioCombo = DB::table('productocombo')
+            ->where('CodigoCombo', $combo)
+            ->sum(DB::raw('Precio * Cantidad'));
 
             return response()->json($precioCombo, 200);
 
