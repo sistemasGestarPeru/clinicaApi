@@ -112,7 +112,8 @@ class SedeProductoController extends Controller
                         WHEN p.Tipo = 'B' THEN 'BIEN'
                         WHEN p.tipo = 'C' THEN 'COMBO'
                     END AS TipoProducto
-                ")
+                "),
+                'p.tipo as Tipo'
             )
             ->where('p.Vigente', 1)
             ->whereNull('sp.Codigo')
