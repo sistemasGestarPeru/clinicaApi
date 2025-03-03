@@ -224,9 +224,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('venta/buscarCliente', [VentaController::class, 'buscarCliente']);
     Route::post('venta/buscarVenta', [VentaController::class, 'buscarVenta']);
     Route::post('venta/consultarDatosContratoProducto', [VentaController::class, 'consultarDatosContratoProducto']);
-
-
-
     Route::post('venta/anularVenta', [VentaController::class, 'anularVenta']);
     Route::post('venta/consultarVenta', [VentaController::class, 'consultarVenta']);
     Route::post('venta/canjearDocumentoVenta', [VentaController::class, 'canjearDocumentoVenta']);
@@ -312,6 +309,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
     Route::post('producto/listarProductoCombo', [ProductoController::class, 'listarProductoCombo']);   
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
+    Route::get('producto/comboIGV/{producto}', [ProductoController::class, 'comboIGV']);
     Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
     Route::get('producto/listarTemporales/{codigo}', [ProductoController::class, 'listarTemporales']);
     /********************************** SEDE PRODUCTO ************************************************************/

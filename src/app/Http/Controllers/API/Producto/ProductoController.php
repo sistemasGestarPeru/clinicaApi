@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API\Producto;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Producto\RegistarProductoRequest;
-use App\Http\Requests\Producto\RegistrarProductoComboRequest;
 use App\Http\Requests\Producto\RegistrarTemporalRequest;
 use App\Models\Recaudacion\ComboProducto;
 use App\Models\Recaudacion\PrecioTemporal;
@@ -206,6 +205,23 @@ class ProductoController extends Controller
     }
 
     //COMBO PRODUCTOS
+    
+    public function comboIGV($codigo)
+    {
+        try {
+            $montoIGV = DB::table('productocombo as pc')
+                ->join('sedeproducto as sd', 'sd.CodigoProducto', '=', 'pc.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sd.Codigotipogravado')
+                ->where('pc.CodigoCombo', $codigo)
+                ->selectRaw("SUM(CASE WHEN tg.Tipo = 'G' THEN (pc.Precio - (pc.Precio / (1 + (tg.Porcentaje / 100)))) * pc.Cantidad ELSE 0 END) AS MontoIGV")
+                ->value('MontoIGV'); // Obtiene el resultado directamente
+
+            return response()->json($montoIGV, 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function registrarComboProducto(Request $request)
     {
