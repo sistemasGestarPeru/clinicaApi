@@ -10,11 +10,12 @@ class ValidarFecha extends Model
 {
 
     protected $table = 'Caja';
-    public static function obtenerTotalCaja($caja)
+    public static function obtenerFechaCaja($caja)
     {
-        return DB::table(DB::raw("(SELECT DATE(FechaInicio) as Fecha FROM caja WHERE Codigo = ?) as subquery"))
+        return DB::table(DB::raw("(SELECT DATE(FechaInicio) as FechaInicio FROM caja WHERE Codigo = ?) as subquery"))
             ->setBindings([$caja]) // Evita SQL Injection
-            ->select('Fecha')
+            ->select('FechaInicio')
             ->first();
     }
 }
+

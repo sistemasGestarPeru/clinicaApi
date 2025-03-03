@@ -5,7 +5,7 @@ namespace App\Http\Controllers\API\PagoTrabajadores;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
-use App\Models\Recaudacion\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\PagoTrabajadores\PagoPlanilla;
 use Exception;
 use Illuminate\Http\Request;
@@ -57,6 +57,27 @@ class PagoTrabajadoresController extends Controller
 
     public function consultarPagoTrabajador($codigo){
         try{
+            $pagoTrabajador = PagoPlanilla::where('Codigo', $codigo)->first();
+            $egreso = Egreso::where('Codigo', $codigo)->first();
+
+
+            $trabajador = DB::table('trabajadors as t')
+            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+            ->join('SistemaPensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
+            ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
+            ->select(
+                'p.Codigo',
+                'p.Nombres',
+                'p.Apellidos',
+                'p.NumeroDocumento',
+                'cl.SueldoBase',
+                'sp.Nombre as Pension',
+            )
+            ->where('t.Codigo', $pagoTrabajador->CodigoTrabajador)
+            ->limit(1)
+            ->first();
+
+            return response()->json(['pagoTrabajador' => $pagoTrabajador, 'egreso' => $egreso, 'trabajador' => $trabajador], 200);
 
         }catch(Exception $e){
             return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al consultar el pago del trabajador'], 500);
