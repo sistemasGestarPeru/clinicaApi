@@ -63,6 +63,7 @@ class DetraccionController extends Controller
                 ->where('dv.CodigoSede', $sede) // Filtro por sede
                 ->where('dv.Vigente', 1) // Solo documentos vigentes
                 ->whereNull('d.CodigoPagoDetraccion') // Código de pago de detracción es NULL
+                ->orderBy('dv.Fecha', 'desc')
                 ->get();
 
             return response()->json($ventas);

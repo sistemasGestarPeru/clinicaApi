@@ -206,6 +206,8 @@ class ProductoController extends Controller
 
     //COMBO PRODUCTOS
     
+
+
     public function comboIGV($codigo)
     {
         try {
@@ -351,7 +353,7 @@ class ProductoController extends Controller
         }
     }
 
-        public function precioCombo($sede, $combo){
+    public function precioCombo($sede, $combo){
 
         try{
 
@@ -362,6 +364,33 @@ class ProductoController extends Controller
             return response()->json($precioCombo, 200);
 
         }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function tipoProductoCombo($producto){
+        try {
+            $resultado = DB::table('productocombo as pc')
+                ->join('sedeproducto as sd', 'sd.CodigoProducto', '=', 'pc.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sd.Codigotipogravado')
+                ->join('producto as p', 'p.Codigo', '=', 'pc.CodigoProducto')
+                ->where('pc.CodigoCombo', $producto)
+                ->selectRaw("
+                    SUM(CASE 
+                        WHEN tg.Tipo = 'G' THEN 
+                            (pc.Precio - (pc.Precio / (1 + (tg.Porcentaje / 100)))) * pc.Cantidad 
+                        ELSE 0 
+                    END) AS MontoIGV,
+                    CASE 
+                        WHEN COUNT(DISTINCT p.Tipo) = 1 THEN MAX(p.Tipo)  
+                        ELSE 'Mixto' 
+                    END AS TipoResultado
+                ")
+                ->first(); // Obtiene una sola fila con ambos valores
+    
+            return response()->json($resultado, 200);
+    
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

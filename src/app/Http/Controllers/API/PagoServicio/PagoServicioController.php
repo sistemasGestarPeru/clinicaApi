@@ -84,13 +84,17 @@ class PagoServicioController extends Controller
     public function listarPagos(Request $request)
     {
         $fecha = $request->input('fecha');
+        $sede = $request->input('sede');
 
         try {
             $results = DB::table('Egreso as e')
                 ->join('PagoServicio as ps', 'ps.Codigo', '=', 'e.Codigo')
                 ->join('MotivoPagoServicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
+                ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
                 ->select('ps.Codigo', 'mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
                 // ->where(DB::raw('DATE(e.Fecha)'), $fecha)
+                ->where('c.CodigoSede', $sede)
+                ->orderBy('e.Fecha', 'desc')
                 ->get();
 
             return response()->json([

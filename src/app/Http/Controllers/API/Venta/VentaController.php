@@ -399,6 +399,13 @@ class VentaController extends Controller
         );
         $detalleVentaValidar->validate();
 
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($ventaData['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($ventaData['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+        }
 
         //Validar Pago
         if ($pagoData) {
@@ -433,18 +440,13 @@ class VentaController extends Controller
                 $pagoData['CodigoCuentaBancaria'] = null;
                 $pagoData['CodigoBilleteraDigital'] = null;
             }
+            $fechaPagoVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
+            if ($fechaCajaVal < $fechaPagoVal) {
+                return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+            }
         }
 
-        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($ventaData['CodigoCaja']);
 
-        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
-        $fechaVentaVal = Carbon::parse($ventaData['Fecha'])->toDateString(); // Convertir el string a Carbon
-        $fechaPagoVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
-
-        if (($fechaCajaVal < $fechaVentaVal) && ($fechaCajaVal < $fechaPagoVal)) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
-        }
-        
         DB::beginTransaction();
         try {
 

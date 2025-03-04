@@ -301,6 +301,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('producto/consultarTemporal/{codigo}', [ProductoController::class, 'consultarTemporal']);
     Route::get('producto/consultarComboProducto/{codigo}', [ProductoController::class, 'consultarComboProducto']);
     Route::get('producto/precioCombo/{sede}/{combo}', [ProductoController::class, 'precioCombo']);    
+    Route::get('producto/tipoProductoCombo/{producto}', [ProductoController::class, 'tipoProductoCombo']);    
 
     Route::post('producto/actualizarProducto', [ProductoController::class, 'actualizarProducto']);
     Route::post('producto/actualizarTemporales', [ProductoController::class, 'actualizarTemporales']);

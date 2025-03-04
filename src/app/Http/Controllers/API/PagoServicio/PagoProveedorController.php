@@ -135,7 +135,7 @@ class PagoProveedorController extends Controller
             )
             ->where('CU.Vigente', 1)
             ->where('C.Vigente', 1)
-            
+            ->where('P.Vigente', 1)
             ->groupBy(
                 'C.Codigo',
                 'C.Fecha',
