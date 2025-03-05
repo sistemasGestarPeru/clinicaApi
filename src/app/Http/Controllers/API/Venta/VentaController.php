@@ -1267,6 +1267,7 @@ class VentaController extends Controller
     public function consultarNotaCreditoVenta($CodVenta){
 
         try{
+
             $venta = DB::table('documentoventa as dv')
             ->select(
                 'dv.Codigo',
@@ -1307,17 +1308,30 @@ class VentaController extends Controller
                 DB::raw('DATE(cp.Fecha) as FechaContrato'),
                 'dv.MontoTotal',
                 'dv.MontoPagado',
-                // Subconsulta para verificar si existe al menos un pago activo
+                // Subconsulta para obtener el pago activo
                 DB::raw("
-                    COALESCE(
-                        (
-                            SELECT SUM(Monto) 
-                            FROM pagoDocumentoVenta pdv 
-                            WHERE pdv.CodigoDocumentoVenta = dv.Codigo 
-                            AND pdv.Vigente = 1
-                        ), 0
+                    (
+                        COALESCE(
+                            (SELECT SUM(Monto) 
+                            FROM pagoDocumentoVenta 
+                            WHERE CodigoDocumentoVenta = dv.Codigo 
+                            AND Vigente = 1), 
+                        0) 
+                        +
+                        COALESCE(
+                            (SELECT SUM(MontoTotal) 
+                            FROM detalledocumentoventa 
+                            WHERE CodigoVenta = (
+                                SELECT Codigo 
+                                FROM documentoventa 
+                                WHERE CodigoDocumentoReferencia = dv.Codigo 
+                                LIMIT 1
+                            )
+                            ), 
+                        0)
                     ) AS PagoActivo
                 ")
+            
             )
             ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
             ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
@@ -1328,7 +1342,9 @@ class VentaController extends Controller
             ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
             ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
             ->where('dv.Codigo', $CodVenta)
+            ->limit(1)
             ->first();
+        
         
             $detalle = DB::table('Producto as P')
             ->joinSub(
