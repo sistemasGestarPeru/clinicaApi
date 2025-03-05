@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Recaudacion\MedioPago;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class MedioPagoController extends Controller
 {
@@ -107,6 +108,75 @@ class MedioPagoController extends Controller
             $entidad = MedioPago::find($request->Codigo);
             $entidad->update($request->all());
             return response()->json(['message' => 'Medio de Pago actualizado correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    //Local Medio Pago
+
+    public function mediosPagoDisponible($sede){
+        try{
+            $mediosPago = DB::table('medioPago')
+                ->whereNotIn('codigo', function ($query) use ($sede) {
+                    $query->select('CodigoMedioPago')
+                        ->from('localmediopago')
+                        ->where('CodigoSede', $sede);
+                })
+                ->get();
+                return response()->json($mediosPago, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function listarLocalMedioPago($sede){
+        try{
+            $mediosPago = DB::table('localmediopago as lmp')
+            ->join('mediopago as mp', 'mp.Codigo', '=', 'lmp.CodigoMedioPago')
+            ->join('sedesrec as s', 's.Codigo', '=', 'lmp.CodigoSede')
+            ->where('lmp.CodigoSede', $sede)
+            ->select('lmp.Codigo', 'mp.Nombre', 'lmp.Vigente', 's.Nombre as Sede')
+            ->get();
+            return response()->json($mediosPago, 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function registrarLocalMedioPago(Request $request){
+        try{
+            DB::table('localmediopago')->insert([
+                'CodigoSede' => $request->CodigoSede,
+                'CodigoMedioPago' => $request->CodigoMedioPago
+            ]);
+            return response()->json(['message' => 'Medio de Pago registrado correctamente'], 201);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarLocalMedioPago(Request $request){
+        try{
+            DB::table('localmediopago')
+                ->where('Codigo', $request->Codigo)
+                ->update([
+                    'CodigoMedioPago' => $request->CodigoMedioPago,
+                    'Vigente' => $request->Vigente
+                ]);
+            return response()->json(['message' => 'Medio de Pago actualizado correctamente'], 200);
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarMedioPagoLocal($codigo){
+        try{
+            $entidad = DB::table('localmediopago')
+                ->where('Codigo', $codigo)
+                ->select('Codigo', 'CodigoMedioPago' ,'Vigente')
+                ->first();
+            return response()->json($entidad, 200);
         }catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
         }

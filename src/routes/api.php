@@ -407,6 +407,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('medioPago/consultarMedioPago/{codigo}', [MedioPagoController::class, 'consultarMedioPago']);
     Route::get('medioPago/listarMedioPago', [MedioPagoController::class, 'listarMedioPago']);
 
+
+    //Local Medio Pago
+    
+    Route::get('medioPago/mediosPagoDisponible/{codigo}', [MedioPagoController::class, 'mediosPagoDisponible']);
+    Route::get('medioPago/listarLocalMedioPago/{codigo}', [MedioPagoController::class, 'listarLocalMedioPago']);
+    Route::post('medioPago/registrarLocalMedioPago', [MedioPagoController::class, 'registrarLocalMedioPago']);
+    Route::post('medioPago/actualizarLocalMedioPago', [MedioPagoController::class, 'actualizarLocalMedioPago']);
+    Route::get('medioPago/consultarMedioPagoLocal/{codigo}', [MedioPagoController::class, 'consultarMedioPagoLocal']);
+    
     /************************************************************ TIPO GRAVADO ************************************************************/
     Route::post('tipoGravado/registrarTipoGravado', [TipoGravadoController::class, 'registrarTipoGravado']);
     Route::post('tipoGravado/actualizarTipoGravado', [TipoGravadoController::class, 'actualizarTipoGravado']);

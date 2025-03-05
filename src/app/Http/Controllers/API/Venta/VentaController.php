@@ -623,16 +623,18 @@ class VentaController extends Controller
                                 ->join('DetalleDocumentoVenta as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
                                 ->where('DV.CodigoContratoProducto', $idContrato)
                                 ->where('DV.Vigente', 1)
-                                ->groupBy('DDV.CodigoProducto')
+                                ->groupBy('DDV.CodigoDetalleContrato', 'DDV.CodigoProducto')
                                 ->select(
+                                    'DDV.CodigoDetalleContrato',
                                     'DDV.CodigoProducto',
                                     DB::raw('SUM(DDV.Cantidad) AS CantidadBoleteada'),
                                     DB::raw('SUM(DDV.MontoTotal) AS MontoBoleteado')
                                 ),
                             'Bol',
-                            'Bol.CodigoProducto',
-                            '=',
-                            'DC.CodigoProducto'
+                            function ($join) {
+                                $join->on('Bol.CodigoProducto', '=', 'DC.CodigoProducto')
+                                    ->on('Bol.CodigoDetalleContrato', '=', 'DC.Codigo');
+                            }
                         )
                         ->where('DC.CodigoContrato', $idContrato)
                         ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo')
@@ -640,13 +642,13 @@ class VentaController extends Controller
                             'DC.CodigoProducto',
                             'DC.Descripcion',
                             'DC.Codigo',
-                            DB::raw('SUM(DC.Cantidad) - COALESCE(Bol.CantidadBoleteada, 0) AS Cantidad'),
-                            DB::raw('SUM(DC.MontoTotal) - COALESCE(Bol.MontoBoleteado, 0) AS Monto')
+                            DB::raw('SUM(DC.Cantidad) - COALESCE(SUM(Bol.CantidadBoleteada), 0) AS Cantidad'),
+                            DB::raw('SUM(DC.MontoTotal) - COALESCE(SUM(Bol.MontoBoleteado), 0) AS Monto')
                         ),
                     'S',
                     'P.Codigo',
                     '=',
-                    'S.CodigoProducto',
+                    'S.CodigoProducto'
                 )
                 ->join('SedeProducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
                 ->join('TipoGravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
@@ -661,9 +663,10 @@ class VentaController extends Controller
                     'S.Monto as MontoTotal',
                     'TG.Tipo AS TipoGravado',
                     'TG.Porcentaje AS Porcentaje',
-                    'TG.Codigo AS CodigoTipoGravado',
+                    'TG.Codigo AS CodigoTipoGravado'
                 )
                 ->get();
+
 
             return response()->json(['contrato' => $contrato, 'detalle' => $detalle], 200);
         } catch (\Exception $e) {
