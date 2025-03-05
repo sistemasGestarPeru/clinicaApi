@@ -291,7 +291,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /************************************************************ DETRACCION ************************************************************/
     Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
-
+    Route::post('detraccion/registrarPagoDetraccion', [DetraccionController::class, 'registrarPagoDetraccion']);
+    
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/registrarTemporales', [ProductoController::class, 'registrarTemporales']);

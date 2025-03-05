@@ -7,6 +7,8 @@ use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\PagosVarios;
 use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -67,6 +69,15 @@ class PagosVariosController extends Controller
         if($egreso['Monto'] > $total){
             return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
         }
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+        }
+
 
         DB::beginTransaction();
         try{

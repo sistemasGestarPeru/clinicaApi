@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\PagoComision;
+use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 class PagoComisionController extends Controller
 {
@@ -68,6 +70,16 @@ class PagoComisionController extends Controller
         if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
             $egreso['CodigoBilleteraDigital'] = null;
         }
+
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+        }
+
 
         if ($egreso['CodigoSUNAT'] == '008') {
             $egreso['CodigoCuentaOrigen'] = null;

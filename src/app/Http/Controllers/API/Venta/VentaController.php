@@ -187,6 +187,14 @@ class VentaController extends Controller
             $pagoData['CodigoBilleteraDigital'] = null;
         }
 
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($pagoData['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+        }
+
         if ($pagoData['CodigoSUNAT'] == '008') {
             $pagoData['CodigoCuentaBancaria'] = null;
             $pagoData['CodigoBilleteraDigital'] = null;
@@ -203,8 +211,6 @@ class VentaController extends Controller
             $pagoData['CodigoBilleteraDigital'] = null;
         }
     
-
-
 
         DB::beginTransaction();
 
@@ -227,7 +233,7 @@ class VentaController extends Controller
             return response()->json(['message' => 'Pago registrada correctamente.'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage(), 'message' => 'No se puedo registrar el pago.'], 500);
+            return response()->json(['error' => 'No se puedo registrar el pago.', 'db' => $e->getMessage()], 500);
         }
     }
 
@@ -260,6 +266,14 @@ class VentaController extends Controller
             (new RegistrarDetalleVentaRequest())->rules()
         );
         $detalleVentaValidar->validate();
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($ventaData['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($ventaData['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+        }
 
         if (isset($ventaData['CodigoClienteEmpresa']) && $ventaData['CodigoClienteEmpresa'] == 0) {
             $ventaData['CodigoClienteEmpresa'] = null;
@@ -300,9 +314,15 @@ class VentaController extends Controller
             $dataEgreso['CodigoCaja'] = $ventaData['CodigoCaja'];
             $dataEgreso['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
 
+            $fechaPagoVal = Carbon::parse($dataEgreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+            if ($fechaCajaVal < $fechaPagoVal) {
+                return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+            }
+
             //Validar Egreso
             $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
             $egresoValidator->validate();
+            
         }
 
 
@@ -347,7 +367,7 @@ class VentaController extends Controller
             return response()->json(['message' => 'Nota de Crédito registrada correctamente.'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al registrar Nota de Crédito', 'db' => $e->getMessage()], 500);
         }
     }
 
@@ -495,7 +515,7 @@ class VentaController extends Controller
             return response()->json(['message' => 'Venta registrada correctamente.', $cantidadesPorTemporal], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al registrar la Venta' ,'db' => $e->getMessage()], 500);
         }
     }
 

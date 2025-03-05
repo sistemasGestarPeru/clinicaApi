@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\PagoServicio\RegistrarPagoServicioRequest;
 use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
+use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
+use Carbon\Carbon;
 
 class PagoServicioController extends Controller
 {
@@ -121,6 +123,19 @@ class PagoServicioController extends Controller
         //Validar Egreso
         $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
         $egresoValidator->validate();
+
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+        $fechaPagoVal = Carbon::parse($pagoServicio['FechaDocumento'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+        }
+        if ($fechaCajaVal < $fechaPagoVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+        }
 
         if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
             $egreso['CodigoCuentaOrigen'] = null;

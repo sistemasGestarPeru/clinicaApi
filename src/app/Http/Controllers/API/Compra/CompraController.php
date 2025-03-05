@@ -9,6 +9,8 @@ use App\Models\Recaudacion\DetalleCompra;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\PagoProveedor;
 use App\Models\Recaudacion\Proveedor;
+use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -199,6 +201,19 @@ class CompraController extends Controller
 
 
         $MontoTotal = 0;
+        
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaPagoVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+        $fechaCompraVal = Carbon::parse($compra['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaPagoVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+        }
+
+        if($fechaCajaVal < $fechaCompraVal){
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+        }
 
         try {
             DB::beginTransaction();

@@ -376,17 +376,15 @@ class CajaController extends Controller
             $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
             $egresoValidator->validate();
 
-            if (!isset($egreso['CodigoCuentaOrigen']) || !$egreso['CodigoCuentaOrigen']) {
-                $egreso['CodigoCuentaOrigen'] = null;
+            if (!isset($salidaDinero['CodigoCuentaBancaria']) || !$salidaDinero['CodigoCuentaBancaria']) {
+                $salidaDinero['CodigoCuentaBancaria'] = null;
             }
             
             if (!isset($salidaDinero['CodigoReceptor']) || !$salidaDinero['CodigoReceptor']) {
                 $salidaDinero['CodigoReceptor'] = null;
             }
 
-            if (!isset($salidaDinero['CodigoCuentaBancaria']) || !$salidaDinero['CodigoCuentaBancaria']) {
-                $salidaDinero['CodigoCuentaBancaria'] = null;
-            }
+
 
             $nuevoEgreso = Egreso::create($egreso);
             $salidaDinero['Codigo'] = $nuevoEgreso->Codigo;
@@ -468,7 +466,7 @@ class CajaController extends Controller
         $trabajadores = DB::table('trabajadors as t')
             ->leftJoin('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
             ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            // ->where('t.Tipo', 'M')
+            ->where('t.Tipo', 'A')
             ->where('t.Vigente', 1)
             ->where('p.Vigente', 1)
             ->where('ass.Vigente', 1)
