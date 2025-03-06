@@ -10,7 +10,7 @@ class PagoDocumentoVenta extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'pagoDocumentoVenta';
+    protected $table = 'pagodocumentoventa';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
         'CodigoPago',

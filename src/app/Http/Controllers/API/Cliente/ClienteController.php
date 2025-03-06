@@ -132,7 +132,7 @@ class ClienteController extends Controller
 
         try{
             if($tipo === 0){ //Cliente
-                $cliente = DB::table('clinica_db.personas')
+                $cliente = DB::table('personas')
                 ->select(
                     'Nombres',
                     'Apellidos',
@@ -148,7 +148,7 @@ class ClienteController extends Controller
 
                 return response()->json($cliente);
             }else{ //Empresa
-                $cliente = DB::table('clinica_db.clienteempresa')
+                $cliente = DB::table('clienteempresa')
                 ->select(
                     'RazonSocial',
                     'RUC',
@@ -173,7 +173,7 @@ class ClienteController extends Controller
         $id = $request->input('id');
 
         if ($tipo === 0) { //Cliente
-            $cliente = DB::table('clinica_db.personas')
+            $cliente = DB::table('personas')
                 ->select(
                     'Codigo',
                     'Nombres',
@@ -193,7 +193,7 @@ class ClienteController extends Controller
 
             return response()->json($cliente);
         } else { //Empresa
-            $cliente = DB::table('clinica_db.clienteempresa')
+            $cliente = DB::table('clienteempresa')
                 ->select(
                     'Codigo',
                     'RazonSocial',
@@ -219,8 +219,8 @@ class ClienteController extends Controller
         if ($tipo === 0) { //Cliente
             try {
 
-                $cliente = DB::table('clinica_db.personas as p')
-                    ->join('clinica_db.tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
+                $cliente = DB::table('personas as p')
+                    ->join('tipo_documentos as td', 'td.Codigo', '=', 'p.CodigoTipoDocumento')
                     ->select(
                         'p.Codigo',
                         'p.Nombres',

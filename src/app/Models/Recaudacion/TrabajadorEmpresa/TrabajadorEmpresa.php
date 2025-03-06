@@ -13,11 +13,11 @@ class TrabajadorEmpresa extends Model
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
         
-        return DB::table('clinica_db.users as u')
-                ->join('clinica_db.personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
-                ->join('clinica_db.trabajadors as t', 't.Codigo', '=', 'p.Codigo')
-                ->join('clinica_db.contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
-                ->join('clinica_db.empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
+        return DB::table('users as u')
+                ->join('personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
+                ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
+                ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
+                ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
                 ->where('u.CodigoPersona', $codigo)
                 ->where('cl.Vigente', 1)
                 ->where('t.Vigente', 1)

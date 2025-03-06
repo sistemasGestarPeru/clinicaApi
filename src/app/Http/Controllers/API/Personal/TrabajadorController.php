@@ -133,10 +133,10 @@ class TrabajadorController extends Controller
             date_default_timezone_set('America/Lima');
             $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
 
-            $resultados = DB::table('clinica_db.trabajadors as t')
-                ->join('clinica_db.asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
-                ->join('clinica_db.sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
-                ->join('clinica_db.empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+            $resultados = DB::table('trabajadors as t')
+                ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
+                ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
+                ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('t.Codigo', $codTrab)
                 ->where('s.Vigente', 1)
                 ->where('ase.Vigente', 1)
@@ -253,7 +253,7 @@ class TrabajadorController extends Controller
 
         try {
             $contratoLab = DB::table('contrato_laborals as cl')
-                ->Join('clinica_db.empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
+                ->Join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
                 ->select(
                     'cl.Codigo',
                     'e.Nombre',
@@ -376,9 +376,9 @@ class TrabajadorController extends Controller
         $nombre = $request->input('nombre', '');
 
         try {
-            $personas = DB::table('clinica_db.personas as p')
-                ->join('clinica_db.tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
-                ->Join('clinica_db.trabajadors as t', 'p.Codigo', '=', 't.Codigo')
+            $personas = DB::table('personas as p')
+                ->join('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
+                ->Join('trabajadors as t', 'p.Codigo', '=', 't.Codigo')
                 ->select(
                     'p.Codigo',
                     'p.Nombres',
@@ -457,7 +457,7 @@ class TrabajadorController extends Controller
         $Codigo = $request->input('Codigo');
 
         // Consultar los datos de persona
-        $persona = DB::table('clinica_db.personas')
+        $persona = DB::table('personas')
             ->select(
                 'Codigo',
                 'Nombres',
@@ -476,7 +476,7 @@ class TrabajadorController extends Controller
             ->first();
 
         // Consultar los datos de trabajador
-        $trabajador = DB::table('clinica_db.trabajadors')
+        $trabajador = DB::table('trabajadors')
             ->select(
                 'CorreoCoorporativo',
                 'FechaNacimiento',

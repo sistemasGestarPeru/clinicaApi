@@ -54,11 +54,11 @@ class ConsultasTrabajadorController extends Controller
             date_default_timezone_set('America/Lima');
             $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
 
-            $empresas = DB::table('clinica_db.users as u')
-                ->join('clinica_db.personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
-                ->join('clinica_db.trabajadors as t', 't.Codigo', '=', 'p.Codigo')
-                ->join('clinica_db.contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
-                ->join('clinica_db.empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
+            $empresas = DB::table('users as u')
+                ->join('personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
+                ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
+                ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
+                ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
                 ->where('u.CodigoPersona', $codigoPersona)
                 ->where('cl.Vigente', 1)
                 ->where('t.Vigente', 1)
@@ -88,12 +88,12 @@ class ConsultasTrabajadorController extends Controller
             date_default_timezone_set('America/Lima');
             $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
 
-            $sedes = DB::table('clinica_db.users as u')
-                ->join('clinica_db.personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
-                ->join('clinica_db.trabajadors as t', 't.Codigo', '=', 'p.Codigo')
-                ->join('clinica_db.asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
-                ->join('clinica_db.sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
-                ->join('clinica_db.empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+            $sedes = DB::table('users as u')
+                ->join('personas as p', 'u.CodigoPersona', '=', 'p.Codigo')
+                ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
+                ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
+                ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
+                ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('u.CodigoPersona', $codigoPersona)
                 ->where('e.Codigo', $codigoEmpresa)
                 ->where('t.Vigente', 1)

@@ -45,7 +45,7 @@ class CajaController extends Controller
 
         try {
             DB::beginTransaction();
-            $totalEfectivo = DB::table('Caja')
+            $totalEfectivo = DB::table('caja')
             ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
             ->where('Estado', 'C')
             ->where('CodigoSede', $cajaData['CodigoSede'])
@@ -122,8 +122,8 @@ class CajaController extends Controller
     public function datosCajaExcel($caja){
         try {
             // Consulta para obtener datos de la caja
-            $cajaData = DB::table('CAJA as c')
-                ->join('Personas as p', 'p.Codigo', '=', 'c.CodigoTrabajador')
+            $cajaData = DB::table('caja as c')
+                ->join('personas as p', 'p.Codigo', '=', 'c.CodigoTrabajador')
                 ->select(
                     DB::raw("DATE_FORMAT(c.FechaInicio, '%d/%m/%Y') as FechaInicio"),
                     DB::raw("DATE_FORMAT(c.FechaFin, '%d/%m/%Y') as FechaFin"),
@@ -236,7 +236,7 @@ class CajaController extends Controller
     public function consultarDatosCaja($caja){
         try{
 
-            $datos = DB::table('Caja')
+            $datos = DB::table('caja')
             ->select(
                 DB::raw("DATE_FORMAT(FechaInicio, '%d/%m/%Y') AS Fecha"),
                 DB::raw("TIME(FechaInicio) AS Hora")
@@ -245,7 +245,7 @@ class CajaController extends Controller
             ->where('Estado', 'A')
             ->first();
 
-            $apertura = DB::table('IngresoDinero')
+            $apertura = DB::table('ingresodinero')
                 ->where('CodigoCaja', $caja)
                 ->where('Vigente', 1)
                 ->where('Tipo', 'A')
@@ -254,15 +254,15 @@ class CajaController extends Controller
                 ->value('Apertura');
             
             // INGRESOS + APERTURA
-            $ingresos = DB::table('IngresoDinero')
+            $ingresos = DB::table('ingresodinero')
                 ->where('CodigoCaja', $caja)
                 ->where('Vigente', 1)
                 ->selectRaw('COALESCE(SUM(Monto), 0) as Ingresos')
                 ->value('Ingresos');
             
             // EGRESOS SIN SALIDA DE DINERO INTERNO
-            $egresos = DB::table('Egreso as e')
-                ->join('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+            $egresos = DB::table('egreso as e')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->where('e.CodigoCaja', $caja)
                 ->where('mp.CodigoSUNAT', '008')
                 ->where('e.Vigente', 1)
@@ -274,8 +274,8 @@ class CajaController extends Controller
                 ->value('Egreso');
             
             // RECAUDACIÓN (PAGOS)
-            $recaudacion = DB::table('Pago as pag')
-                ->join('medioPago as mp', 'mp.Codigo', '=', 'pag.CodigoMedioPago')
+            $recaudacion = DB::table('pago as pag')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'pag.CodigoMedioPago')
                 ->where('pag.CodigoCaja', $caja)
                 ->where('pag.Vigente', 1)
                 ->where('mp.CodigoSUNAT', '008')
@@ -285,7 +285,7 @@ class CajaController extends Controller
             // SALIDAS (SALIDAS DE DINERO INTERNAS)
             $salida = DB::table('salidadinero as sdd')
                 ->join('egreso as e', 'e.Codigo', '=', 'sdd.Codigo')
-                ->join('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->where('e.CodigoCaja', $caja)
                 ->where('e.Vigente', 1)
                 ->where('mp.CodigoSUNAT', '008')
@@ -404,7 +404,7 @@ class CajaController extends Controller
         $codigoTrabajador = $request->input('CodigoTrabajador');
         $codigoSede = $request->input('CodigoSede');
         try {
-            $caja = DB::table('clinica_db.caja')
+            $caja = DB::table('caja')
                 ->where('CodigoTrabajador', $codigoTrabajador)
                 ->where('CodigoSede', $codigoSede)
                 ->where('Estado', 'A')
@@ -490,10 +490,10 @@ class CajaController extends Controller
         $codigoReceptor = $request->input('codigoReceptor');
 
         try{
-            $results = DB::table('clinica_db.salidadinero AS sd')
-                ->join('Egreso AS e', 'e.Codigo', '=', 'sd.Codigo')
-                ->join('Caja AS c', 'c.Codigo', '=', 'e.CodigoCaja')
-                ->join('Personas AS p', 'p.Codigo', '=', 'e.CodigoTrabajador')
+            $results = DB::table('salidadinero AS sd')
+                ->join('egreso AS e', 'e.Codigo', '=', 'sd.Codigo')
+                ->join('caja AS c', 'c.Codigo', '=', 'e.CodigoCaja')
+                ->join('personas AS p', 'p.Codigo', '=', 'e.CodigoTrabajador')
                 ->where('sd.Confirmado', 0)
                 ->where('e.Vigente', 1)
                 ->where('c.CodigoSede', $codigoSede)

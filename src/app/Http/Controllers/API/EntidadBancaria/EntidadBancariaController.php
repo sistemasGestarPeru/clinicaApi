@@ -113,7 +113,7 @@ class EntidadBancariaController extends Controller
         try{
             $cuentasBancarias = DB::table('cuentabancaria as cb')
             ->join('entidadbancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
-            ->join('tipoMoneda as tm', 'tm.Codigo', '=', 'cb.CodigoTipoMoneda')
+            ->join('tipomoneda as tm', 'tm.Codigo', '=', 'cb.CodigoTipoMoneda')
             ->join('empresas as e', 'e.Codigo', '=', 'cb.CodigoEmpresa')
             ->select(
                 'cb.Codigo',

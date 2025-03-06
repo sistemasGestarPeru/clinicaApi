@@ -100,7 +100,7 @@ class CompraController extends Controller
         $ruc = $request->input('ruc');
 
         try {
-            $proveedores = DB::table('clinica_db.proveedor')
+            $proveedores = DB::table('proveedor')
                 ->where('Vigente', 1)
                 // ->where('RazonSocial', 'like', '%'.$nombre.'%')
                 // ->where('RUC', 'like', '%'.$ruc.'%')

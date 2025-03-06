@@ -66,7 +66,7 @@ class ControladorGeneralController extends Controller
     public function listarTipoDocIdentidad(){
         
         try{
-            $documentos = DB::table('clinica_db.tipo_documentos')
+            $documentos = DB::table('tipo_documentos')
             ->where('Vigente', 1)
             ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
             ->get();
@@ -83,7 +83,7 @@ class ControladorGeneralController extends Controller
     public function listarEmpresas()
     {
         try {
-            $empresas = DB::table('clinica_db.empresas')
+            $empresas = DB::table('empresas')
                 ->where('Vigente', 1)
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
@@ -97,7 +97,7 @@ class ControladorGeneralController extends Controller
     public function listarSedesEmpresas($codigoEmpresa)
     {
         try {
-            $sedes = DB::table('clinica_db.sedesrec')
+            $sedes = DB::table('sedesrec')
                 ->where('CodigoEmpresa', $codigoEmpresa)
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
@@ -170,8 +170,8 @@ class ControladorGeneralController extends Controller
     public function listarDepartamentos($sede)
     {
         try {
-            $departamentos = DB::table('clinica_db.sedesrec as s')
-                ->join('clinica_db.departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
+            $departamentos = DB::table('sedesrec as s')
+                ->join('departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
                 ->where('s.Codigo', $sede)
                 ->where('s.Vigente', 1)
                 ->where('d.Vigente', 1)
@@ -257,8 +257,8 @@ class ControladorGeneralController extends Controller
     public function listarCuentasBancariasEmpresa($empresa)
     {
         try {
-            $result = DB::table('clinica_db.cuentabancaria as cb')
-                ->join('clinica_db.EntidadBancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
+            $result = DB::table('cuentabancaria as cb')
+                ->join('EntidadBancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
                 ->where('cb.CodigoEmpresa', $empresa)
                 ->where('cb.Vigente', 1)
                 ->where('eb.Vigente', 1)
@@ -274,7 +274,7 @@ class ControladorGeneralController extends Controller
     public function listarMotivosAnulacion()
     {
         try {
-            $result = DB::table('clinica_db.motivoanulacion')
+            $result = DB::table('motivoanulacion')
                 ->where('Vigente', 1)
                 ->select('Codigo as Codigo', 'Nombre as Nombre', 'Descripcion as Descripcion')
                 ->get();

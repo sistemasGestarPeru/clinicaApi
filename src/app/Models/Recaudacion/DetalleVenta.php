@@ -11,7 +11,7 @@ class DetalleVenta extends Model
 
     public $timestamps = false;
 
-    protected $table = 'DetalleDocumentoVenta';
+    protected $table = 'detalledocumentoventa';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [

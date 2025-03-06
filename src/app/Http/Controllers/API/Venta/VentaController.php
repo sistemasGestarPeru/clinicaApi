@@ -102,7 +102,7 @@ class VentaController extends Controller
                     ->where('CodigoDocumentoVenta', $venta)
                     ->update(['Vigente' => 0]);
 
-                DB::table('DocumentoVenta')
+                DB::table('documentoventa')
                     ->where('Codigo', $venta)
                     ->decrement('MontoPagado', $monto);
             }
@@ -114,7 +114,7 @@ class VentaController extends Controller
                     ->where('Vigente', 1)
                     ->sum('Monto'); 
 
-                DB::table('DocumentoVenta')
+                DB::table('documentoventa')
                     ->where('Codigo', $venta)
                     ->decrement('MontoPagado', $monto);
 
@@ -639,8 +639,8 @@ class VentaController extends Controller
                 ->joinSub(
                     DB::table('DetalleContrato as DC')
                         ->leftJoinSub(
-                            DB::table('DocumentoVenta as DV')
-                                ->join('DetalleDocumentoVenta as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
+                            DB::table('documentoventa as DV')
+                                ->join('detalledocumentoventa as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
                                 ->where('DV.CodigoContratoProducto', $idContrato)
                                 ->where('DV.Vigente', 1)
                                 ->groupBy('DDV.CodigoDetalleContrato', 'DDV.CodigoProducto')
@@ -946,7 +946,7 @@ class VentaController extends Controller
 
         try {
             // Obtener el último documento de venta
-            $documentoVenta = DB::table('clinica_db.documentoventa')
+            $documentoVenta = DB::table('documentoventa')
                 ->where('CodigoTipoDocumentoVenta', $tipoDocumento)
                 ->where('CodigoSede', $sede)
                 ->where('Serie', $serie)
@@ -1009,13 +1009,13 @@ class VentaController extends Controller
                     ->update(['Vigente' => 0]);
 
                 // Marcar la venta como no vigente
-                DB::table('DocumentoVenta')
+                DB::table('documentoventa')
                     ->where('Codigo', $codigoVenta)
                     ->update(['Vigente' => 0]);
             }else{
                 if($anularPago == 0){
                 // Marcar la venta como no vigente
-                    DB::table('DocumentoVenta')
+                    DB::table('documentoventa')
                     ->where('Codigo', $codigoVenta)
                     ->update(['Vigente' => 0]);
 
@@ -1333,7 +1333,7 @@ class VentaController extends Controller
                     (
                         COALESCE(
                             (SELECT SUM(Monto) 
-                            FROM pagoDocumentoVenta 
+                            FROM pagodocumentoventa 
                             WHERE CodigoDocumentoVenta = dv.Codigo 
                             AND Vigente = 1), 
                         0) 
@@ -1368,7 +1368,7 @@ class VentaController extends Controller
         
             $detalle = DB::table('Producto as P')
             ->joinSub(
-                DB::table('DetalleDocumentoVenta as DDNC')
+                DB::table('detalledocumentoventa as DDNC')
                     ->selectRaw('
                         DDNC.CodigoProducto, 
                         DDNC.Descripcion, 
@@ -1377,8 +1377,8 @@ class VentaController extends Controller
                         SUM(DDNC.MontoTotal) + COALESCE(NOTAC.MontoBoleteado, 0) AS Monto
                     ')
                     ->leftJoinSub(
-                        DB::table('DocumentoVenta as NC')
-                            ->join('DetalleDocumentoVenta as DNC', 'NC.Codigo', '=', 'DNC.CodigoVenta')
+                        DB::table('documentoventa as NC')
+                            ->join('detalledocumentoventa as DNC', 'NC.Codigo', '=', 'DNC.CodigoVenta')
                             ->selectRaw('
                                 DNC.CodigoProducto, 
                                 SUM(DNC.Cantidad) AS CantidadBoleteada, 

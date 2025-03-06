@@ -177,8 +177,8 @@ class ContratoProductoeController extends Controller
        // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
 
         try {
-            $contratos = DB::table('clinica_db.contratoproducto as cp')
-            ->join('clinica_db.personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+            $contratos = DB::table('contratoproducto as cp')
+            ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
             ->where('cp.CodigoSede', $codigoSede) // Filtrar por CódigoSede
             ->when(!empty($nombre), function ($query) use ($nombre) {
                 return $query->where(function ($q) use ($nombre) {

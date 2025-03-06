@@ -56,8 +56,8 @@ class DetraccionController extends Controller
     public function listarDetraccionesPendientes($sede)
     {
         try{
-            $ventas = DB::table('clinica_db.DocumentoVenta as dv')
-                ->join('clinica_db.Detraccion as d', 'dv.Codigo', '=', 'd.CodigoDocumentoVenta')
+            $ventas = DB::table('DocumentoVenta as dv')
+                ->join('Detraccion as d', 'dv.Codigo', '=', 'd.CodigoDocumentoVenta')
                 ->select(
                     'dv.Codigo as CodigoVenta',
                     'd.Codigo as CodDetraccion',
