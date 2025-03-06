@@ -117,7 +117,7 @@ class MedioPagoController extends Controller
 
     public function mediosPagoDisponible($sede){
         try{
-            $mediosPago = DB::table('medioPago')
+            $mediosPago = DB::table('mediopago')
                 ->whereNotIn('codigo', function ($query) use ($sede) {
                     $query->select('CodigoMedioPago')
                         ->from('localmediopago')

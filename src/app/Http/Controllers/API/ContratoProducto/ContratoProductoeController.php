@@ -327,7 +327,7 @@ class ContratoProductoeController extends Controller
                         ->whereNotNull('NOTACREDITO.CodigoMotivoNotaCredito');
                 })
                 ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
-                ->leftJoin('Pago as p', 'p.Codigo', '=', 'pdv.CodigoPago')
+                ->leftJoin('pago as p', 'p.Codigo', '=', 'pdv.CodigoPago')
                 ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
                 ->leftJoin('devolucionnotacredito as dnc', 'dnc.CodigoDocumentoVenta', '=', 'dv.Codigo')
                 ->leftJoin('egreso as e', 'e.Codigo', '=', 'dnc.Codigo')

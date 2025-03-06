@@ -11,7 +11,7 @@ class Detraccion extends Model
 
     public $timestamps = false;
 
-    protected $table = 'Detraccion';
+    protected $table = 'detraccion';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [

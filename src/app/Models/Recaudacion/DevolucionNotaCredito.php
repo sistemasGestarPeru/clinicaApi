@@ -10,7 +10,7 @@ class DevolucionNotaCredito extends Model
     use HasFactory;
 
     public $timestamps = false;
-    protected $table = 'DevolucionNotaCredito';
+    protected $table = 'devolucionnotacredito';
 
     protected $primaryKey = 'Codigo';
 

@@ -89,10 +89,10 @@ class PagoServicioController extends Controller
         $sede = $request->input('sede');
 
         try {
-            $results = DB::table('Egreso as e')
-                ->join('PagoServicio as ps', 'ps.Codigo', '=', 'e.Codigo')
-                ->join('MotivoPagoServicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
-                ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+            $results = DB::table('egreso as e')
+                ->join('pagoservicio as ps', 'ps.Codigo', '=', 'e.Codigo')
+                ->join('motivopagoservicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
+                ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
                 ->select('ps.Codigo', 'mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
                 // ->where(DB::raw('DATE(e.Fecha)'), $fecha)
                 ->where('c.CodigoSede', $sede)

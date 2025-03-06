@@ -164,8 +164,8 @@ class CompraController extends Controller
         $Proveedor = $request->input('proveedor');
         $Moneda = $request->input('moneda');
         try {
-            $result = DB::table('PagoProveedor as pp')
-            ->join('Egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+            $result = DB::table('pagoproveedor as pp')
+            ->join('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
             ->join('tipomoneda as tp', 'tp.Codigo', '=', 'pp.tipomoneda')
             ->select(
                 'e.Codigo as CodigoE',

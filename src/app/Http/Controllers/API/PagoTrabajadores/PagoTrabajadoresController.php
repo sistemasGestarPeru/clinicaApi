@@ -65,7 +65,7 @@ class PagoTrabajadoresController extends Controller
 
             $trabajador = DB::table('trabajadors as t')
             ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            ->join('SistemaPensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
+            ->join('sistemapensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
             ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
             ->select(
                 'p.Codigo',
@@ -306,7 +306,7 @@ class PagoTrabajadoresController extends Controller
         try {
             $resultado = DB::table('personas as p')
                 ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
-                ->join('SistemaPensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
+                ->join('sistemapensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
                 ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
                 ->select(
                     't.Codigo as CodigoTrabajador',

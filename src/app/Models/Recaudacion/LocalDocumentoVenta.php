@@ -10,7 +10,7 @@ class LocalDocumentoVenta extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'LocalDocumentoVenta';
+    protected $table = 'localdocumentoventa';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
         'CodigoSede',

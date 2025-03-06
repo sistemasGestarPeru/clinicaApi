@@ -56,8 +56,8 @@ class DetraccionController extends Controller
     public function listarDetraccionesPendientes($sede)
     {
         try{
-            $ventas = DB::table('DocumentoVenta as dv')
-                ->join('Detraccion as d', 'dv.Codigo', '=', 'd.CodigoDocumentoVenta')
+            $ventas = DB::table('documentoventa as dv')
+                ->join('detraccion as d', 'dv.Codigo', '=', 'd.CodigoDocumentoVenta')
                 ->select(
                     'dv.Codigo as CodigoVenta',
                     'd.Codigo as CodDetraccion',
@@ -136,12 +136,12 @@ class DetraccionController extends Controller
 
             $egresoCreado = Egreso::create($dataEgreso)->Codigo;
 
-            DB::table('PagoDetraccion')->insert([
+            DB::table('pagodetraccion')->insert([
                 'Codigo' => $egresoCreado,
                 'CodigoCuentaDetraccion' =>  $codigoEntidadBancaria
             ]);
 
-            DB::table('Detraccion')
+            DB::table('detraccion')
             ->whereIn('Codigo', $detraccion) // $detraccion es un array [1,2,3]
             ->update(['CodigoPagoDetraccion' => $egresoCreado]);
             DB::commit();

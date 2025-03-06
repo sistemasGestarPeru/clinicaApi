@@ -10,7 +10,7 @@ class PagoDonante extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'PagoDonante';
+    protected $table = 'pagodonante';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
         'Codigo',

@@ -11,7 +11,7 @@ class PagosVarios extends Model
 
     public $timestamps = false;
 
-    protected $table = 'pagosVarios';
+    protected $table = 'pagosvarios';
     protected $primaryKey = 'Codigo';
     
     protected $fillable = [

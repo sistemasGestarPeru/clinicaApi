@@ -11,7 +11,7 @@ class PrecioTemporal extends Model
 
     public $timestamps = false;
 
-    protected $table = 'precioTemporal';
+    protected $table = 'preciotemporal';
 
     protected $primaryKey = 'Codigo';
 

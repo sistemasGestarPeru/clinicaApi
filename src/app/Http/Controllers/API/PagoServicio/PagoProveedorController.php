@@ -132,9 +132,9 @@ class PagoProveedorController extends Controller
         try {
 
         $resultado = DB::table('compra as C')
-            ->join('Cuota as CU', 'CU.CodigoCompra', '=', 'C.Codigo')
-            ->leftJoin('PagoProveedor as PP', 'PP.CodigoCuota', '=', 'CU.Codigo')
-            ->join('Proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
+            ->join('cuota as CU', 'CU.CodigoCompra', '=', 'C.Codigo')
+            ->leftJoin('pagoproveedor as PP', 'PP.CodigoCuota', '=', 'CU.Codigo')
+            ->join('proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
             ->select(
                 'C.Codigo as Compra',
                 'C.Fecha',
@@ -191,7 +191,7 @@ class PagoProveedorController extends Controller
                 'tm.Siglas AS TipoMoneda',
                 
             )
-            ->leftJoin('PagoProveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
+            ->leftJoin('pagoproveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
             ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
             ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
             ->where('C.CodigoCompra', '=', $codigoCompra)

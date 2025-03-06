@@ -151,7 +151,7 @@ class CajaController extends Controller
                         END AS OPERACION,
                         '' AS DOCUMENTO,
                         Monto AS MONTO
-                    FROM IngresoDinero 
+                    FROM ingresodinero 
                     WHERE CodigoCaja = $caja AND Vigente = 1
     
                     UNION ALL
@@ -161,7 +161,7 @@ class CajaController extends Controller
                         'RECAUDACION' AS OPERACION,
                         CONCAT(dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS DOCUMENTO,
                         p.Monto AS MONTO
-                    FROM Pago as p
+                    FROM pago as p
                     INNER JOIN pagodocumentoventa as pdv ON pdv.CodigoPago = p.Codigo
                     INNER JOIN documentoventa as dv ON dv.Codigo = pdv.CodigoDocumentoVenta
                     WHERE p.CodigoCaja = $caja 
@@ -189,8 +189,8 @@ class CajaController extends Controller
                     CASE 
                         WHEN ps.Codigo IS NOT NULL THEN CONCAT(ps.TipoDocumento,' ',ps.Serie,'-',ps.Numero)
                         WHEN pp.CodigoCuota IS NOT NULL THEN (
-                                SELECT CONCAT(tdv.Nombre,' ',Co.Serie, '-', LPAD(Co.Numero, 5, '0')) FROM Cuota as c 
-                            INNER JOIN Compra as Co ON c.CodigoCompra = Co.Codigo
+                                SELECT CONCAT(tdv.Nombre,' ',Co.Serie, '-', LPAD(Co.Numero, 5, '0')) FROM cuota as c 
+                            INNER JOIN compra as Co ON c.CodigoCompra = Co.Codigo
                             INNER JOIN tipodocumentoventa as tdv ON tdv.Codigo = Co.CodigoTipoDocumentoVenta
                             WHERE c.Codigo = pp.CodigoCuota AND c.Vigente = 1 AND Co.Vigente = 1)
                             WHEN dnc.Codigo IS NOT NULL THEN (
@@ -204,9 +204,9 @@ class CajaController extends Controller
                     
                     -e.Monto AS MONTO
                         FROM Egreso as e
-                        LEFT JOIN PagoServicio AS ps ON ps.Codigo = e.Codigo
-                        LEFT JOIN PagoProveedor as pp ON pp.Codigo = e.Codigo
-                        LEFT JOIN SalidaDinero AS sd ON sd.Codigo = e.Codigo
+                        LEFT JOIN pagoservicio AS ps ON ps.Codigo = e.Codigo
+                        LEFT JOIN pagoproveedor as pp ON pp.Codigo = e.Codigo
+                        LEFT JOIN salidadinero AS sd ON sd.Codigo = e.Codigo
                         LEFT JOIN devolucionnotacredito as dnc ON dnc.Codigo = e.Codigo
                         LEFT JOIN pagoDonante as pd ON pd.Codigo = e.Codigo
                         LEFT JOIN pagoComision as pc ON pc.Codigo = e.Codigo

@@ -141,9 +141,9 @@ class PagoDonanteController extends Controller
                     DB::raw('DATE(e.Fecha) as Fecha'),
                     'e.Monto as Monto'
                 )
-                ->join('Egreso as e', 'e.Codigo', '=', 'pd.Codigo')
-                ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-                ->join('Personas as p', 'p.Codigo', '=', 'pd.CodigoDonante')
+                ->join('egreso as e', 'e.Codigo', '=', 'pd.Codigo')
+                ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+                ->join('personas as p', 'p.Codigo', '=', 'pd.CodigoDonante')
                 ->where('c.CodigoSede', $data['CodigoSede'])  // Puedes cambiar el 1 por una variable dinámica $codigoSede
                 ->where('e.Vigente', 1)
                 ->get();

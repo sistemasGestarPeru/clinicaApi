@@ -139,9 +139,9 @@ class PagoComisionController extends Controller
                 DB::raw('DATE(e.Fecha) as Fecha'),
                 'e.Monto as Monto'
             )
-            ->join('Egreso as e', 'e.Codigo', '=', 'pc.Codigo')
-            ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-            ->join('Personas as p', 'p.Codigo', '=', 'pc.CodigoMedico')
+            ->join('egreso as e', 'e.Codigo', '=', 'pc.Codigo')
+            ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+            ->join('personas as p', 'p.Codigo', '=', 'pc.CodigoMedico')
             ->where('c.CodigoSede', $data['CodigoSede'])
             ->where('e.Vigente', 1)
             ->get();
@@ -212,9 +212,9 @@ class PagoComisionController extends Controller
         try{
 
             if ($tipoComision == 'C') {
-                $query = DB::table('ContratoProducto as cp')
+                $query = DB::table('contratoproducto as cp')
                     ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-                    ->leftJoin('pagoComision as pc', 'cp.Codigo', '=', 'pc.CodigoContrato')
+                    ->leftJoin('pagocomision as pc', 'cp.Codigo', '=', 'pc.CodigoContrato')
                     ->select([
                         'cp.Codigo as Codigo',
                         DB::raw("LPAD(cp.NumContrato, 5, '0') AS Documento"),
@@ -231,9 +231,9 @@ class PagoComisionController extends Controller
                     });
                     
             }else{
-                $query = DB::table('DocumentoVenta as dv')
+                $query = DB::table('documentoventa as dv')
                 ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPaciente')
-                ->leftJoin('pagoComision as pc', 'dv.Codigo', '=', 'pc.CodigoDocumentoVenta')
+                ->leftJoin('pagocomision as pc', 'dv.Codigo', '=', 'pc.CodigoDocumentoVenta')
                 ->select([
                     'dv.Codigo as Codigo',
                     DB::raw("CONCAT(dv.Serie,' - ',LPAD(dv.Numero, 5, '0')) as Documento"),

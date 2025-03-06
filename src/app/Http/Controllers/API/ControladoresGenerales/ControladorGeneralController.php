@@ -57,7 +57,7 @@ class ControladorGeneralController extends Controller
                 ->where('cl.CodigoTrabajador', $codigoTrabajador)
                 ->get();
 
-            return response()->json($empresas);
+            return response()->json($empresas, 200);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
@@ -71,7 +71,7 @@ class ControladorGeneralController extends Controller
             ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
             ->get();
     
-            return response()->json($documentos);
+            return response()->json($documentos, 200);
             
         }catch(\Exception $e){
             return response()->json('Error en la consulta: ' . $e->getMessage());
@@ -88,7 +88,7 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
 
-            return response()->json($empresas);
+            return response()->json($empresas, 200);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
@@ -102,7 +102,7 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
 
-            return response()->json($sedes);
+            return response()->json($sedes, 200);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
@@ -131,7 +131,7 @@ class ControladorGeneralController extends Controller
             ->whereNull('ass.Codigo')
             ->get();
 
-            return response()->json($sedes);
+            return response()->json($sedes, 200);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
@@ -258,7 +258,7 @@ class ControladorGeneralController extends Controller
     {
         try {
             $result = DB::table('cuentabancaria as cb')
-                ->join('EntidadBancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
+                ->join('entidadbancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
                 ->where('cb.CodigoEmpresa', $empresa)
                 ->where('cb.Vigente', 1)
                 ->where('eb.Vigente', 1)
@@ -407,7 +407,7 @@ class ControladorGeneralController extends Controller
 
     public function listarPacientes($sede){
         try{
-            $resultado = DB::table('Personas as p')
+            $resultado = DB::table('personas as p')
                 ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
                 ->select('p.Codigo', 'p.Nombres', 'p.Apellidos')
                 ->where('p.Vigente', 1)
@@ -434,7 +434,7 @@ class ControladorGeneralController extends Controller
 
     public function listarMotivoAnulacionContrato(){
         try{
-            $motivos = DB::table('MotivoAnulacionContrato')
+            $motivos = DB::table('motivoanulacioncontrato')
             ->where('Vigente', 1)
             ->select('Codigo', 'Nombre', 'Descripcion')
             ->get();

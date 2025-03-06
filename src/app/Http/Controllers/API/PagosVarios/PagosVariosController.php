@@ -104,10 +104,10 @@ class PagosVariosController extends Controller
         $tipo = $request->input('tipo');
 
         try{
-            $pagosVarios = DB::table('PagosVarios as pv')
-            ->join('Egreso as e', 'e.Codigo', '=', 'pv.Codigo')
-            ->join('Personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
-            ->join('Caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+            $pagosVarios = DB::table('pagosvarios as pv')
+            ->join('egreso as e', 'e.Codigo', '=', 'pv.Codigo')
+            ->join('personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
+            ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
             ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
             ->where('e.Vigente', 1)
             ->where('c.CodigoSede', $sede)

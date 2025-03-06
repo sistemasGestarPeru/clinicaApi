@@ -11,7 +11,7 @@ class UsuarioPerfil extends Model
     use HasFactory;
     public $timestamps = false;
     protected $primaryKey = 'Codigo';
-    protected $table = 'Usuario_Perfil';
+    protected $table = 'usuario_perfil';
 
     protected $fillable = [
         'CodigoPersona',

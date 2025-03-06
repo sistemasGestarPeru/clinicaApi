@@ -236,7 +236,7 @@ class BlogController extends Controller
     {
         $termino = $request->input('termino');
         $resultados = Blog::where('vigente', true)
-            ->where('Titulo', 'LIKE', '%' . $termino . '%')
+            ->where('Titulo', 'LIKE', $termino . '%')
             ->get();
         return BlogResource::collection($resultados);
     }

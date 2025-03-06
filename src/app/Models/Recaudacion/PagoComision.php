@@ -10,7 +10,7 @@ class PagoComision extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'PagoComision';
+    protected $table = 'pagocomision';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [

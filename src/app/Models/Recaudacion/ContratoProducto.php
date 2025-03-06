@@ -11,7 +11,7 @@ class ContratoProducto extends Model
 
     public $timestamps = false;
 
-    protected $table = 'contratoProducto';
+    protected $table = 'contratoproducto';
     protected $primaryKey = 'Codigo';
 
     protected $fillable = [

@@ -10,7 +10,7 @@ class AnulacionContrato extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'AnulacionContrato';
+    protected $table = 'anulacioncontrato';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
         'Codigo',

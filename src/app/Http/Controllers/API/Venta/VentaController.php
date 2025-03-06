@@ -635,9 +635,9 @@ class VentaController extends Controller
             ->first();
         
 
-            $detalle = DB::table('Producto as P')
+            $detalle = DB::table('producto as P')
                 ->joinSub(
-                    DB::table('DetalleContrato as DC')
+                    DB::table('detallecontrato as DC')
                         ->leftJoinSub(
                             DB::table('documentoventa as DV')
                                 ->join('detalledocumentoventa as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
@@ -670,8 +670,8 @@ class VentaController extends Controller
                     '=',
                     'S.CodigoProducto'
                 )
-                ->join('SedeProducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
-                ->join('TipoGravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+                ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
+                ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
                 ->where('S.Monto', '>', 0)
                 ->orderBy('S.Descripcion')
                 ->select(
@@ -1253,7 +1253,7 @@ class VentaController extends Controller
 
 
             $devoluciones = DB::table('devolucionnotacredito as dnc')
-                ->join('Egreso as e', 'e.Codigo', '=', 'dnc.Codigo')
+                ->join('egreso as e', 'e.Codigo', '=', 'dnc.Codigo')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->leftJoin('cuentabancaria as cb', 'cb.Codigo', '=', 'e.CodigoCuentaOrigen')
                 ->leftJoin('entidadbancaria as eb', 'eb.Codigo', '=', 'cb.CodigoEntidadBancaria')
@@ -1366,7 +1366,7 @@ class VentaController extends Controller
             ->first();
         
         
-            $detalle = DB::table('Producto as P')
+            $detalle = DB::table('producto as P')
             ->joinSub(
                 DB::table('detalledocumentoventa as DDNC')
                     ->selectRaw('
@@ -1400,8 +1400,8 @@ class VentaController extends Controller
                 '=',
                 'S.CodigoProducto'
             )
-            ->join('SedeProducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
-            ->join('TipoGravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+            ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
+            ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
             ->where('S.Monto', '>', 0)
             ->orderBy('S.Descripcion')
             ->selectRaw('

@@ -10,7 +10,7 @@ class LocalMedioPago extends Model
     use HasFactory;
     public $timestamps = false;
 
-    protected $table = 'LocalMedioPago';
+    protected $table = 'localmediopago';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
         'CodigoSede',

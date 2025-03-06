@@ -122,7 +122,7 @@ class PagoController extends Controller
 
             $pagos = DB::table('pago as p')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
-                ->join('Caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
+                ->join('caja as CAJA', 'CAJA.Codigo', '=', 'p.CodigoCaja')
                 ->leftJoinSub($subquery, 'PAG', 'PAG.CodigoPago', '=', 'p.Codigo')
                 ->where('p.Vigente', 1)
                 ->where('CAJA.CodigoSede', $codigoSede)
@@ -242,7 +242,7 @@ class PagoController extends Controller
         $codigoPago = $request->input('codigoPago');
 
         try {
-            $pago = DB::table('Pago')
+            $pago = DB::table('pago')
                 ->select('Codigo', 'CodigoMedioPago', 'CodigoCuentaBancaria', 'NumeroOperacion', DB::raw("DATE(Fecha) as Fecha"), 'Monto', 'CodigoBilleteraDigital')
                 ->where('Vigente', 1)
                 ->where('Codigo', $codigoPago)

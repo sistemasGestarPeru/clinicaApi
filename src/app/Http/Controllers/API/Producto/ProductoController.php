@@ -309,14 +309,14 @@ class ProductoController extends Controller
         
         try {
             // Consultar información del producto
-            $producto = DB::table('Producto')
+            $producto = DB::table('producto')
                 ->select('Codigo', 'Nombre', 'Descripcion', 'CodigoCategoria')
                 ->where('Codigo', $codigo)
                 ->first(); // Para obtener un solo resultado
         
             // Consultar productos dentro del combo
             $productosEnCombo = DB::table('productocombo as pc')
-                ->join('Producto as p', 'p.Codigo', '=', 'pc.CodigoProducto')
+                ->join('producto as p', 'p.Codigo', '=', 'pc.CodigoProducto')
                 ->select(
                     'p.Codigo',
                     'p.Nombre as Producto',
