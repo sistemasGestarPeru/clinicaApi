@@ -82,7 +82,7 @@ class DetraccionController extends Controller
     {
         $detraccion = $request->input('detraccion');
         $dataEgreso = $request->input('egreso');
-
+        $empresa = $request->input('empresa');
         //Validar Egreso
         if(isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0){
             $dataEgreso['CodigoCuentaOrigen'] = null;
@@ -128,11 +128,17 @@ class DetraccionController extends Controller
         DB::beginTransaction();
         try{
 
+            $codigoEntidadBancaria = DB::table('cuentabancaria')
+            ->where('Detraccion', 1)
+            ->where('CodigoEmpresa', $empresa)
+            ->value('CodigoEntidadBancaria');
+
+
             $egresoCreado = Egreso::create($dataEgreso)->Codigo;
 
             DB::table('PagoDetraccion')->insert([
                 'Codigo' => $egresoCreado,
-                'CodigoCuentaDetraccion' => 1
+                'CodigoCuentaDetraccion' =>  $codigoEntidadBancaria
             ]);
 
             DB::table('Detraccion')

@@ -50,8 +50,17 @@ class TipoDocumentoVentaController extends Controller
 
     public function registrarDocVenta(Request $request)
     {
-
         $documento = $request->input('documento');
+
+        if (!empty($documento['CodigoSUNAT'])) { // Validamos que no sea null ni vacío
+            if (TipoDocumentosVenta::where('CodigoSUNAT', $documento['CodigoSUNAT'])->exists()) {
+                return response()->json([
+                    'error' => 'El Código SUNAT ya existe.'
+                ], 400); // Código de error 400 (Bad Request) en lugar de 500 (Internal Server Error)
+            }
+        }
+        
+
         try {
             TipoDocumentosVenta::create($documento);
             return response()->json(['message' => 'Documento Venta registrado correctamente'], 200);
@@ -63,7 +72,6 @@ class TipoDocumentoVentaController extends Controller
     public function listarTipoDocumentoVenta()
     {
         try {
-
             $documentos = TipoDocumentosVenta::all();
             return response()->json($documentos, 200);
         } catch (\Exception $e) {

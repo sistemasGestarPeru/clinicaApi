@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\EntidadBancaria;
 use App\Http\Controllers\Controller;
 use App\Models\Recaudacion\CuentaBancaria;
 use App\Models\Recaudacion\EntidadBancaria;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -63,8 +64,24 @@ class EntidadBancariaController extends Controller
         try{
             EntidadBancaria::create($request->all());
             return response()->json(['message' => 'Entidad Bancaria registrada correctamente'], 200);
-        }catch(\Exception $e){
-            return response()->json(['error' => $e->getMessage()], 500);
+        
+        }catch (QueryException $e) {
+            // Verificar si el error es por clave duplicada (código SQL 1062)
+            if ($e->errorInfo[1] == 1062) {
+                return response()->json([
+                    'error' => 'Las siglas de la Entidad Bancaria ya existen.'
+                ], 500);
+            }
+    
+            // Capturar otros errores de SQL
+            return response()->json([
+                'error' => 'Ocurrió un error al registar la Entidad Bancaria.'
+            ], 500);
+            
+        }
+        
+        catch(\Exception $e){
+            return response()->json(['error' => 'Ocurrió un error al registar Entidad Bancaria', 'bd' => $e->getMessage()], 500);
         }
     }
 
