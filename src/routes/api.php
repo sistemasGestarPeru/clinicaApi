@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\API\Almacen\GuiaIngreso\GuiaIngresoController;
+use App\Http\Controllers\API\Almacen\GuiaSalida\GuiaSalidaController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
@@ -463,6 +465,24 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('sedeEmpresa/actualizarSede', [PersonalSedeController::class, 'actualizarSede']);
     Route::get('sedeEmpresa/consultarSede/{codigo}', [PersonalSedeController::class, 'consultarSede']);
     Route::get('sedeEmpresa/listarEmpresas', [PersonalSedeController::class, 'listarEmpresas']);
+    
+    
+    /*********************************************************** ALMACEN ***********************************************************/
+    //ENTRADA PRODUCTOS
+
+    Route::post('guiaIngreso/listarGuiaIngreso', [GuiaIngresoController::class, 'listarGuiaIngreso']);
+    Route::get('guiaIngreso/listarComprasActivas', [GuiaIngresoController::class, 'listarComprasActivas']);
+    Route::get('guiaIngreso/listarDetalleCompra/{compra}', [GuiaIngresoController::class, 'listarDetalleCompra']);
+    Route::post('guiaIngreso/registrarGuiaIngreso', [GuiaIngresoController::class, 'registrarGuiaIngreso']);
+   
+    //SALIDA PRODUCTOS
+    Route::post('guiaSalida/listarGuiaSalida', [GuiaSalidaController::class, 'listarGuiaSalida']);
+    Route::get('guiaSalida/listarVentasActivas/{sede}', [GuiaSalidaController::class, 'listarVentasActivas']);
+    Route::get('guiaSalida/listarDetalleVenta/{venta}', [GuiaSalidaController::class, 'listarDetalleVenta']);
+    Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
+    
+    
+    
     /*********************************************************** PRUEBAS ***********************************************************/
 
     

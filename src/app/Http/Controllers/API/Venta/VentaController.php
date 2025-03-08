@@ -791,7 +791,7 @@ class VentaController extends Controller
         $codigoSede = $request->input('codigoSede');
         $nombre = $request->input('nombre');
         $documento = $request->input('documento');
-
+        $docVenta = $request->input('docVenta');
         $venta = DB::table('documentoventa as dv')
             ->selectRaw("
                 dv.Vigente,
@@ -834,6 +834,7 @@ class VentaController extends Controller
             ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
             ->where('dv.CodigoSede', $codigoSede)
             ->when($fecha, fn($query) => $query->whereDate('dv.Fecha', $fecha))
+            ->when($docVenta != 0, fn($query) => $query->where('dv.CodigoTipoDocumentoVenta', $docVenta))
             ->when($nombre, function ($query) use ($nombre) {
                 $query->where(function ($q) use ($nombre) {
                     $q->where('p.Nombres', 'LIKE', "%$nombre%")
