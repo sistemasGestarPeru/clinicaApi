@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\Almacen\GuiaIngreso\GuiaIngresoController;
 use App\Http\Controllers\API\Almacen\GuiaSalida\GuiaSalidaController;
+use App\Http\Controllers\API\Almacen\Lote\LoteController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
@@ -481,7 +482,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('guiaSalida/listarDetalleVenta/{venta}', [GuiaSalidaController::class, 'listarDetalleVenta']);
     Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
     
-    
+    //LOTE
+    Route::get('lote/listarGuiasIngreso/{sede}', [LoteController::class, 'listarGuiasIngreso']);
+    Route::get('lote/listarDetalleGuia/{codigo}', [LoteController::class, 'listarDetalleGuia']);
+    Route::get('lote/detallexGuia/{codigo}', [LoteController::class, 'detallexGuia']);
+
     
     /*********************************************************** PRUEBAS ***********************************************************/
 
