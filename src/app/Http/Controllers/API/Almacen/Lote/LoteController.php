@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API\Almacen\Lote;
 
 use App\Http\Controllers\Controller;
+use App\Models\Almacen\Lote\Lote;
+use App\Models\Almacen\Lote\MovimientoLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -48,6 +50,31 @@ class LoteController extends Controller
         //
     }
 
+    public function listarLotes(Request $request){
+        $data = $request->all();
+        try{
+            $lotes = DB::table('guiaingreso as GI')
+                ->join('detalleguiaingreso as DGI', 'GI.Codigo', '=', 'DGI.CodigoGuiaRemision')
+                ->join('lote as L', 'DGI.Codigo', '=', 'L.CodigoDetalleIngreso')
+                ->join('producto as P', 'P.Codigo', '=', 'L.CodigoProducto')
+                ->where('L.CodigoSede', $data['sede'])
+                ->where('GI.Vigente', 1)
+                ->select([
+                    'L.Codigo',
+                    'GI.Fecha as FechaIngreso',
+                    'L.FechaCaducidad as FechaCaducidad',
+                    'L.Numero',
+                    'P.Nombre',
+                    'L.Cantidad'
+                ])
+                ->get();
+            return response()->json($lotes, 200);  
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Ocurrió un error al listar Lotes', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
     public function listarGuiasIngreso($sede){
         try{
             $resultados = DB::table('guiaingreso')
@@ -61,7 +88,7 @@ class LoteController extends Controller
         }
     }
 
-    public function listarDetallesGuia($codigo){
+    public function listarDetalleGuia($codigo){
         try{
 
             $resultados = DB::table('detalleguiaingreso as dgi')
@@ -111,7 +138,7 @@ class LoteController extends Controller
             ->where('dgi.Codigo', $codigo)
             ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) > 0')
             ->select(
-                'dgi.Codigo',
+                'dgi.Codigo as CodigoDetalleIngreso',
                 DB::raw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) as Cantidad'),
                 DB::raw('(dgi.Costo - COALESCE(LOTEREG.Costo,0)) as Costo'),
                 'dgi.CodigoProducto',
@@ -121,6 +148,38 @@ class LoteController extends Controller
             return response()->json($resultados, 200);
         }catch(\Exception $e){
             return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+    public function registrarLote(Request $request){
+        $data = $request->all();
+        $data['Stock'] = $data['Cantidad'];
+
+        $movimientoLote['Cantidad'] = $data['Cantidad'];
+        $movimientoLote['CodigoDetalleIngreso'] = $data['CodigoDetalleIngreso'];
+        $movimientoLote['Fecha'] = date('Y-m-d');
+        DB::beginTransaction();
+        try{
+            $lote = Lote::create($data);
+            $movimientoLote['CodigoLote'] = $lote->Codigo;
+
+            $existe = DB::table('movimientolote')
+            ->where('CodigoDetalleIngreso', $data['CodigoDetalleIngreso'])
+            ->exists();
+        
+            if ($existe) {
+                
+            } else {
+                $movimientoLote['CostoPromedio'] = $data['Costo'];
+            }
+        
+            MovimientoLote::create($movimientoLote);
+
+            DB::commit();
+            return response()->json($lote, 201);
+        }catch(\Exception $e){
+            DB::rollBack();
+            return response()->json(['error' => 'Ocurrió un error al registrar Lote', 'bd' => $e->getMessage()], 500);
         }
     }
 }

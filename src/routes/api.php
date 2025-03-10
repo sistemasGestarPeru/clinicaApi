@@ -483,10 +483,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
     
     //LOTE
+    Route::post('lote/listarLotes', [LoteController::class, 'listarLotes']);
     Route::get('lote/listarGuiasIngreso/{sede}', [LoteController::class, 'listarGuiasIngreso']);
     Route::get('lote/listarDetalleGuia/{codigo}', [LoteController::class, 'listarDetalleGuia']);
     Route::get('lote/detallexGuia/{codigo}', [LoteController::class, 'detallexGuia']);
-
+    Route::post('lote/registrarLote', [LoteController::class, 'registrarLote']);
     
     /*********************************************************** PRUEBAS ***********************************************************/
 
