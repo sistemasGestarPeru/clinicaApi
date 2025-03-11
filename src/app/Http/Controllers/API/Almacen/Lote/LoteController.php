@@ -50,9 +50,10 @@ class LoteController extends Controller
         //
     }
 
-    public function listarLotes(Request $request){
+    public function listarLotes(Request $request)
+    {
         $data = $request->all();
-        try{
+        try {
             $lotes = DB::table('guiaingreso as GI')
                 ->join('detalleguiaingreso as DGI', 'GI.Codigo', '=', 'DGI.CodigoGuiaRemision')
                 ->join('lote as L', 'DGI.Codigo', '=', 'L.CodigoDetalleIngreso')
@@ -68,32 +69,33 @@ class LoteController extends Controller
                     'L.Cantidad'
                 ])
                 ->get();
-            return response()->json($lotes, 200);  
-
-        }catch(\Exception $e){
+            return response()->json($lotes, 200);
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar Lotes', 'bd' => $e->getMessage()], 500);
         }
     }
 
-    public function listarGuiasIngreso($sede){
-        try{
+    public function listarGuiasIngreso($sede)
+    {
+        try {
             $resultados = DB::table('guiaingreso')
-            ->where('Vigente', 1)
-            ->where('CodigoSede', $sede)
-            ->selectRaw('Codigo, CONCAT(Serie, "-", Numero) as DocGuia')
-            ->get();
+                ->where('Vigente', 1)
+                ->where('CodigoSede', $sede)
+                ->selectRaw('Codigo, CONCAT(Serie, "-", Numero) as DocGuia')
+                ->get();
             return response()->json($resultados, 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar Guías de Ingreso', 'bd' => $e->getMessage()], 500);
         }
     }
 
-    public function listarDetalleGuia($codigo){
-        try{
+    public function listarDetalleGuia($codigo)
+    {
+        try {
 
             $resultados = DB::table('detalleguiaingreso as dgi')
-            ->join('producto as p', 'p.Codigo', '=', 'dgi.CodigoProducto')
-            ->leftJoin(DB::raw('(
+                ->join('producto as p', 'p.Codigo', '=', 'dgi.CodigoProducto')
+                ->leftJoin(DB::raw('(
                 SELECT 
                     CodigoProducto,
                     CodigoDetalleIngreso,
@@ -102,82 +104,122 @@ class LoteController extends Controller
                 FROM lote 
                 GROUP BY CodigoProducto, CodigoDetalleIngreso
             ) AS LOTEREG'), function ($join) {
-                $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
-                     ->on('LOTEREG.CodigoDetalleIngreso', '=', 'dgi.Codigo');
-            })
-            ->where('dgi.CodigoGuiaRemision', $codigo)
-            ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) > 0')
-            ->select('dgi.Codigo', 'p.Nombre')
-            ->get();
-        
+                    $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
+                        ->on('LOTEREG.CodigoDetalleIngreso', '=', 'dgi.Codigo');
+                })
+                ->where('dgi.CodigoGuiaRemision', $codigo)
+                ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) > 0')
+                ->select('dgi.Codigo', 'p.Nombre')
+                ->get();
+
 
             return response()->json($resultados, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía', 'bd' => $e->getMessage()], 500);
         }
     }
 
-    public function detallexGuia($codigo){
-        try{
+    public function detallexGuia($codigo)
+    {
+        try {
             $resultados = DB::table('detalleguiaingreso as dgi')
-            ->leftJoin(DB::raw('(
+                ->leftJoin(DB::raw('(
                 SELECT 
                     CodigoProducto,
                     SUM(Cantidad) as Cantidad,
                     SUM(Costo) as Costo
                 FROM lote 
-                WHERE CodigoDetalleIngreso = '.$codigo.'
+                WHERE CodigoDetalleIngreso = ' . $codigo . '
                 GROUP BY CodigoProducto
             ) AS LOTEREG'), function ($join) {
-                $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto');
-            })
-            ->join('sedeproducto as sp', 'dgi.CodigoProducto', '=', 'sp.CodigoProducto')
-            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-            ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
-            ->where('dgi.Codigo', $codigo)
-            ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) > 0')
-            ->select(
-                'dgi.Codigo as CodigoDetalleIngreso',
-                DB::raw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) as Cantidad'),
-                DB::raw('(dgi.Costo - COALESCE(LOTEREG.Costo,0)) as Costo'),
-                'dgi.CodigoProducto',
-                'tg.Porcentaje'
-            )
-            ->first();
+                    $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto');
+                })
+                ->join('sedeproducto as sp', 'dgi.CodigoProducto', '=', 'sp.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+                ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+                ->where('dgi.Codigo', $codigo)
+                ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) > 0')
+                ->select(
+                    'dgi.Codigo as CodigoDetalleIngreso',
+                    DB::raw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad,0)) as Cantidad'),
+                    DB::raw('(dgi.Costo - COALESCE(LOTEREG.Costo,0)) as Costo'),
+                    'dgi.CodigoProducto',
+                    'tg.Porcentaje'
+                )
+                ->first();
             return response()->json($resultados, 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía', 'bd' => $e->getMessage()], 500);
         }
     }
 
-    public function registrarLote(Request $request){
+    public function registrarLote(Request $request)
+    {
         $data = $request->all();
-        $data['Stock'] = $data['Cantidad'];
-
-        $movimientoLote['Cantidad'] = $data['Cantidad'];
-        $movimientoLote['CodigoDetalleIngreso'] = $data['CodigoDetalleIngreso'];
-        $movimientoLote['Fecha'] = date('Y-m-d');
+        // $data['Stock'] = $data['Cantidad'];
+        // $movimientoLote['Cantidad'] = $data['Cantidad'];
+        // $movimientoLote['CodigoDetalleIngreso'] = $data['CodigoDetalleIngreso'];
+        // $movimientoLote['Fecha'] = date('Y-m-d');
         DB::beginTransaction();
-        try{
-            $lote = Lote::create($data);
-            $movimientoLote['CodigoLote'] = $lote->Codigo;
 
-            $existe = DB::table('movimientolote')
-            ->where('CodigoDetalleIngreso', $data['CodigoDetalleIngreso'])
-            ->exists();
-        
-            if ($existe) {
-                
-            } else {
-                $movimientoLote['CostoPromedio'] = $data['Costo'];
+
+        $inversionLote = 0;
+
+        //Consultar Sede
+        $stockSede = 0;
+        $costoSede = 0;
+        $inversionSede = 0;
+
+        //Movimiento Lote
+        $nuevoStock = 0;
+        $nuevoCosto = 0;
+        $nuevaInversion = 0;
+
+        try {
+
+            foreach ($data as $lote) {
+                $inversionLote = 0;
+
+                $producto = DB::table('SedeProducto')
+                    ->where('CodigoProducto', $lote['CodigoProducto'])
+                    ->where('CodigoSede', $lote['CodigoSede'])
+                    ->first();
+
+                $stockSede = $producto->Stock ?? 0;
+                $costoSede = $producto->CostoCompraPromedio ?? 0;
+                $inversionSede = $stockSede * $costoSede;
+
+                $inversionLote = $lote['Costo'] * $lote['Cantidad'];
+
+                $nuevoStock = $lote['Cantidad'] + $stockSede;
+                $nuevaInversion = $inversionSede + $inversionLote;
+                $nuevoCosto = $nuevaInversion / $nuevoStock;
+
+                $lote['Stock'] = $lote['Cantidad'];
+
+                $loteCreado = Lote::create($lote);
+
+                $movimientoLote['CodigoDetalleIngreso'] = $lote['CodigoDetalleIngreso'];
+                $movimientoLote['CodigoLote'] = $loteCreado->Codigo;
+                $movimientoLote['Cantidad'] = $lote['Cantidad'];
+                $movimientoLote['Stock'] = $nuevoStock;
+                $movimientoLote['CostoPromedio'] = $nuevoCosto;
+                $movimientoLote['Fecha'] = date('Y-m-d');
+                $movimientoLote['TipoOperacion'] = 'I';
+                MovimientoLote::create($movimientoLote);
+
+                DB::table('SedeProducto')
+                    ->where('CodigoProducto', $lote['CodigoProducto'])
+                    ->where('CodigoSede', $lote['CodigoSede'])
+                    ->update([
+                        'CostoCompraPromedio' => $nuevoCosto,
+                        'Stock' => $nuevoStock
+                    ]);
             }
-        
-            MovimientoLote::create($movimientoLote);
 
             DB::commit();
             return response()->json($lote, 201);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al registrar Lote', 'bd' => $e->getMessage()], 500);
         }
