@@ -13,7 +13,7 @@ class Lote extends Model
     protected $table = 'lote';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
-        'Numero',
+        'Serie',
         'Cantidad',
         'Stock',
         'Costo',

@@ -14,11 +14,13 @@ class MovimientoLote extends Model
     protected $table = 'movimientolote';
     protected $primaryKey = 'Codigo';
     protected $fillable = [
+        'TipoOperacion',
         'Fecha',
         'Cantidad',
         'CostoPromedio',
         'CodigoLote',
         'CodigoDetalleIngreso',
-        'CodigoDetalleSalida'
+        'CodigoDetalleSalida',
+        'Stock'
     ];
 }

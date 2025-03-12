@@ -64,7 +64,7 @@ class LoteController extends Controller
                     'L.Codigo',
                     'GI.Fecha as FechaIngreso',
                     'L.FechaCaducidad as FechaCaducidad',
-                    'L.Numero',
+                    'L.Serie',
                     'P.Nombre',
                     'L.Cantidad'
                 ])
@@ -156,12 +156,7 @@ class LoteController extends Controller
     public function registrarLote(Request $request)
     {
         $data = $request->all();
-        // $data['Stock'] = $data['Cantidad'];
-        // $movimientoLote['Cantidad'] = $data['Cantidad'];
-        // $movimientoLote['CodigoDetalleIngreso'] = $data['CodigoDetalleIngreso'];
-        // $movimientoLote['Fecha'] = date('Y-m-d');
         DB::beginTransaction();
-
 
         $inversionLote = 0;
 
@@ -204,7 +199,7 @@ class LoteController extends Controller
                 $movimientoLote['Cantidad'] = $lote['Cantidad'];
                 $movimientoLote['Stock'] = $nuevoStock;
                 $movimientoLote['CostoPromedio'] = $nuevoCosto;
-                $movimientoLote['Fecha'] = date('Y-m-d');
+                $movimientoLote['Fecha'] = $lote['Fecha'];
                 $movimientoLote['TipoOperacion'] = 'I';
                 MovimientoLote::create($movimientoLote);
 
