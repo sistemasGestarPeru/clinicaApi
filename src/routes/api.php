@@ -481,6 +481,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('guiaSalida/listarVentasActivas/{sede}', [GuiaSalidaController::class, 'listarVentasActivas']);
     Route::get('guiaSalida/listarDetalleVenta/{venta}', [GuiaSalidaController::class, 'listarDetalleVenta']);
     Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
+    Route::get('guiaSalida/lotesDisponibles/{sede}/{productos}', [GuiaSalidaController::class, 'lotesDisponibles']);
     
     //LOTE
     Route::post('lote/listarLotes', [LoteController::class, 'listarLotes']);

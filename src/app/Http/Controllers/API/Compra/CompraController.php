@@ -199,7 +199,6 @@ class CompraController extends Controller
         $proveedor = $request->input('proveedor');
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
 
-
         $MontoTotal = 0;
         
         $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
