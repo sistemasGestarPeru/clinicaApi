@@ -144,18 +144,20 @@ class CompraController extends Controller
 
     public function listarCompras(Request $request)
     {
+        $filtro = $request->all();
 
         try {
 
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
                 ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial', 'p.Codigo as CodigoProveedor')
+                ->where('c.CodigoSede', $filtro['sede'])
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
 
             return response()->json($compra, 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al listar las compras'], 500);
+            return response()->json(['error' => 'Error al listar las compras', 'bd' => $e->getMessage()], 500);
         }
     }
 

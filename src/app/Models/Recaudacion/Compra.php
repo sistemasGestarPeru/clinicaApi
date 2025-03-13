@@ -17,6 +17,7 @@ class Compra extends Model
 
     protected $fillable = [
         'CodigoTipoDocumentoVenta',
+        'CodigoSede',
         'Serie',
         'Numero',
         'Fecha',
