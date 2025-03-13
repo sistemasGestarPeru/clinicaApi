@@ -43,6 +43,7 @@ use App\Http\Controllers\API\Personal\TrabajadorController;
 use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\Producto\ProductoController;
 use App\Http\Controllers\API\PromocionController;
+use App\Http\Controllers\API\Proveedor\ProveedorController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
@@ -466,8 +467,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('sedeEmpresa/actualizarSede', [PersonalSedeController::class, 'actualizarSede']);
     Route::get('sedeEmpresa/consultarSede/{codigo}', [PersonalSedeController::class, 'consultarSede']);
     Route::get('sedeEmpresa/listarEmpresas', [PersonalSedeController::class, 'listarEmpresas']);
-    
-    
+        
+    /*********************************************************** PROVEEDOR ***********************************************************/
+
+    Route::get('proveedor/listarProveedor', [ProveedorController::class, 'listarProveedor']);
+    Route::get('proveedor/consultarProveedor/{codigo}', [ProveedorController::class, 'consultarProveedor']);
+    Route::post('proveedor/registrarProveedor', [ProveedorController::class, 'registrarProveedor']);
+    Route::post('proveedor/actualizarProveedor', [ProveedorController::class, 'actualizarProveedor']);
+
     /*********************************************************** ALMACEN ***********************************************************/
     //ENTRADA PRODUCTOS
 
