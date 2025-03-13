@@ -132,7 +132,7 @@ class CompraController extends Controller
                 ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
                 ->where('p.Vigente', 1) // Filtro por Vigente en producto
                 ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
-                ->where('p.Nombre', 'LIKE', "%{$nombre}%") // Filtro por Nombre
+                ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
                 ->get();
 
 

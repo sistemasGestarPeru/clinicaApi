@@ -16,7 +16,8 @@ class TipoDocumentosVenta extends Model
         'Nombre',
         'CodigoSUNAT',
         'Vigente',
-        'Tipo'
+        'Tipo',
+        'Siglas'
     ];
 
 }

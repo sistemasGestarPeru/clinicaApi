@@ -797,7 +797,7 @@ class VentaController extends Controller
                 dv.Vigente,
                 dv.Codigo,
                 dv.CodigoTipoDocumentoVenta AS TipoDoc,
-                CONCAT(tdv.Nombre, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
+                CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
                 DATE(dv.Fecha) AS Fecha,
                 ABS(dv.MontoTotal) as MontoTotal,
                 ABS(dv.MontoPagado) as MontoPagado,

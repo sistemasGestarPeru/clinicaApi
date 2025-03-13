@@ -193,16 +193,18 @@ class ControladorGeneralController extends Controller
 
         try {
 
-            $docVentas = DB::table('localdocumentoventa as ldv')
+                $docVentas = DB::table('localdocumentoventa as ldv')
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
                 ->select('tdv.Codigo', 'tdv.Nombre', 'tdv.CodigoSUNAT')
                 ->where('ldv.CodigoSede', $sede)
                 ->where('tdv.Vigente', 1)
                 ->where('ldv.Vigente', 1)
-                ->where('tdv.Tipo', $tipo) 
+                ->when($tipo !== 'T', function ($query) use ($tipo) {
+                    return $query->where('tdv.Tipo', $tipo);
+                })
                 ->distinct()
                 ->get();
-
+            
             return response()->json($docVentas);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());

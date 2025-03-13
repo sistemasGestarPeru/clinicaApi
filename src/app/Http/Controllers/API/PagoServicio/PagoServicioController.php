@@ -89,15 +89,24 @@ class PagoServicioController extends Controller
         $sede = $request->input('sede');
 
         try {
-            $results = DB::table('egreso as e')
-                ->join('pagoservicio as ps', 'ps.Codigo', '=', 'e.Codigo')
-                ->join('motivopagoservicio as mps', 'mps.Codigo', '=', 'ps.CodigoMotivoPago')
-                ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-                ->select('ps.Codigo', 'mps.Nombre', 'ps.TipoDocumento', DB::raw("DATE_FORMAT(e.Fecha, '%d/%m/%Y') as Fecha"))
-                // ->where(DB::raw('DATE(e.Fecha)'), $fecha)
-                ->where('c.CodigoSede', $sede)
-                ->orderBy('e.Fecha', 'desc')
-                ->get();
+            $results = DB::table('pagoservicio as ps')
+            ->select([
+                'ps.Codigo',
+                DB::raw("DATE_FORMAT(ps.FechaDocumento, '%d/%m/%Y') as FechaDocumento"),
+                'ps.TipoDocumento',
+                DB::raw("CONCAT(ps.Serie, ' ', ps.Numero) as Documento"),
+                'p.RazonSocial',
+                'mps.Nombre as Motivo',
+                'mp.Nombre as MedioPago',
+                'e.Monto'
+            ])
+            ->join('motivopagoservicio as mps', 'ps.CodigoMotivoPago', '=', 'mps.Codigo')
+            ->join('proveedor as p', 'ps.CodigoProveedor', '=', 'p.Codigo')
+            ->join('egreso as e', 'ps.Codigo', '=', 'e.Codigo')
+            ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+            ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+            ->where('c.CodigoSede', $sede)
+            ->get();
 
             return response()->json([
                 'pagos' => $results
@@ -109,7 +118,7 @@ class PagoServicioController extends Controller
             ], 500);
         }
     }
-
+    
     public function registrarPago(Request $request)
     {
         $pagoServicio = $request->input('pagoServicio');
