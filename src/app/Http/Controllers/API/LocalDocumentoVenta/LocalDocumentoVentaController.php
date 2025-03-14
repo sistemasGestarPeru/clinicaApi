@@ -49,6 +49,15 @@ class LocalDocumentoVentaController extends Controller
         //
     }
 
+    public function consultarSedeDocumentoVenta($codigo){
+        try{
+            $sedeDocVenta = LocalDocumentoVenta::find($codigo);
+            return response()->json($sedeDocVenta, 200);
+        }catch(\Exception $e){
+            return response()->json($e, 500);
+        }
+    }
+
     public function registrarSedeDocVenta(Request $request){
         $sedeDocVenta = $request->input('documento');
 

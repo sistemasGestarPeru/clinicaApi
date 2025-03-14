@@ -174,7 +174,7 @@ class CajaController extends Controller
                 SELECT 
                     CONCAT(DATE_FORMAT(Fecha, '%d/%m/%Y'), ' ', TIME(Fecha)) AS FECHA,
                     CASE
-                            WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
+                        WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
                         WHEN pp.Codigo IS NOT NULL THEN 'PAGO A PROVEEDOR'
                         WHEN sd.Codigo IS NOT NULL THEN 'SALIDA DE DINERO'
                         WHEN dnc.Codigo IS NOT NULL THEN 'DEVOLUCIÓN NOTA CRÉDITO'

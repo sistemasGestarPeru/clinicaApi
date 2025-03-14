@@ -347,7 +347,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('sedeDocVenta/listarSedeDocumentoVenta/{sede}', [LocalDocumentoVentaController::class, 'listarSedeDocumentoVenta']);
     Route::post('sedeDocVenta/registrarSedeDocVenta', [LocalDocumentoVentaController::class, 'registrarSedeDocVenta']);
     Route::get('sedeDocVenta/listarDocumentosReferencia/{sede}', [LocalDocumentoVentaController::class, 'listarDocumentosReferencia']);
-    
+    Route::get('sedeDocVenta/consultarSedeDocumentoVenta/{codigo}', [LocalDocumentoVentaController::class, 'consultarSedeDocumentoVenta']);
 
     /******************************************** SISTEMA PENSIONES ************************************************************/
 
