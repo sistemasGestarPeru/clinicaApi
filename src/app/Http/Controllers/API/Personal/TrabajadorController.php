@@ -149,10 +149,11 @@ class TrabajadorController extends Controller
                     'ase.FechaFin',
                     'ase.Vigente',
                     DB::raw("CASE 
-                                WHEN  ase.FechaFin IS NULL OR {$fecha} < ase.FechaFin THEN 1
-                                ELSE 0 
-                             END as EstadoAsignacion")
+                                WHEN ase.FechaFin IS NULL OR ase.FechaFin < ? THEN 0 
+                                ELSE 1 
+                            END as EstadoAsignacion")
                 )
+                ->addBinding([$fecha], 'select') // Bind de la fecha
                 ->get();
 
             return response()->json($resultados);
@@ -168,23 +169,24 @@ class TrabajadorController extends Controller
         $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
         try {
             $results = DB::table('contrato_laborals as cl')
-                ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
-                ->select(
-                    'cl.Codigo',
-                    'e.Nombre',
-                    'cl.CodigoEmpresa',
-                    'cl.FechaInicio',
-                    'cl.FechaFin',
-                    DB::raw("CASE 
-                                WHEN cl.FechaFin IS NULL OR {$fecha} < cl.FechaFin THEN 1
-                                ELSE 0 
-                             END AS VigenciaContrato")
-                )
-                ->where('cl.CodigoTrabajador', $codTrab)
-                ->where('cl.Vigente', 1)
-                ->where('e.Vigente', 1)
-                ->orderBy('VigenciaContrato', 'desc')
-                ->get();
+            ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
+            ->select(
+                'cl.Codigo',
+                'e.Nombre',
+                'cl.CodigoEmpresa',
+                'cl.FechaInicio',
+                'cl.FechaFin',
+                DB::raw("CASE 
+                            WHEN cl.FechaFin IS NULL OR cl.FechaFin > ? THEN 1
+                            ELSE 0 
+                         END AS VigenciaContrato")
+            )
+            ->where('cl.CodigoTrabajador', $codTrab)
+            ->where('cl.Vigente', 1)
+            ->where('e.Vigente', 1)
+            ->orderBy('VigenciaContrato', 'desc')
+            ->addBinding([$fecha], 'select') // Bind de la fecha
+            ->get();
     
             return response()->json($results, 200);
         } catch (\Exception $e) {

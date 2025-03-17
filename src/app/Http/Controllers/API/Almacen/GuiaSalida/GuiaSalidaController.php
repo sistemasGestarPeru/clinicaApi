@@ -94,29 +94,39 @@ class GuiaSalidaController extends Controller
 
     public function listarDetalleVenta($venta){
         try{
-            $resultados = DB::table('detalledocumentoventa as ddv')
-            ->leftJoinSub(
-                DB::table('guiasalida as gs')
-                    ->join('detalleguiasalida as dgs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
-                    ->where('gs.CodigoVenta', $venta)
-                    ->groupBy('dgs.CodigoProducto')
-                    ->selectRaw('dgs.CodigoProducto, SUM(dgs.Cantidad) as Cantidad'),
-                'Entregado',
-                'Entregado.CodigoProducto',
-                '=',
-                'ddv.CodigoProducto'
-            )
-            ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
-            ->where('ddv.CodigoVenta', $venta)
-            ->whereRaw('(ddv.Cantidad - COALESCE(Entregado.Cantidad, 0)) > 0')
-            ->where('p.Tipo', 'B')
-            ->selectRaw('
-                ddv.Cantidad - COALESCE(Entregado.Cantidad, 0) as Cantidad,
-                ddv.CodigoProducto,
-                ddv.Descripcion,
-                ((ddv.MontoTotal - ddv.MontoIGV) / (ddv.Cantidad - COALESCE(Entregado.Cantidad, 0))) AS Costo
-            ')
-            ->get();
+
+            $sql = "
+                SELECT PrVe.Codigo, PrVe.Cantidad - coalesce(Ent.Cantidad, 0) as Cantidad, PrVe.Nombre as Descripcion
+                FROM (
+                    -- Productos individuales (Tipo = 'B')
+                    SELECT P.Codigo, DDV.Cantidad, P.Nombre
+                    FROM DetalleDocumentoVenta DDV
+                    JOIN Producto P ON P.Codigo = DDV.CodigoProducto
+                    WHERE DDV.CodigoVenta = ? AND P.Tipo = 'B'
+
+                    UNION
+
+                    -- Productos dentro de combos (Tipo = 'C' desglosado)
+                    SELECT P.Codigo, DDV.Cantidad * PC.Cantidad AS Cantidad, P.Nombre
+                    FROM DetalleDocumentoVenta DDV
+                    JOIN Producto Co ON Co.Codigo = DDV.CodigoProducto
+                    JOIN ProductoCombo PC ON PC.CodigoCombo = Co.Codigo
+                    JOIN Producto P ON P.Codigo = PC.CodigoProducto
+                    WHERE DDV.CodigoVenta = ? AND Co.Tipo = 'C' AND P.Tipo = 'B'
+                ) AS PrVe
+                LEFT JOIN (
+                    -- Productos ya entregados en guías de salida
+                    SELECT dgs.CodigoProducto, SUM(dgs.Cantidad) AS Cantidad
+                    FROM guiasalida gs
+                    INNER JOIN detalleguiasalida dgs ON dgs.CodigoGuiaSalida = gs.Codigo
+                    WHERE gs.CodigoVenta = ?
+                    GROUP BY dgs.CodigoProducto
+                ) AS Ent ON Ent.CodigoProducto = PrVe.Codigo
+                WHERE PrVe.Cantidad > COALESCE(Ent.Cantidad, 0)
+            ";
+
+            $resultados = DB::select($sql, [$venta, $venta, $venta]);
+                
 
             return response()->json($resultados, 200);
         }catch(\Exception $e){

@@ -270,9 +270,10 @@ class ContratoProductoeController extends Controller
             ->select(
                 DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
                 DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
-                DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
+                'cp.CodigoMedico as CodigoMedico',
+                // DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
             )
-            ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
+            // ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
             ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
             ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
             ->where('cp.Codigo', $contrato)

@@ -333,10 +333,17 @@ class ProductoController extends Controller
                 ->orderBy('p.Nombre', 'ASC')
                 ->get(); // Para obtener múltiples resultados
         
+            $existe = DB::table('documentoventa as dv')
+            ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+            ->where('dv.Vigente', 1)
+            ->where('ddv.CodigoProducto', $codigo)
+            ->exists(); // Devuelve true si hay al menos un registro
+
             // Retornar en JSON
             return response()->json([
                 'combo' => $producto,
-                'productos' => $productosEnCombo
+                'productos' => $productosEnCombo,
+                'existe' => $existe
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
