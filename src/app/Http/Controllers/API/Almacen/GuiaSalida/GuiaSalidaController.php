@@ -96,7 +96,7 @@ class GuiaSalidaController extends Controller
         try{
 
             $sql = "
-                SELECT PrVe.Codigo, PrVe.Cantidad - coalesce(Ent.Cantidad, 0) as Cantidad, PrVe.Nombre as Descripcion
+                SELECT PrVe.Codigo as CodigoProducto, PrVe.Cantidad - coalesce(Ent.Cantidad, 0) as Cantidad, PrVe.Nombre as Descripcion
                 FROM (
                     -- Productos individuales (Tipo = 'B')
                     SELECT P.Codigo, DDV.Cantidad, P.Nombre
@@ -143,26 +143,30 @@ class GuiaSalidaController extends Controller
             $guiaSalida = GuiaSalida::create($guiaData);
 
             foreach($detalleGuia as $detalle){
+
+                //Consultar el stock de la sede
+                $producto = DB::table('SedeProducto')
+                    ->where('CodigoProducto', $detalle['CodigoProducto'])
+                    ->where('CodigoSede', $guiaData['CodigoSede'])
+                    ->first();
+                
+                //Para calcular el nuevo stock del lote
+                $stockSede = $producto->Stock ?? 0;
+                $costoSede = $producto->CostoCompraPromedio ?? 0;
+                
+
                 //Crear el Detalle Guia Salida
                 $detalle['CodigoGuiaSalida'] = $guiaSalida->Codigo;
+                $detalle['Costo'] = $costoSede;
                 $CodigoDetalle = DetalleGuiaSalida::create($detalle);
 
                 foreach($detalle['lote'] as $lote){
 
-                    //Consultar el stock de la sede
-                    $producto = DB::table('SedeProducto')
-                        ->where('CodigoProducto', $detalle['CodigoProducto'])
-                        ->where('CodigoSede', $guiaData['CodigoSede'])
-                        ->first();
-                    
-                    //Para calcular el nuevo stock del lote
-                    $stockSede = $producto->Stock ?? 0;
-                    $costoSede = $producto->CostoCompraPromedio ?? 0;
-                    $nuevoStock = $stockSede - $detalle['Cantidad'];
-
                     //Actualizar el stock del lote
                     DB::table('lote')->where('Codigo', $lote['Codigo'])->decrement('Stock', $lote['Cantidad']);
 
+                    $nuevoStock = $stockSede - $lote['Cantidad'];
+                    
                     //PARA GENERAR MOVIMIENTO LOTE
                     $movimientoLote['CodigoDetalleSalida'] = $CodigoDetalle->Codigo;
                     $movimientoLote['CodigoLote'] = $lote['Codigo'];
