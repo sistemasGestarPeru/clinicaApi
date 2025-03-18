@@ -403,15 +403,25 @@ class TrabajadorController extends Controller
     public function listarTrabajadores()
     {
         try {
-            $trabajadores = DB::table('personas as p')
-                ->join('trabajadors as t', 'p.Codigo', '=', 't.Codigo')
-                ->select(
-                    'p.Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto")
-                )
-                ->where('p.Vigente', '=', 1)
-                ->where('t.Vigente', '=', 1)
-                ->orderBy('p.Nombres', 'asc')
+                $trabajadores = DB::table('trabajadors as t')
+                ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('users as u')
+                        ->whereRaw('u.CodigoPersona = t.Codigo');
+                })
+                ->where('p.Vigente', 1)
+                ->where('t.Vigente', 1)
+                ->select([
+                    't.Codigo',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS NombreCompleto"),
+                    't.CorreoCoorporativo',
+                    'p.NumeroDocumento',
+                    DB::raw("LOWER(CONCAT(LEFT(p.Nombres, 1), 
+                                        SUBSTRING_INDEX(p.Apellidos, ' ', 1), 
+                                        LEFT(SUBSTRING_INDEX(p.Apellidos, ' ', -1), 1)
+                    )) AS NombreUsuario")
+                ])
                 ->get();
 
             return response()->json($trabajadores, 200);

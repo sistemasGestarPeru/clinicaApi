@@ -499,11 +499,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('lote/registrarLote', [LoteController::class, 'registrarLote']);
 
     //USUARIOS
-    Route::post('user/registro', [UserController::class, 'registro']);
-    Route::post('user/restablecerCredenciales', [UserController::class, 'restablecerCredenciales']);
-    Route::get('user/listarUsuarios', [UserController::class, 'listarUsuarios']);
-    Route::post('user/editarUsuario', [UserController::class, 'editarUsuario']);
-    Route::post('user/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);
+    Route::post('seguridad/registro', [UserController::class, 'registro']);
+    Route::post('seguridad/restablecerCredenciales', [UserController::class, 'restablecerCredenciales']);
+    Route::get('seguridad/listarUsuarios', [UserController::class, 'listarUsuarios']);
+    Route::post('seguridad/editarUsuario', [UserController::class, 'editarUsuario']);
+    Route::get('seguridad/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
