@@ -69,7 +69,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 
-Route::post('registro', [UserController::class, 'registro']);
+
 Route::post('acceso', [UserController::class, 'acceso']);
 Route::post('/consultaApp', [UserController::class, 'verificarAplicacion']);
 
@@ -496,11 +496,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('lote/listarDetalleGuia/{codigo}', [LoteController::class, 'listarDetalleGuia']);
     Route::get('lote/detallexGuia/{codigo}', [LoteController::class, 'detallexGuia']);
     Route::post('lote/registrarLote', [LoteController::class, 'registrarLote']);
-    
+
+    //USUARIOS
+    Route::post('user/registro', [UserController::class, 'registro']);
+    Route::post('user/restablecerCredenciales', [UserController::class, 'restablecerCredenciales']);
+    Route::get('user/listarUsuarios', [UserController::class, 'listarUsuarios']);
+    Route::post('user/editarUsuario', [UserController::class, 'editarUsuario']);
+    Route::post('user/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);
     /*********************************************************** PRUEBAS ***********************************************************/
-
-    
-
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
     /*******************************************************************************************************************************/

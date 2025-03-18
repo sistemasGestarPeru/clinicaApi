@@ -13,18 +13,97 @@ use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
+
+    public function listarUsuarios(){
+        try{
+
+            $usuarios = User::select('id', 'name', 'CodigoPersona', 'Vigente')->get();
+
+            return response()->json([
+                'res' => true,
+                'usuarios' => $usuarios
+            ], 200);
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
+    }
+
+    public function consultarUsuario($codigo){
+        try{
+
+            $usuarios = User::select('id', 'name', 'Vigente')->where('id', $codigo)->get();
+
+            return response()->json([
+                'res' => true,
+                'usuarios' => $usuarios
+            ], 200);
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
+    }
+
+    public function editarUsuario(Request $request){
+        try{
+
+            $user = User::find($request->Codigo);
+            $user->name = $request->name;
+            $user->Vigente = $request->Vigente;
+            $user->save();
+            return response()->json([
+                'res' => true,
+                'msg' => 'Usuario Editado Correctamente'
+            ], 200);
+
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
+    }
+
+    public function restablecerCredenciales(Request $request){
+        try{
+            $user = User::find($request->Codigo);
+            $user->password = bcrypt($request->dni);
+            $user->save();
+            return response()->json([
+                'res' => true,
+                'msg' => 'Credenciales restablecidas'
+            ], 200);
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
+    }
+
     public function registro(RegistroRequest $request)
     {
-        $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = bcrypt($request->password);
-        $user->CodigoPersona = $request->CodigoPersona;
-        $user->save();
-        return response()->json([
-            'res' => true,
-            'msg' => 'Usuario Registrado Correctamente'
-        ], 200);
+        try{
+            $user = new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = bcrypt($request->password);
+            $user->CodigoPersona = $request->CodigoPersona;
+            $user->save();
+            return response()->json([
+                'res' => true,
+                'msg' => 'Usuario Registrado Correctamente'
+            ], 200);
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
     }
 
     
@@ -51,6 +130,9 @@ class UserController extends Controller
             $expiresAt = now()->addHour(2); // Fecha de vencimiento a 10 minutos en el futuro
             $token = $user->createToken($user->email, ['*'], $expiresAt)->plainTextToken;
 
+            $menus = DB::table('menu')->select('GUID')->where('vigente', 1)->get();
+            
+
             $mensaje = 'Acceso Correcto';
             return response()->json([
                 'res' => true,
@@ -58,6 +140,7 @@ class UserController extends Controller
                 'userCod' => $user->CodigoPersona,
                 'trabajador' => $trabajador,
                 'token_expired' => $expiresAt->toIso8601String(),
+                'permisos' => $menus,
                 'mensaje' => $mensaje
             ], 200);
         }catch(ValidationException $e){
