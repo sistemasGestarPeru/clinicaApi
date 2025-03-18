@@ -400,6 +400,27 @@ class TrabajadorController extends Controller
         }
     }
 
+    public function listarTrabajadores()
+    {
+        try {
+            $trabajadores = DB::table('personas as p')
+                ->join('trabajadors as t', 'p.Codigo', '=', 't.Codigo')
+                ->select(
+                    'p.Codigo',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto")
+                )
+                ->where('p.Vigente', '=', 1)
+                ->where('t.Vigente', '=', 1)
+                ->orderBy('p.Nombres', 'asc')
+                ->get();
+
+            return response()->json($trabajadores, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener los trabajadores'], 400);
+        }
+    }
+
+
     public function consultarNumDoc(Request $request)
     {
         $numDocumento = $request->input('numDocumento');
