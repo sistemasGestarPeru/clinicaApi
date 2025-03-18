@@ -44,6 +44,7 @@ use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\Producto\ProductoController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\Proveedor\ProveedorController;
+use App\Http\Controllers\API\Rol\RolController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
 use App\Http\Controllers\API\Venta\VentaController;
@@ -504,6 +505,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('seguridad/listarUsuarios', [UserController::class, 'listarUsuarios']);
     Route::post('seguridad/editarUsuario', [UserController::class, 'editarUsuario']);
     Route::get('seguridad/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);
+
+    //ROLES
+    Route::post('rol/registroRol', [RolController::class, 'registroRol']);
+    Route::post('rol/actualizarRol', [RolController::class, 'actualizarRol']);
+    Route::get('rol/listarRoles', [RolController::class, 'listarRoles']);
+    Route::get('rol/consultarRol/{codigo}', [RolController::class, 'consultarRol']);
+    Route::get('rol/listarRolesVigentes', [RolController::class, 'listarRolesVigentes']);
+
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
