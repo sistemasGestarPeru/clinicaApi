@@ -186,6 +186,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('trabajador/registrarPersonaTrabajador', [TrabajadorController::class, 'registrarPersonaTrabajador']);
     Route::post('trabajador/actualizarTrabajador', [TrabajadorController::class, 'actualizarTrabajador']);
     Route::post('trabajador/buscar', [TrabajadorController::class, 'buscar']);
+    Route::get('/trabajador/listar', [TrabajadorController::class, 'listarTrabajadores']);
     Route::post('trabajador/consultar', [TrabajadorController::class, 'consultarTrabCodigo']);
     Route::post('trabajador/consultarNumDoc', [TrabajadorController::class, 'consultarNumDoc']);
     Route::post('trabajador/registrarContratoLaboral', [TrabajadorController::class, 'regContratoLab']);
