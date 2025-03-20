@@ -150,10 +150,19 @@ class CompraController extends Controller
 
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
+                ->join('detallecompra as dc', 'dc.CodigoCompra', '=', 'c.Codigo')
                 ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial', 'p.Codigo as CodigoProveedor')
                 ->where('c.CodigoSede', $filtro['sede'])
+                ->where(function ($query) use ($filtro) {
+                    if ($filtro['tipo'] == 1) {
+                        $query->whereNotNull('dc.CodigoProducto'); // Si tipo = 1, solo productos NO NULL
+                    } elseif ($filtro['tipo'] == 0) {
+                        $query->whereNull('dc.CodigoProducto'); // Si tipo = 0, solo productos NULL
+                    }
+                })
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
+        
 
             return response()->json($compra, 200);
         } catch (\Exception $e) {
