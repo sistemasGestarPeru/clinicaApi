@@ -514,5 +514,113 @@ class CajaController extends Controller
         }
         
     }
+
+
+    public function reporteCajaIngresosEgresos(Request $request){
+
+        $trabajador = request()->input('trabajador'); // Opcional
+        $fecha = request()->input('fecha'); // Opcional
+        $caja = request()->input('CodigoCaja'); // Opcional
+        
+        try{
+
+            $query1 = DB::table('pago as p')
+                ->selectRaw("
+                    CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
+                    CONCAT(pa.Nombres, ' ', pa.Apellidos) AS Paciente,
+                    mp.Nombre AS MedioPago,
+                    CONCAT(DATE_FORMAT(p.Fecha, '%d/%m/%Y'), ' ', TIME(p.Fecha)) AS FechaPago,
+                    p.Monto AS MontoPagado,
+                    pdv.Vigente as Vigente,
+                    mp.CodigoSUNAT as CodigoSUNAT
+                ")
+                ->join('pagodocumentoventa as pdv', 'pdv.CodigoPago', '=', 'p.Codigo')
+                ->join('documentoventa as dv', 'dv.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+                ->join('personas as pa', 'pa.Codigo', '=', 'dv.CodigoPaciente')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
+                ->whereNull('dv.CodigoMotivoNotaCredito')
+                ->when($fecha, function ($query) use ($fecha) {
+                    return $query->whereRaw("DATE(p.Fecha) = ?", [$fecha]);
+                })
+                ->when($trabajador, function ($query) use ($trabajador) {
+                    return $query->where('p.CodigoTrabajador', $trabajador);
+                })
+                ->when($caja, function ($query) use ($caja) {
+                    return $query->where('p.CodigoCaja', $caja);
+                });
+
+            $query2 = DB::table('ingresodinero as i')
+                ->selectRaw("
+                    CASE 
+                        WHEN i.Tipo = 'A' THEN 'INGRESO APERTURA' 
+                        ELSE 'INGRESO' 
+                    END AS Documento,
+                    ' ' AS Paciente,
+                    'EFECTIVO' AS MedioPago,
+                    CONCAT(DATE_FORMAT(i.Fecha, '%d/%m/%Y'), ' ', TIME(i.Fecha)) AS FechaPago,
+                    i.Monto AS MontoPagado,
+                    i.Vigente as Vigente,
+                    '008' as CodigoSUNAT
+                ")
+                ->join('caja as c', 'c.Codigo', '=', 'i.CodigoCaja')
+                ->when($trabajador, function ($query) use ($trabajador) {
+                    return $query->where('c.CodigoTrabajador', $trabajador);
+                })
+                ->when($fecha, function ($query) use ($fecha) {
+                    return $query->whereRaw("DATE(i.Fecha) = ?", [$fecha]);
+                })
+                ->when($caja, function ($query) use ($caja) {
+                    return $query->where('c.Codigo', $caja);
+                });
+
+                $Egresos = DB::table('Egreso as e')
+                ->selectRaw("
+                    CASE
+                        WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
+                        WHEN pp.Codigo IS NOT NULL THEN 'PAGO A PROVEEDOR'
+                        WHEN sd.Codigo IS NOT NULL THEN 'SALIDA DE DINERO'
+                        WHEN dnc.Codigo IS NOT NULL THEN 'DEVOLUCIÓN NOTA CRÉDITO'
+                        WHEN pd.Codigo IS NOT NULL THEN 'PAGO DONANTE'
+                        WHEN pc.Codigo IS NOT NULL THEN 'PAGO COMISIÓN'
+                        WHEN pper.Codigo IS NOT NULL THEN 'PAGO PERSONAL'
+                        WHEN pvar.Codigo IS NOT NULL THEN 'PAGO VARIOS'
+                        WHEN pdet.Codigo IS NOT NULL THEN 'PAGO DETRACCION'
+                        ELSE 'OTRO'
+                    END AS Detalle,
+                    CONCAT(DATE_FORMAT(e.Fecha, '%d/%m/%Y'), ' ', TIME(e.Fecha)) AS Fecha,
+                    e.Monto AS Monto,
+                    mp.Nombre AS MedioPago,
+                    mp.CodigoSUNAT as CodigoSUNAT
+                ")
+                ->leftJoin('pagoservicio AS ps', 'ps.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagoproveedor as pp', 'pp.Codigo', '=', 'e.Codigo')
+                ->leftJoin('salidadinero AS sd', 'sd.Codigo', '=', 'e.Codigo')
+                ->leftJoin('devolucionnotacredito as dnc', 'dnc.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagoDonante as pd', 'pd.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagoComision as pc', 'pc.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagopersonal as pper', 'pper.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagosvarios as pvar', 'pvar.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagodetraccion as pdet', 'pdet.Codigo', '=', 'e.Codigo')
+                ->leftJoin('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+            
+                // Aplicar filtros opcionales
+                ->when($trabajador, fn($query) => $query->where('e.CodigoTrabajador', $trabajador))
+                ->when($fecha, fn($query) => $query->whereRaw("DATE(e.Fecha) = ?", [$fecha]))
+                ->when($caja, fn($query) => $query->where('e.CodigoCaja', $caja))
+            
+                // Obtener resultados
+                ->get();
+
+
+            $Ingresos = $query1->unionAll($query2)->get();
+
+            return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
+
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
+        }
+    }
+
     
 }

@@ -219,6 +219,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('caja/registrarSalida', [CajaController::class, 'registrarSalida']);
     Route::post('caja/ingresosPendientes', [CajaController::class, 'listarIngresosPendientes']);
     Route::get('caja/listarTrabajadores/{sede}', [CajaController::class, 'listarTrabajadoresSalidaDinero']);
+    Route::post('caja/reporteCajaIngresosEgresos', [CajaController::class, 'reporteCajaIngresosEgresos']);
     /********************************* VENTA *********************************/
     Route::get('venta/consultarNotaCreditoVenta/{venta}', [VentaController::class, 'consultarNotaCreditoVenta']);
     Route::post('venta/consultarDocumentoVenta', [VentaController::class, 'consultarDocumentoVenta']);

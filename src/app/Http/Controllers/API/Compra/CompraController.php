@@ -9,6 +9,7 @@ use App\Models\Recaudacion\DetalleCompra;
 use App\Models\Recaudacion\Egreso;
 use App\Models\Recaudacion\PagoProveedor;
 use App\Models\Recaudacion\Proveedor;
+use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -225,6 +226,8 @@ class CompraController extends Controller
             return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
         }
 
+
+
         try {
             DB::beginTransaction();
 
@@ -253,6 +256,12 @@ class CompraController extends Controller
                     $egreso['Lote'] = null;
                     $egreso['Referencia'] = null;
                     $egreso['NumeroOperacion'] = null;
+
+                    $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+                    if($egreso['Monto'] > $total){
+                        return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                    }
         
                 }else if($egreso['CodigoSUNAT'] == '003'){
                     $egreso['Lote'] = null;
