@@ -57,27 +57,28 @@ class CompraController extends Controller
         //
     }
 
-    public function consultarCompra($codigo){
-        try{
+    public function consultarCompra($codigo)
+    {
+        try {
             $compra = Compra::find($codigo);
             $detaleCompra = DB::table('detallecompra')
-            ->where('CodigoCompra', $codigo)
-            ->get();
+                ->where('CodigoCompra', $codigo)
+                ->get();
 
             $tipoMoneda = DB::table('cuota')
                 ->where('CodigoCompra', $codigo)
                 ->limit(1)
                 ->value('TipoMoneda');
 
-                $porcentaje = DB::table('tipogravado')
+            $porcentaje = DB::table('tipogravado')
                 ->where('Tipo', 'G')
                 ->value('Porcentaje');
 
-                $razonSocial = DB::table('proveedor')
+            $razonSocial = DB::table('proveedor')
                 ->where('Codigo', $compra->CodigoProveedor)
                 ->value('RazonSocial');
 
-            if($compra == null){
+            if ($compra == null) {
                 return response()->json(['message' => 'No se encontró la venta'], 404);
             }
 
@@ -88,8 +89,7 @@ class CompraController extends Controller
                 'porcentaje' => $porcentaje,
                 'razonSocial' => $razonSocial
             ], 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['message' => 'Error al consultar la venta'], 500);
         }
     }
@@ -163,7 +163,7 @@ class CompraController extends Controller
                 })
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
-        
+
 
             return response()->json($compra, 200);
         } catch (\Exception $e) {
@@ -177,23 +177,23 @@ class CompraController extends Controller
         $Moneda = $request->input('moneda');
         try {
             $result = DB::table('pagoproveedor as pp')
-            ->join('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
-            ->join('tipomoneda as tp', 'tp.Codigo', '=', 'pp.tipomoneda')
-            ->select(
-                'e.Codigo as CodigoE',
-                'tp.Siglas as TipoMoneda',
-                'tp.Codigo as CodigoMoneda',
-                DB::raw("
+                ->join('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                ->join('tipomoneda as tp', 'tp.Codigo', '=', 'pp.tipomoneda')
+                ->select(
+                    'e.Codigo as CodigoE',
+                    'tp.Siglas as TipoMoneda',
+                    'tp.Codigo as CodigoMoneda',
+                    DB::raw("
                     CASE 
                         WHEN pp.TipoMoneda = 1 THEN e.Monto
                         ELSE pp.MontoMonedaExtranjera
                     END AS Monto
                 ")
-            )
-            ->where('pp.CodigoProveedor', $Proveedor)
-            ->where('pp.TipoMoneda', $Moneda)
-            ->whereNull('pp.CodigoCuota')
-            ->get();
+                )
+                ->where('pp.CodigoProveedor', $Proveedor)
+                ->where('pp.TipoMoneda', $Moneda)
+                ->whereNull('pp.CodigoCuota')
+                ->get();
             return response()->json($result, 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error al listar los pagos adelantados'], 500);
@@ -212,20 +212,14 @@ class CompraController extends Controller
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
 
         $MontoTotal = 0;
-        
+
         $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
         $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
-        $fechaPagoVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
         $fechaCompraVal = Carbon::parse($compra['Fecha'])->toDateString(); // Convertir el string a Carbon
 
-        if ($fechaCajaVal < $fechaPagoVal) {
+        if ($fechaCajaVal < $fechaCompraVal) {
             return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
         }
-
-        if($fechaCajaVal < $fechaCompraVal){
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
-        }
-
 
 
         try {
@@ -242,14 +236,14 @@ class CompraController extends Controller
 
             if ($compra['FormaPago'] == 'C') {
 
-                if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+                if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
                     $egreso['CodigoCuentaOrigen'] = null;
                 }
-        
-                if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+
+                if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
                     $egreso['CodigoBilleteraDigital'] = null;
                 }
-        
+
                 if ($egreso['CodigoSUNAT'] == '008') {
                     $egreso['CodigoCuentaOrigen'] = null;
                     $egreso['CodigoBilleteraDigital'] = null;
@@ -257,17 +251,21 @@ class CompraController extends Controller
                     $egreso['Referencia'] = null;
                     $egreso['NumeroOperacion'] = null;
 
+                    $fechaPagoVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+                    if ($fechaCajaVal < $fechaPagoVal) {
+                        return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+                    }
+
                     $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
-                    if($egreso['Monto'] > $total){
-                        return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                    if ($egreso['Monto'] > $total) {
+                        return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
                     }
-        
-                }else if($egreso['CodigoSUNAT'] == '003'){
+                } else if ($egreso['CodigoSUNAT'] == '003') {
                     $egreso['Lote'] = null;
                     $egreso['Referencia'] = null;
-        
-                }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+                } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
                     $egreso['CodigoCuentaBancaria'] = null;
                     $egreso['CodigoBilleteraDigital'] = null;
                 }

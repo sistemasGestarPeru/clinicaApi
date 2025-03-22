@@ -290,6 +290,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
+    Route::get('pagoComision/consultarDetalleDocumento/{codigo}', [PagoComisionController::class, 'consultarDetalleDocumento']);
     Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
     /********************************** PAGOS VARIOS **********************************/
     Route::post('pagosVarios/registrarPagoVarios', [PagosVariosController::class, 'registrarPagoVarios']);
@@ -299,7 +300,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /************************************************************ DETRACCION ************************************************************/
     Route::get('detraccion/listarDetraccion/{sede}', [DetraccionController::class, 'listarDetraccionesPendientes']);
     Route::post('detraccion/registrarPagoDetraccion', [DetraccionController::class, 'registrarPagoDetraccion']);
-    
+
     /********************************** PRODUCTO **********************************/
     Route::post('producto/registrarProducto', [ProductoController::class, 'registrarProducto']);
     Route::post('producto/registrarTemporales', [ProductoController::class, 'registrarTemporales']);
@@ -308,15 +309,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('producto/consultarProducto/{codigo}', [ProductoController::class, 'consultarProducto']);
     Route::get('producto/consultarTemporal/{codigo}', [ProductoController::class, 'consultarTemporal']);
     Route::get('producto/consultarComboProducto/{codigo}', [ProductoController::class, 'consultarComboProducto']);
-    Route::get('producto/precioCombo/{sede}/{combo}', [ProductoController::class, 'precioCombo']);    
-    Route::get('producto/tipoProductoCombo/{producto}', [ProductoController::class, 'tipoProductoCombo']);    
+    Route::get('producto/precioCombo/{sede}/{combo}', [ProductoController::class, 'precioCombo']);
+    Route::get('producto/tipoProductoCombo/{producto}', [ProductoController::class, 'tipoProductoCombo']);
 
     Route::post('producto/actualizarProducto', [ProductoController::class, 'actualizarProducto']);
     Route::post('producto/actualizarTemporales', [ProductoController::class, 'actualizarTemporales']);
     Route::post('producto/actualizarComboProducto', [ProductoController::class, 'actualizarComboProducto']);
 
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
-    Route::post('producto/listarProductoCombo', [ProductoController::class, 'listarProductoCombo']);   
+    Route::post('producto/listarProductoCombo', [ProductoController::class, 'listarProductoCombo']);
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
     Route::get('producto/comboIGV/{producto}', [ProductoController::class, 'comboIGV']);
     Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
@@ -383,14 +384,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('motivoPagoServicio/actualizarMotivoPagoServicios', [MotivoPagoServicioController::class, 'actualizarMotivoPagoServicios']);
     Route::get('motivoPagoServicio/consultarMotivoPagoServicios/{codigo}', [MotivoPagoServicioController::class, 'consultarMotivoPagoServicios']);
 
-/************************************************************ NACIONALIDAD ************************************************************/
+    /************************************************************ NACIONALIDAD ************************************************************/
     Route::get('nacionalidad/listar', [NacionalidadController::class, 'index']);
     Route::post('nacionalidad/registrarNacionalidad', [NacionalidadController::class, 'registrarNacionalidad']);
     Route::post('nacionalidad/actualizarNacionalidad', [NacionalidadController::class, 'actualizarNacionalidad']);
     Route::get('nacionalidad/consultarNacionalidad/{codigo}', [NacionalidadController::class, 'consultarNacionalidad']);
     Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
 
-/************************************************************ DEPARTAMENTO ************************************************************/
+    /************************************************************ DEPARTAMENTO ************************************************************/
     Route::get('departamento/listar', [DepartamentoController::class, 'index']);
     Route::post('departamento/registrarDepartamento', [DepartamentoController::class, 'registrarDepartamento']);
     Route::post('departamento/actualizarDepartamento', [DepartamentoController::class, 'actualizarDepartamento']);
@@ -417,13 +418,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 
     //Local Medio Pago
-    
+
     Route::get('medioPago/mediosPagoDisponible/{codigo}', [MedioPagoController::class, 'mediosPagoDisponible']);
     Route::get('medioPago/listarLocalMedioPago/{codigo}', [MedioPagoController::class, 'listarLocalMedioPago']);
     Route::post('medioPago/registrarLocalMedioPago', [MedioPagoController::class, 'registrarLocalMedioPago']);
     Route::post('medioPago/actualizarLocalMedioPago', [MedioPagoController::class, 'actualizarLocalMedioPago']);
     Route::get('medioPago/consultarMedioPagoLocal/{codigo}', [MedioPagoController::class, 'consultarMedioPagoLocal']);
-    
+
     /************************************************************ TIPO GRAVADO ************************************************************/
     Route::post('tipoGravado/registrarTipoGravado', [TipoGravadoController::class, 'registrarTipoGravado']);
     Route::post('tipoGravado/actualizarTipoGravado', [TipoGravadoController::class, 'actualizarTipoGravado']);
@@ -470,7 +471,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('sedeEmpresa/actualizarSede', [PersonalSedeController::class, 'actualizarSede']);
     Route::get('sedeEmpresa/consultarSede/{codigo}', [PersonalSedeController::class, 'consultarSede']);
     Route::get('sedeEmpresa/listarEmpresas', [PersonalSedeController::class, 'listarEmpresas']);
-        
+
     /*********************************************************** PROVEEDOR ***********************************************************/
 
     Route::get('proveedor/listarProveedor', [ProveedorController::class, 'listarProveedor']);
@@ -485,14 +486,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('guiaIngreso/listarComprasActivas', [GuiaIngresoController::class, 'listarComprasActivas']);
     Route::get('guiaIngreso/listarDetalleCompra/{compra}', [GuiaIngresoController::class, 'listarDetalleCompra']);
     Route::post('guiaIngreso/registrarGuiaIngreso', [GuiaIngresoController::class, 'registrarGuiaIngreso']);
-   
+
     //SALIDA PRODUCTOS
     Route::post('guiaSalida/listarGuiaSalida', [GuiaSalidaController::class, 'listarGuiaSalida']);
     Route::get('guiaSalida/listarVentasActivas/{sede}', [GuiaSalidaController::class, 'listarVentasActivas']);
     Route::get('guiaSalida/listarDetalleVenta/{venta}', [GuiaSalidaController::class, 'listarDetalleVenta']);
     Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
     Route::get('guiaSalida/lotesDisponibles/{sede}/{productos}', [GuiaSalidaController::class, 'lotesDisponibles']);
-    
+
     //LOTE
     Route::post('lote/listarLotes', [LoteController::class, 'listarLotes']);
     Route::get('lote/listarGuiasIngreso/{sede}', [LoteController::class, 'listarGuiasIngreso']);
@@ -517,7 +518,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('rol/listarRolesVigentes', [RolController::class, 'listarRolesVigentes']);
     Route::post('rol/asigarPermisos', [RolController::class, 'asigarPermisos']);
     Route::get('rol/consultarPermisos/{codigo}', [RolController::class, 'consultarPermisos']);
-    
+
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
