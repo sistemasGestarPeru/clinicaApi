@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\AccesoRequest;
 use App\Http\Requests\User\RegistroRequest;
+use App\Models\Seguridad\UsuarioPerfil;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class UserController extends Controller
                 ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
                 ->select([
                     'u.id',
+                    'p.Codigo',
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto"),
                     'u.name as Usuario',
                     DB::raw("DATE(u.created_at) as FechaCreacion"),
@@ -151,7 +153,6 @@ class UserController extends Controller
     }
 
     
-
     public function acceso(AccesoRequest $request)
     {
         try{
@@ -180,8 +181,20 @@ class UserController extends Controller
             $expiresAt = now()->addHour(2); // Fecha de vencimiento a 10 minutos en el futuro
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
-            $menus = DB::table('menu')->select('GUID')->where('vigente', 1)->get();
+            // $menus = DB::table('menu')->select('GUID')->where('vigente', 1)->get();
             
+
+            $menus = DB::table('perfil_menu as pm')
+            ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
+            ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
+            ->where('up.CodigoPersona', $user->CodigoPersona)
+            ->orderBy('pm.Codigo')
+            ->get(['m.GUID']) // Obtener los GUIDs como un array de objetos
+            ->map(function ($item) {
+                return ['GUID' => $item->GUID];
+            });
+        
+
 
             $mensaje = 'Acceso Correcto';
             return response()->json([
@@ -201,82 +214,6 @@ class UserController extends Controller
         }
     }
 
-    public function verificarAplicacion(Request $request)
-    {
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d H:i:s');
-
-        $query = $request->input('query');
-
-        // Separar el ID del token y el token plano
-        $tokenParts = explode('|', $query['token']);
-        if (count($tokenParts) !== 2) {
-            return response()->json(
-                [
-                    'rpta' => false,
-                    'msg' => 'Token inválido'
-                ],
-                200
-            );
-        }
-
-        $tokenId = $tokenParts[0]; // ID del token
-        $plainTextToken = $tokenParts[1]; // Token plano
-
-        try {
-            // Verificar permisos
-            $existePermiso = DB::table('Usuario_Perfil')
-                ->where('Vigente', 1)
-                ->where('CodigoPersona', $query['user'])
-                ->where('CodigoAplicacion', $query['id'])
-                ->exists();
-
-            if (!$existePermiso) {
-                return response()->json(
-                    [
-                        'rpta' => false,
-                        'msg' => 'No tiene permisos para acceder a esta aplicación'
-                    ],
-                    200
-                );
-            }
-
-            // Buscar token en la base de datos
-            $tokenValido = DB::table('personal_access_tokens')
-                ->where('id', $tokenId)
-                ->where('expires_at', '>', $fecha)
-                ->select('token')
-                ->first();
-
-            if (!$tokenValido || !hash_equals($tokenValido->token, hash('sha256', $plainTextToken))) {
-                return response()->json(
-                    [
-                        'rpta' => false,
-                        'msg' => 'Sesión inválida o expirada'
-                    ],
-                    200
-                );
-            }
-
-            // Respuesta en caso de éxito
-            return response()->json(
-                [
-                    'rpta' => true,
-                    'msg' => 'Acceso válido'
-                ],
-                200
-            );
-        } catch (\Exception $e) {
-            return response()->json(
-                [
-                    'rpta' => false,
-                    'msg' => 'Error desconocido'
-                ],
-                401
-            );
-        }
-    }
-
     public function cerrarSesion(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -284,6 +221,54 @@ class UserController extends Controller
             'res' => true,
             'msg' => 'Sesion Cerrada'
         ], 200);
+    }
+
+
+    public function consultarPerfil($codigo){
+        try{
+            
+            $perfil = UsuarioPerfil::where('CodigoPersona', $codigo)->first();
+
+            return response()->json([
+                'res' => true,
+                'perfil' => $perfil
+            ], 200);
+
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
+    }
+
+    public function asginarPerfil(Request $request){
+        try{
+
+            $perfil = UsuarioPerfil::find($request->Codigo);
+
+            if($perfil){
+                $perfil->update([
+                    'CodigoRol' => $request->CodigoRol
+                ]);
+            }else{
+                $perfil = new UsuarioPerfil();
+                $perfil->CodigoPersona = $request->CodigoPersona;
+                $perfil->CodigoRol = $request->CodigoRol;
+                $perfil->save();
+            }
+
+            return response()->json([
+                'res' => true,
+                'msg' => 'Rol asignado correctamente'
+            ], 200);
+
+        }catch(ValidationException $e){
+            return response()->json([
+                'res' => false,
+                'msg' => 'Error desconocido'
+            ], 401);
+        }
     }
 
 }

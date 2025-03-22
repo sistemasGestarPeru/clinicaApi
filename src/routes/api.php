@@ -506,6 +506,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('seguridad/listarUsuarios', [UserController::class, 'listarUsuarios']);
     Route::post('seguridad/editarUsuario', [UserController::class, 'editarUsuario']);
     Route::get('seguridad/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);
+    Route::post('seguridad/asginarPerfil', [UserController::class, 'asginarPerfil']);
+    Route::get('seguridad/consultarPerfil/{codigo}', [UserController::class, 'consultarPerfil']);
 
     //ROLES
     Route::post('rol/registroRol', [RolController::class, 'registroRol']);
@@ -513,7 +515,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('rol/listarRoles', [RolController::class, 'listarRoles']);
     Route::get('rol/consultarRol/{codigo}', [RolController::class, 'consultarRol']);
     Route::get('rol/listarRolesVigentes', [RolController::class, 'listarRolesVigentes']);
-
+    Route::post('rol/asigarPermisos', [RolController::class, 'asigarPermisos']);
+    Route::get('rol/consultarPermisos/{codigo}', [RolController::class, 'consultarPermisos']);
+    
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);

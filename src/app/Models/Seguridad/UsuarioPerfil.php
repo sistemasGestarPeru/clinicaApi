@@ -15,12 +15,7 @@ class UsuarioPerfil extends Model
 
     protected $fillable = [
         'CodigoPersona',
-        'CodigoAplicacion',
-        'Vigente'
+        'CodigoRol'
     ];
 
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'CodigoPersona', 'CodigoPersona');
-    }
 }
