@@ -62,12 +62,37 @@ class GuiaIngresoController extends Controller
         }
     }
 
-    public function listarComprasActivas(){
+    public function listarComprasActivas($sede){
+        
         try{
-            $compras = DB::table('compra')
-            ->where('Vigente', 1)
-            ->select('Codigo', DB::raw("CONCAT(Serie, '-', Numero) as Descripcion"))
+            $compras = DB::table('compra as c')
+            ->select([
+                'c.Codigo',
+                DB::raw("CONCAT(c.Serie, ' - ', LPAD(c.Numero, 4, '0')) as Descripcion")
+            ])
+            ->where('c.CodigoSede', $sede)
+            ->where('c.Vigente', 1)
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('detallecompra as dc')
+                    ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+                    ->leftJoinSub(
+                        DB::table('guiaingreso as gi')
+                            ->join('detalleguiaingreso as dgi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                            ->select('dgi.CodigoProducto', DB::raw('SUM(dgi.Cantidad) as Cantidad'))
+                            ->whereColumn('gi.CodigoCompra', 'c.Codigo')  // Equivalente a gi.CodigoCompra = c.Codigo
+                            ->groupBy('dgi.CodigoProducto'),
+                        'Entregado',
+                        'Entregado.CodigoProducto',
+                        '=',
+                        'dc.CodigoProducto'
+                    )
+                    ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                    ->whereRaw('(dc.Cantidad - COALESCE(Entregado.Cantidad, 0)) > 0')
+                    ->where('p.Tipo', 'B');
+            })
             ->get();
+        
             return response()->json($compras, 200);
         }catch(\Exception $e){
             return response()->json(['error' => 'Ocurrió un error al listar las Compras' ,'bd' => $e->getMessage()], 500);
