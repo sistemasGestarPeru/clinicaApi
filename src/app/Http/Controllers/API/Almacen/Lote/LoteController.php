@@ -78,11 +78,32 @@ class LoteController extends Controller
     public function listarGuiasIngreso($sede)
     {
         try {
-            $resultados = DB::table('guiaingreso')
-                ->where('Vigente', 1)
-                ->where('CodigoSede', $sede)
-                ->selectRaw('Codigo, CONCAT(Serie, "-", Numero) as DocGuia')
+
+            $resultados = DB::table('guiaingreso as gi')
+                ->select('gi.Codigo', DB::raw("CONCAT(gi.Serie, '-', gi.Numero) as DocGuia"))
+                ->where('gi.Vigente', 1)
+                ->where('gi.CodigoSede', $sede)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('detalleguiaingreso as dgi')
+                        ->join('producto as p', 'p.Codigo', '=', 'dgi.CodigoProducto')
+                        ->leftJoin(DB::raw('(
+                            SELECT 
+                                CodigoProducto,
+                                CodigoDetalleIngreso,
+                                SUM(Cantidad) as Cantidad,
+                                SUM(Costo) as Costo
+                            FROM lote 
+                            GROUP BY CodigoProducto, CodigoDetalleIngreso
+                        ) AS LOTEREG'), function ($join) {
+                            $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
+                                ->on('LOTEREG.CodigoDetalleIngreso', '=', 'dgi.Codigo');
+                        })
+                        ->whereRaw('dgi.CodigoGuiaRemision = gi.Codigo')
+                        ->whereRaw('(dgi.Cantidad - COALESCE(LOTEREG.Cantidad, 0)) > 0');
+                })
                 ->get();
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar Guías de Ingreso', 'bd' => $e->getMessage()], 500);
@@ -103,7 +124,7 @@ class LoteController extends Controller
                     SUM(Costo) as Costo
                 FROM lote 
                 GROUP BY CodigoProducto, CodigoDetalleIngreso
-            ) AS LOTEREG'), function ($join) {
+                ) AS LOTEREG'), function ($join) {
                     $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
                         ->on('LOTEREG.CodigoDetalleIngreso', '=', 'dgi.Codigo');
                 })
