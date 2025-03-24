@@ -503,7 +503,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     //USUARIOS
     Route::post('seguridad/registro', [UserController::class, 'registro']);
-    Route::post('seguridad/restablecerCredenciales', [UserController::class, 'restablecerCredenciales']);
+    Route::get('seguridad/restablecerCredenciales/{codigo}', [UserController::class, 'restablecerCredenciales']);
     Route::get('seguridad/listarUsuarios', [UserController::class, 'listarUsuarios']);
     Route::post('seguridad/editarUsuario', [UserController::class, 'editarUsuario']);
     Route::get('seguridad/consultarUsuario/{codigo}', [UserController::class, 'consultarUsuario']);

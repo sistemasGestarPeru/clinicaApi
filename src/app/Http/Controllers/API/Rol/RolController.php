@@ -168,43 +168,80 @@ class RolController extends Controller
 
         $guids = $request->input('Permisos');
         $perfil = $request->input('Codigo');
+
         try{
 
-
-        // 1️⃣ Obtener los códigos de menú basados en los GUIDs
-        $codigosMenu = DB::table('menu')
-            ->whereIn('GUID', $guids)
-            ->pluck('Codigo')
-            ->toArray(); // Convertir en array
-
-        // 2️⃣ Obtener los códigos actuales en perfil_menu para ese codigoRol
-        $codigosActuales = DB::table('perfil_menu')
-            ->where('codigoRol', $perfil)
-            ->pluck('codigoMenu')
-            ->toArray();
-
-        // 3️⃣ Determinar qué códigos agregar y cuáles eliminar
-        $nuevosCodigos = array_diff($codigosMenu, $codigosActuales); // Faltantes en la BD
-        $codigosEliminar = array_diff($codigosActuales, $codigosMenu); // Ya no deberían estar
-
-        // 4️⃣ Insertar solo los códigos que no existen
-        $nuevosRegistros = array_map(fn($codigoMenu) => [
-            'codigoMenu' => $codigoMenu,
-            'codigoRol' => $perfil
-        ], $nuevosCodigos);
-
-        if (!empty($nuevosRegistros)) {
-            DB::table('perfil_menu')->insert($nuevosRegistros);
-        }
-
-        // 5️⃣ Eliminar solo los registros que ya no deberían estar
-        if (!empty($codigosEliminar)) {
-            DB::table('perfil_menu')
+            // 1️⃣ Verificar si el array de GUIDs está vacío (todos los permisos eliminados)
+            if (empty($guids)) {
+                // 🔥 Eliminar todos los permisos asociados a este códigoRol
+                DB::table('perfil_menu')->where('codigoRol', $perfil)->delete();
+            
+                // 🔥 Invalidar el último token (cerrar sesión forzada)
+                DB::table('personal_access_tokens')
+                    ->whereIn('tokenable_id', function ($query) use ($perfil) {
+                        $query->selectRaw('DISTINCT u.id')
+                            ->from('usuario_perfil as up')
+                            ->join('users as u', 'u.CodigoPersona', '=', 'up.CodigoPersona')
+                            ->where('up.CodigoRol', $perfil);
+                    })
+                    ->orderByDesc('id')
+                    ->limit(1)
+                    ->delete();
+                
+                return response()->json(['message' => 'Todos los permisos han sido eliminados'], 200);
+            }
+        
+            // 2️⃣ Obtener los códigos de menú basados en los GUIDs
+            $codigosMenu = DB::table('menu')
+                ->whereIn('GUID', $guids)
+                ->pluck('Codigo')
+                ->toArray();
+        
+            if (empty($codigosMenu)) {
+                return response()->json(['message' => 'No se encontraron menús válidos'], 400);
+            }
+        
+            // 3️⃣ Obtener los códigos actuales en perfil_menu para ese codigoRol
+            $codigosActuales = DB::table('perfil_menu')
                 ->where('codigoRol', $perfil)
-                ->whereIn('codigoMenu', $codigosEliminar)
-                ->delete();
-        }
+                ->pluck('codigoMenu')
+                ->toArray();
+        
+            // 4️⃣ Determinar qué códigos agregar y cuáles eliminar
+            $nuevosCodigos = array_diff($codigosMenu, $codigosActuales);
+            $codigosEliminar = array_diff($codigosActuales, $codigosMenu);
+        
+            // 5️⃣ Insertar nuevos registros si es necesario
+            if (!empty($nuevosCodigos)) {
+                $nuevosRegistros = array_map(fn($codigoMenu) => [
+                    'codigoMenu' => $codigoMenu,
+                    'codigoRol' => $perfil
+                ], $nuevosCodigos);
+            
+                DB::table('perfil_menu')->insert($nuevosRegistros);
+            }
+        
+            // 6️⃣ Eliminar registros obsoletos si es necesario
+            if (!empty($codigosEliminar)) {
+                DB::table('perfil_menu')
+                    ->where('codigoRol', $perfil)
+                    ->whereIn('codigoMenu', $codigosEliminar)
+                    ->delete();
+            }
 
+            if(!empty($nuevosCodigos) || !empty($codigosEliminar)){
+                DB::table('personal_access_tokens')
+                ->whereIn('tokenable_id', function ($query) use ($perfil) {
+                    $query->selectRaw('DISTINCT u.id')
+                        ->from('usuario_perfil as up')
+                        ->join('users as u', 'u.CodigoPersona', '=', 'up.CodigoPersona')
+                        ->where('up.CodigoRol', $perfil);
+                })
+                ->orderByDesc('id')
+                ->limit(1)
+                ->delete();
+            }
+                    
             return response()->json(['message' => 'Permisos asignados correctamente'], 200);
 
         }catch (\Exception $e) {

@@ -66,13 +66,15 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->Vigente = $request->Vigente;
             $user->save();
+            
+            if($request->Vigente == 0){
+                DB::table('personal_access_tokens')
+                ->where('tokenable_id', $request->id)
+                ->orderByDesc('id')
+                ->limit(1)
+                ->delete();
+            }
 
-
-            DB::table('personal_access_tokens')
-            ->where('tokenable_id', $request->id)
-            ->orderByDesc('id')
-            ->limit(1)
-            ->delete();
             DB::commit();
             return response()->json([
                 'res' => true,
@@ -101,11 +103,25 @@ class UserController extends Controller
         }
     }
 
-    public function restablecerCredenciales(Request $request){
+    public function restablecerCredenciales($codigo){
+
         try{
-            $user = User::find($request->Codigo);
-            $user->password = bcrypt($request->dni);
+
+            $numeroDocumento = DB::table('users as u')
+            ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
+            ->where('u.id', $codigo)
+            ->value('p.NumeroDocumento');
+
+            $user = User::find($codigo);
+            $user->password = bcrypt($numeroDocumento);
             $user->save();
+
+            DB::table('personal_access_tokens')
+            ->where('tokenable_id', $codigo)
+            ->orderByDesc('id')
+            ->limit(1)
+            ->delete();
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Credenciales restablecidas'
@@ -157,18 +173,26 @@ class UserController extends Controller
     {
         try{
             $user = User::where('name', $request->identifier)->first();
-
+            
             if (!$user) {
                 return response()->json([
                     'res' => false,
-                    'msg' => 'Credenciales incorrectas'
+                    'msg' => 'Usuario no encontrado.'
                 ], 401);
             }
+
+            if ($user && !Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'Credenciales Incorrectas.'
+                ], 401);
+            }
+
             
             if ($user->Vigente == 0) {
                 return response()->json([
                     'res' => false,
-                    'msg' => 'Usuario deshabilitado'
+                    'msg' => 'Usuario deshabilitado.'
                 ], 403); // Código 403 = Prohibido (usuario no autorizado)
             }
 
@@ -247,10 +271,22 @@ class UserController extends Controller
 
             $perfil = UsuarioPerfil::find($request->Codigo);
 
+            $rolAnterior = $perfil->CodigoRol;
+
             if($perfil){
                 $perfil->update([
                     'CodigoRol' => $request->CodigoRol
                 ]);
+
+
+                if($rolAnterior != $request->CodigoRol){
+                    DB::table('personal_access_tokens')
+                    ->where('tokenable_id', $request->Codigo)
+                    ->orderByDesc('id')
+                    ->limit(1)
+                    ->delete();
+                }
+
             }else{
                 $perfil = new UsuarioPerfil();
                 $perfil->CodigoPersona = $request->CodigoPersona;
