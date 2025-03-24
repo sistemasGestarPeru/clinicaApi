@@ -37,6 +37,7 @@ use App\Http\Controllers\API\Personal\ContratoLaboralController;
 use App\Http\Controllers\API\Personal\DepartamentoController;
 use App\Http\Controllers\API\Personal\EmpresaController;
 use App\Http\Controllers\API\Personal\NacionalidadController;
+use App\Http\Controllers\API\Personal\PersonaController;
 use App\Http\Controllers\API\Personal\SedeController as PersonalSedeController;
 use App\Http\Controllers\API\Personal\TipoDocumentoController;
 use App\Http\Controllers\API\Personal\TrabajadorController;
@@ -518,6 +519,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('rol/listarRolesVigentes', [RolController::class, 'listarRolesVigentes']);
     Route::post('rol/asigarPermisos', [RolController::class, 'asigarPermisos']);
     Route::get('rol/consultarPermisos/{codigo}', [RolController::class, 'consultarPermisos']);
+
+    //CONSULTAS MI PERFIL
+    Route::get('perfil/consultarPerfil/{codigo}', [PersonaController::class, 'consultarPerfil']);
+    Route::post('perfil/actualizarPerfil', [PersonaController::class, 'actualizarPerfil']);
+    Route::post('perfil/cambiarContrasenia', [PersonaController::class, 'cambiarContrasenia']);
 
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
