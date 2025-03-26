@@ -179,5 +179,54 @@ class ReportesController extends Controller
     }
 
     public function reporteEgresosPeriodo(Request $request){
+
+    }
+
+    public function reporteIngresosPeriodoEmpresa(){
+
+        $anio = request()->input('Anio'); // Opcional
+        $mes = request()->input('Mes'); // Opcional
+        $empresa = request()->input('CodigoEmpresa'); // Opcional
+
+        try{
+            
+            $query = DB::table('documentoventa as dv')
+                ->selectRaw("
+                    tdv.Nombre as Documento,
+                    dv.Serie as Serie,
+                    LPAD(dv.Numero, 9, '0') as Numero,
+                    CONCAT(DATE_FORMAT(dv.Fecha, '%d/%m/%Y'), ' ', TIME(dv.Fecha)) AS Fecha,
+                    CASE 
+                        WHEN dv.CodigoClienteEmpresa IS NULL THEN p.NumeroDocumento
+                        ELSE ce.RUC
+                    END AS NomDocumento,
+                    CASE 
+                        WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        ELSE ce.RazonSocial
+                    END AS Cliente,
+                    dv.TotalGravado as BaseTributaria,
+                    dv.IGVTotal as IGV,
+                    dv.MontoTotal as Monto,
+                    dv.Vigente as Vigente
+                ")
+                ->join('tipodocumentoventa as tdv', 'dv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                ->join('sedesrec as s', 'dv.CodigoSede', '=', 's.Codigo')
+                ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+                ->whereNull('dv.CodigoMotivoNotaCredito')
+                ->when($anio && $mes, function ($query) use ($anio, $mes) {
+                    return $query->whereYear('dv.Fecha', $anio)->whereMonth('dv.Fecha', $mes);
+                })
+                ->when($empresa, function ($query) use ($empresa) {
+                    return $query->where('e.Codigo', $empresa);
+                })
+                ->get();
+
+            return response()->json($query, 200);
+        
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
+        }
     }
 }
