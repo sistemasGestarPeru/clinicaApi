@@ -557,7 +557,7 @@ class CajaController extends Controller
                         ELSE 'INGRESO' 
                     END AS Documento,
                     ' ' AS Paciente,
-                    'EFECTIVO' AS MedioPago,
+                    (SELECT Nombre FROM MedioPago WHERE CodigoSUNAT = '008') AS MedioPago,
                     CONCAT(DATE_FORMAT(i.Fecha, '%d/%m/%Y'), ' ', TIME(i.Fecha)) AS FechaPago,
                     i.Monto AS MontoPagado,
                     i.Vigente as Vigente,

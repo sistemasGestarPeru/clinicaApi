@@ -45,6 +45,7 @@ use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\Producto\ProductoController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\Proveedor\ProveedorController;
+use App\Http\Controllers\API\ReportesRecaudacion\ReportesController;
 use App\Http\Controllers\API\Rol\RolController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\SedeController;
@@ -524,6 +525,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('perfil/consultarPerfil/{codigo}', [PersonaController::class, 'consultarPerfil']);
     Route::post('perfil/actualizarPerfil', [PersonaController::class, 'actualizarPerfil']);
     Route::post('perfil/cambiarContrasenia', [PersonaController::class, 'cambiarContrasenia']);
+
+    //REPORTES 
+    Route::get('reportes/empleados', [ReportesController::class, 'empleados']);
+    Route::get('reportes/sedes', [ReportesController::class, 'sedes']);
+    Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
+
 
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
