@@ -23,6 +23,7 @@ class Comision extends Model
         'Serie',
         'Numero',
         'Vigente',
-        'CodigoMedico'
+        'CodigoMedico',
+        'Comentario'
     ];
 }

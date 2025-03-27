@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\PagoComision;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Comision;
+use App\Models\Recaudacion\DetalleComision;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Recaudacion\Egreso;
@@ -61,6 +62,7 @@ class PagoComisionController extends Controller
         $egreso = $request->input('egreso');
         $pagoComision = $request->input('pagoComision');
         $comision = $request->input('comision');
+        $detalleComision = $request->input('detalleComision');
 
         if ($egreso) {
             //Validar Egreso
@@ -119,8 +121,19 @@ class PagoComisionController extends Controller
                 $comision['CodigoPagoComision'] = $codigoPagoComision;
             }
 
-            Comision::create($comision);
+            $codigoComision = Comision::create($comision)->Codigo;
 
+            foreach ($detalleComision as $detalle) {
+                $detalle['CodigoComision'] = $codigoComision;
+                if (isset($detalle['CodigoDetalleVenta'])) {
+                    $detalle['CodigoDetalleVenta'] = $detalle['CodigoDetalleVenta'] == 0 ? null : $detalle['CodigoDetalleVenta'];
+                }
+                if (isset($detalle['CodigoDetalleContrato'])) {
+                    $detalle['CodigoDetalleContrato'] = $detalle['CodigoDetalleContrato'] == 0 ? null : $detalle['CodigoDetalleContrato'];
+                }
+                DetalleComision::create($detalle);
+            }
+            
             DB::commit();
 
             return response()->json([
@@ -297,19 +310,30 @@ class PagoComisionController extends Controller
         }
     }
 
-    public function consultarDetalleDocumento($codigo)
+    public function consultarDetalleDocumento($codigo, $tipo)
     {
         try {
 
-            $detalles = DB::table('documentoVenta as dv')
+            if ($tipo == 'C'){
+
+                $detalles = DB::table('contratoproducto as cp')
+                ->join('detallecontrato as dc', 'cp.Codigo', '=', 'dc.CodigoContrato')
+                ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
+                ->where('cp.Codigo', $codigo)
+                ->where('p.Tipo', 'S')
+                ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
+
+            }else{
+                $detalles = DB::table('documentoVenta as dv')
                 ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                 ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
                 ->where('dv.Codigo', $codigo)
                 ->where('p.Tipo', 'S')
-                ->get(['ddv.Codigo', 'ddv.Descripcion']); // Obtener solo los campos necesarios
+                ->select('ddv.Codigo as CodigoDetalleVenta', 'ddv.Descripcion');
+            }
 
             // Retornar en formato JSON (si es necesario)
-            return response()->json($detalles);
+            return response()->json($detalles->get(), 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Error al consultar el documento',
