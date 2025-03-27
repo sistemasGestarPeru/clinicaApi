@@ -168,8 +168,10 @@ class ReportesController extends Controller
                 // Obtener resultados
                 ->get();
     
-    
-            $Ingresos = $query1->unionAll($query2)->get();
+                $Ingresos = $query1
+                ->unionAll($query2)
+                ->orderBy('FechaPago', 'desc') // Ordena por FechaPago en orden descendente
+                ->get();
     
             return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
     
@@ -189,7 +191,7 @@ class ReportesController extends Controller
         $empresa = request()->input('CodigoEmpresa'); // Opcional
 
         try{
-            
+
             $query = DB::table('documentoventa as dv')
                 ->selectRaw("
                     tdv.Nombre as Documento,

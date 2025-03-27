@@ -979,6 +979,7 @@ class VentaController extends Controller
         $anulacionData = $request->input('Anulacion');
         $codigoVenta = $anulacionData['CodigoDocumentoVenta'];
         $anularPago = $anulacionData['Confirmacion'];
+        $tipo = $anulacionData['Tipo'];
         $anulacionData['Fecha'] = $fecha;
         
         if (!$codigoVenta || $codigoVenta == 0) {
@@ -1013,6 +1014,23 @@ class VentaController extends Controller
                 DB::table('documentoventa')
                     ->where('Codigo', $codigoVenta)
                     ->update(['Vigente' => 0]);
+
+                //Disminuir el monto pagado en el contrato
+                if ($tipo == 'C') {
+                    DB::transaction(function () use ($codigoVenta) {
+                        $contrato = DB::table('documentoventa')
+                            ->where('Codigo', $codigoVenta)
+                            ->select('CodigoContratoProducto', 'MontoPagado')
+                            ->first();
+                
+                        if ($contrato && $contrato->CodigoContratoProducto !== null && is_numeric($contrato->MontoPagado)) {
+                            DB::table('contratoproducto')
+                                ->where('Codigo', $contrato->CodigoContratoProducto)
+                                ->decrement('TotalPagado', $contrato->MontoPagado);
+                        }
+                    });
+                }
+
             }else{
                 if($anularPago == 0){
                 // Marcar la venta como no vigente
