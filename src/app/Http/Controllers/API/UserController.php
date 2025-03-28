@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\DB;
 class UserController extends Controller
 {
 
-    public function listarUsuarios(){
-        try{
+    public function listarUsuarios()
+    {
+        try {
 
             $usuarios = DB::table('users as u')
                 ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
@@ -35,7 +36,7 @@ class UserController extends Controller
                 'res' => true,
                 'usuarios' => $usuarios
             ], 200);
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -43,13 +44,14 @@ class UserController extends Controller
         }
     }
 
-    public function consultarUsuario($codigo){
-        try{
+    public function consultarUsuario($codigo)
+    {
+        try {
 
             $usuarios = User::select('id', 'name', 'Vigente')->where('id', $codigo)->first();
 
             return response()->json($usuarios, 200);
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -57,22 +59,23 @@ class UserController extends Controller
         }
     }
 
-    public function editarUsuario(Request $request){
+    public function editarUsuario(Request $request)
+    {
 
         DB::beginTransaction();
-        try{
+        try {
 
             $user = User::find($request->id);
             $user->name = $request->name;
             $user->Vigente = $request->Vigente;
             $user->save();
-            
-            if($request->Vigente == 0){
+
+            if ($request->Vigente == 0) {
                 DB::table('personal_access_tokens')
-                ->where('tokenable_id', $request->id)
-                ->orderByDesc('id')
-                ->limit(1)
-                ->delete();
+                    ->where('tokenable_id', $request->id)
+                    ->orderByDesc('id')
+                    ->limit(1)
+                    ->delete();
             }
 
             DB::commit();
@@ -80,8 +83,7 @@ class UserController extends Controller
                 'res' => true,
                 'msg' => 'Usuario Editado Correctamente'
             ], 200);
-
-        }catch (QueryException $e) {
+        } catch (QueryException $e) {
             DB::rollBack();
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
@@ -89,12 +91,11 @@ class UserController extends Controller
                     'error' => 'El Nombre de Usuario ya existe. Intente con otro nombre.'
                 ], 500);
             }
-    
+
             // Capturar otros errores de SQL
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
-            
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
             return response()->json([
@@ -103,30 +104,31 @@ class UserController extends Controller
         }
     }
 
-    public function restablecerCredenciales($codigo){
+    public function restablecerCredenciales($codigo)
+    {
 
-        try{
+        try {
 
             $numeroDocumento = DB::table('users as u')
-            ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
-            ->where('u.id', $codigo)
-            ->value('p.NumeroDocumento');
+                ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
+                ->where('u.id', $codigo)
+                ->value('p.NumeroDocumento');
 
             $user = User::find($codigo);
             $user->password = bcrypt($numeroDocumento);
             $user->save();
 
             DB::table('personal_access_tokens')
-            ->where('tokenable_id', $codigo)
-            ->orderByDesc('id')
-            ->limit(1)
-            ->delete();
+                ->where('tokenable_id', $codigo)
+                ->orderByDesc('id')
+                ->limit(1)
+                ->delete();
 
             return response()->json([
                 'res' => true,
                 'msg' => 'Credenciales restablecidas'
             ], 200);
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -136,7 +138,7 @@ class UserController extends Controller
 
     public function registro(RegistroRequest $request)
     {
-        try{
+        try {
             $user = new User();
             $user->name = $request->name;
             // $user->email = $request->email;
@@ -147,19 +149,18 @@ class UserController extends Controller
                 'res' => true,
                 'msg' => 'Usuario Registrado Correctamente'
             ], 200);
-        }catch (QueryException $e) {
+        } catch (QueryException $e) {
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
                 return response()->json([
                     'error' => 'El Nombre de Usuario ya existe. Intente con otro nombre.'
                 ], 500);
             }
-    
+
             // Capturar otros errores de SQL
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
-            
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
             return response()->json([
@@ -168,12 +169,12 @@ class UserController extends Controller
         }
     }
 
-    
+
     public function acceso(AccesoRequest $request)
     {
-        try{
+        try {
             $user = User::where('name', $request->identifier)->first();
-            
+
             if (!$user) {
                 return response()->json([
                     'res' => false,
@@ -188,7 +189,7 @@ class UserController extends Controller
                 ], 401);
             }
 
-            
+
             if ($user->Vigente == 0) {
                 return response()->json([
                     'res' => false,
@@ -197,27 +198,28 @@ class UserController extends Controller
             }
 
             $trabajador = DB::table('personas as p')
-            ->select('p.Nombres', 'p.Apellidos', 'p.Correo')
-            ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
-            ->where('p.Codigo', '=', $user->CodigoPersona)
-            ->first();
+                ->select('p.Nombres', 'p.Apellidos', 'p.Correo')
+                ->join('trabajadors as t', 't.Codigo', '=', 'p.Codigo')
+                ->where('p.Codigo', '=', $user->CodigoPersona)
+                ->first();
 
             $expiresAt = now()->addHour(2); // Fecha de vencimiento a 10 minutos en el futuro
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
             // $menus = DB::table('menu')->select('GUID')->where('vigente', 1)->get();
-            
+
 
             $menus = DB::table('perfil_menu as pm')
-            ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
-            ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
-            ->where('up.CodigoPersona', $user->CodigoPersona)
-            ->orderBy('pm.Codigo')
-            ->get(['m.GUID']) // Obtener los GUIDs como un array de objetos
-            ->map(function ($item) {
-                return ['GUID' => $item->GUID];
-            });
-        
+                ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
+                ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
+                ->where('up.CodigoPersona', $user->CodigoPersona)
+                ->where('m.Vigente', 1)
+                ->orderBy('pm.Codigo')
+                ->get(['m.GUID']) // Obtener los GUIDs como un array de objetos
+                ->map(function ($item) {
+                    return ['GUID' => $item->GUID];
+                });
+
 
 
             $mensaje = 'Acceso Correcto';
@@ -230,7 +232,7 @@ class UserController extends Controller
                 'permisos' => $menus,
                 'mensaje' => $mensaje
             ], 200);
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -248,17 +250,17 @@ class UserController extends Controller
     }
 
 
-    public function consultarPerfil($codigo){
-        try{
-            
+    public function consultarPerfil($codigo)
+    {
+        try {
+
             $perfil = UsuarioPerfil::where('CodigoPersona', $codigo)->first();
 
             return response()->json([
                 'res' => true,
                 'perfil' => $perfil
             ], 200);
-
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -266,28 +268,28 @@ class UserController extends Controller
         }
     }
 
-    public function asginarPerfil(Request $request){
-        try{
+    public function asginarPerfil(Request $request)
+    {
+        try {
 
             $perfil = UsuarioPerfil::find($request->Codigo);
 
             $rolAnterior = $perfil->CodigoRol;
 
-            if($perfil){
+            if ($perfil) {
                 $perfil->update([
                     'CodigoRol' => $request->CodigoRol
                 ]);
 
 
-                if($rolAnterior != $request->CodigoRol){
+                if ($rolAnterior != $request->CodigoRol) {
                     DB::table('personal_access_tokens')
-                    ->where('tokenable_id', $request->Codigo)
-                    ->orderByDesc('id')
-                    ->limit(1)
-                    ->delete();
+                        ->where('tokenable_id', $request->Codigo)
+                        ->orderByDesc('id')
+                        ->limit(1)
+                        ->delete();
                 }
-
-            }else{
+            } else {
                 $perfil = new UsuarioPerfil();
                 $perfil->CodigoPersona = $request->CodigoPersona;
                 $perfil->CodigoRol = $request->CodigoRol;
@@ -298,13 +300,11 @@ class UserController extends Controller
                 'res' => true,
                 'msg' => 'Rol asignado correctamente'
             ], 200);
-
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
             ], 401);
         }
     }
-
 }
