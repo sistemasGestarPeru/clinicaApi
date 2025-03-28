@@ -57,7 +57,18 @@ class ReportesController extends Controller
             ->get();        
             return response()->json($trabajadores, 200);
         }catch(\Exception $e){
-            return response()->json(['message' => 'Error al listar los trabajadores', 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Error al listar los Trabajadores', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
+    public function empresas(){
+        try{
+            $empresas = DB::table('empresas')
+                ->select('Codigo', 'RazonSocial')
+                ->get();
+            return response()->json($empresas, 200); 
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar las Empresas', 'bd' => $e->getMessage()], 400);
         }
     }
 
@@ -68,7 +79,7 @@ class ReportesController extends Controller
                 ->get();
             return response()->json($sedes, 200); 
         }catch(\Exception $e){
-            return response()->json(['message' => 'Error al listar las sedes', 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Error al listar las Sedes', 'bd' => $e->getMessage()], 400);
         }
     }
 
@@ -186,9 +197,9 @@ class ReportesController extends Controller
 
     public function reporteIngresosPeriodoEmpresa(){
 
-        $anio = request()->input('Anio'); // Opcional
-        $mes = request()->input('Mes'); // Opcional
-        $empresa = request()->input('CodigoEmpresa'); // Opcional
+        $anio = request()->input('anio'); // Opcional
+        $mes = request()->input('mes'); // Opcional
+        $empresa = request()->input('empresa'); // Opcional
 
         try{
 
@@ -201,7 +212,7 @@ class ReportesController extends Controller
                     CASE 
                         WHEN dv.CodigoClienteEmpresa IS NULL THEN p.NumeroDocumento
                         ELSE ce.RUC
-                    END AS NomDocumento,
+                    END AS NumDocumento,
                     CASE 
                         WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
                         ELSE ce.RazonSocial

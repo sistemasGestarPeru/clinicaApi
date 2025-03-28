@@ -57,6 +57,73 @@ class PagoComisionController extends Controller
         //
     }
 
+    public function registrarComisionPendiente(Request $request){
+
+        $comision = $request->input('comisionPendiente');
+        $dataEgreso = $request->input('egreso');
+
+        //Validar Egreso
+        if(isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0){
+            $dataEgreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if(isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0){
+            $dataEgreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($dataEgreso['CodigoSUNAT'] == '008') {
+            $dataEgreso['CodigoCuentaOrigen'] = null;
+            $dataEgreso['CodigoBilleteraDigital'] = null;
+            $dataEgreso['Lote'] = null;
+            $dataEgreso['Referencia'] = null;
+            $dataEgreso['NumeroOperacion'] = null;
+
+            $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
+
+            if($dataEgreso['Monto'] > $total){
+                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+            }
+
+        }else if($dataEgreso['CodigoSUNAT'] == '003'){
+            $dataEgreso['Lote'] = null;
+            $dataEgreso['Referencia'] = null;
+
+        }else if($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006'){
+            $dataEgreso['CodigoCuentaBancaria'] = null;
+            $dataEgreso['CodigoBilleteraDigital'] = null;
+        }
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($dataEgreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaEgresoVal = Carbon::parse($dataEgreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+
+        if ($fechaCajaVal < $fechaEgresoVal) {
+            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+        }
+        //Validar Egreso
+        $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+        DB::beginTransaction();
+        try{
+
+            $egresoCreado = Egreso::create($dataEgreso)->Codigo;
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Comisión registrada correctamente'
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al registrar la comisión',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+    }
+
     public function registrarPagoComision(Request $request)
     {
         $egreso = $request->input('egreso');
@@ -148,6 +215,41 @@ class PagoComisionController extends Controller
         }
     }
 
+
+    public function listarComisionesPagar(){
+        //falta la sede
+        try{
+            $comisiones = DB::table('comision as c')
+                ->leftJoin('pagocomision as pc', 'c.CodigoPagoComision', '=', 'pc.Codigo')
+                ->leftJoin('documentoventa as dv', 'c.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->leftJoin('contratoproducto as cp', 'c.CodigoContrato', '=', 'cp.Codigo')
+                ->leftJoin('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
+                ->select(
+                    'c.Codigo',
+                    'p.Codigo as CodigoMedico',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
+                    DB::raw("CASE 
+                                WHEN c.TipoDocumento = 'R' THEN 'Recibo por Honorario' 
+                                ELSE 'Nota de Pago' 
+                            END AS TipoDocumento"),
+                    'c.Monto',
+                    DB::raw("CONCAT(c.Serie, ' - ', c.Numero) as Documento"),
+                    'c.Vigente'
+                )
+                ->whereNull('c.CodigoPagoComision')
+                ->where('c.Vigente', 1)
+                ->get();
+
+            return response()->json($comisiones, 200);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al listar las comisiones por pagar',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function listarPagosComisiones(Request $request)
     {
         $data = $request->input('data');
@@ -184,7 +286,7 @@ class PagoComisionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al listar los pagos de comisiones',
-                'error' => $e->getMessage()
+                'bd' => $e->getMessage()
             ], 500);
         }
     }
@@ -227,7 +329,7 @@ class PagoComisionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Error al consultar el pago de comisión',
-                'message' => $e->getMessage()
+                'bd' => $e->getMessage()
             ], 500);
         }
     }

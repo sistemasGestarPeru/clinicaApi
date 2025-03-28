@@ -66,7 +66,8 @@ class LoteController extends Controller
                     'L.FechaCaducidad as FechaCaducidad',
                     'L.Serie',
                     'P.Nombre',
-                    'L.Cantidad'
+                    'L.Cantidad',
+                    'L.Stock'
                 ])
                 ->get();
             return response()->json($lotes, 200);

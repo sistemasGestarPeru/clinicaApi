@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\Almacen\GuiaIngreso\GuiaIngresoController;
 use App\Http\Controllers\API\Almacen\GuiaSalida\GuiaSalidaController;
 use App\Http\Controllers\API\Almacen\Lote\LoteController;
+use App\Http\Controllers\API\Almacen\Transformacion\TransformacionController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
@@ -291,6 +292,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
+    Route::get('pagoComision/listarComisionesPagar', [PagoComisionController::class, 'listarComisionesPagar']);
+
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
     Route::get('pagoComision/consultarDetalleDocumento/{codigo}/{tipo}', [PagoComisionController::class, 'consultarDetalleDocumento']);
     Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
@@ -503,6 +506,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('lote/detallexGuia/{codigo}', [LoteController::class, 'detallexGuia']);
     Route::post('lote/registrarLote', [LoteController::class, 'registrarLote']);
 
+
+    //TRANSFORMACION
+
+    Route::get('transformacion/listarProductosDisponibles/{sede}', [TransformacionController::class, 'listarProductosDisponibles']);
+
+
+
     //USUARIOS
     Route::post('seguridad/registro', [UserController::class, 'registro']);
     Route::get('seguridad/restablecerCredenciales/{codigo}', [UserController::class, 'restablecerCredenciales']);
@@ -529,9 +539,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //REPORTES 
     Route::get('reportes/empleados', [ReportesController::class, 'empleados']);
     Route::get('reportes/sedes', [ReportesController::class, 'sedes']);
+    Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
-
-
+    Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
+    
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);

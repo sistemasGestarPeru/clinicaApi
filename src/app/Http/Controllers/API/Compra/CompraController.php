@@ -213,15 +213,6 @@ class CompraController extends Controller
 
         $MontoTotal = 0;
 
-        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
-        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
-        $fechaCompraVal = Carbon::parse($compra['Fecha'])->toDateString(); // Convertir el string a Carbon
-
-        if ($fechaCajaVal < $fechaCompraVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
-        }
-
-
         try {
             DB::beginTransaction();
 
@@ -235,6 +226,14 @@ class CompraController extends Controller
             }
 
             if ($compra['FormaPago'] == 'C') {
+
+                $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+                $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+                $fechaCompraVal = Carbon::parse($compra['Fecha'])->toDateString(); // Convertir el string a Carbon
+        
+                if ($fechaCajaVal < $fechaCompraVal) {
+                    return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+                }
 
                 if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
                     $egreso['CodigoCuentaOrigen'] = null;
