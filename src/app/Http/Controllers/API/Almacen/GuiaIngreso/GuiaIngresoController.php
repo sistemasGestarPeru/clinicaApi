@@ -150,7 +150,7 @@ class GuiaIngresoController extends Controller
             
 
             DB::commit();
-            return response()->json(['message' => 'Guia de Ingreso registrada correctamente'], 200);
+            return response()->json(['message' => 'Guia de Ingreso registrada correctamente', 'Codigo' => $guiaIngreso->Codigo], 200);
 
         }catch(\Exception $e){
             DB::rollBack();
