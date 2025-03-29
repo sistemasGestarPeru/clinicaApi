@@ -184,8 +184,8 @@ class PagoComisionController extends Controller
             if ($egreso && $pagoComision) {
                 $egreso = Egreso::create($egreso);
                 $pagoComision['Codigo'] = $egreso->Codigo;
-                $codigoPagoComision = PagoComision::create($pagoComision)->Codigo;
-                $comision['CodigoPagoComision'] = $codigoPagoComision;
+                $codigoPagoComision = PagoComision::create($pagoComision);
+                $comision['CodigoPagoComision'] = $egreso->Codigo   ;
             }
 
             $codigoComision = Comision::create($comision)->Codigo;
@@ -200,6 +200,8 @@ class PagoComisionController extends Controller
                 }
                 DetalleComision::create($detalle);
             }
+
+
             
             DB::commit();
 
@@ -209,8 +211,8 @@ class PagoComisionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Error al registrar el pago de comisión',
-                'error' => $e->getMessage()
+                'error' => 'Error al registrar el Pago de Comisión',
+                'bd' => $e->getMessage(),
             ], 500);
         }
     }

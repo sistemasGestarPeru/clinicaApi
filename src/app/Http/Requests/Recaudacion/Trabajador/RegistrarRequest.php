@@ -24,7 +24,7 @@ class RegistrarRequest extends FormRequest
     {
         return [
             'CorreoCoorporativo' => [
-                'required',
+                'nullable',
                 'email',
                 Rule::unique('trabajadors', 'CorreoCoorporativo')->where('Vigente', 1)
             ],
@@ -35,7 +35,6 @@ class RegistrarRequest extends FormRequest
 
     public function messages(): array{
         return [
-            'CorreoCoorporativo.required' => 'El correo corporativo es obligatorio.',
             'CorreoCoorporativo.email' => 'El correo corporativo debe ser un correo válido.',
             'CorreoCoorporativo.unique' => 'El correo corporativo ya está en uso.',
             'FechaNacimiento.required' => 'La fecha de nacimiento es obligatoria.',

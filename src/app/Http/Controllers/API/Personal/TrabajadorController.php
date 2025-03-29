@@ -176,13 +176,14 @@ class TrabajadorController extends Controller
                 'cl.CodigoEmpresa',
                 'cl.FechaInicio',
                 'cl.FechaFin',
+                'cl.Vigente',
                 DB::raw("CASE 
                             WHEN cl.FechaFin IS NULL OR cl.FechaFin > ? THEN 1
                             ELSE 0 
                          END AS VigenciaContrato")
             )
             ->where('cl.CodigoTrabajador', $codTrab)
-            ->where('cl.Vigente', 1)
+            // ->where('cl.Vigente', 1)
             ->where('e.Vigente', 1)
             ->orderBy('VigenciaContrato', 'desc')
             ->addBinding([$fecha], 'select') // Bind de la fecha
