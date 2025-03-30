@@ -52,7 +52,7 @@ class PagoController extends Controller
     }
 
 
-// ---------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------
     public function registrarPago(RegistrarPagoRequest $request)
     {
         // Verificación de los datos
@@ -60,12 +60,11 @@ class PagoController extends Controller
             $request['CodigoCuentaBancaria'] = null;
             $request['NumeroOperacion'] = null;
         }
-    
+
         try {
             // Intentar crear el pago
             Pago::create($request->all());
             return response()->json(['message' => 'Pago registrado correctamente'], 200);
-            
         } catch (\Exception $e) {
             // En caso de error, devuelve el mensaje de error y un código de estado 500 (error interno del servidor)
             return response()->json(['message' => 'Error al registrar el Pago', 'error' => $e->getMessage()], 500);
@@ -86,8 +85,8 @@ class PagoController extends Controller
             ]);
 
             DB::table('documentoventa')
-            ->where('Codigo', $pagoDocData['CodigoDocumentoVenta'])
-            ->increment('MontoPagado', $pagoDocData['Monto']);
+                ->where('Codigo', $pagoDocData['CodigoDocumentoVenta'])
+                ->increment('MontoPagado', $pagoDocData['Monto']);
 
             DB::commit();
             return response()->json([
@@ -102,7 +101,7 @@ class PagoController extends Controller
     }
 
 
- // ---------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------
 
 
 
@@ -110,7 +109,7 @@ class PagoController extends Controller
     public function buscarPago(Request $request)
     {
 
-        $codigoSede = $request->input('codigoSede');
+        $codigoSede = $request->input('CodigoSede');
 
         try {
             $subquery = DB::table('pagodocumentoventa as pdv')
@@ -141,9 +140,8 @@ class PagoController extends Controller
                     (p.Monto - COALESCE(PAG.MontoAsociado, 0)) AS MontoPorAsociar
                 ")
                 ->get();
-        
-            return response()->json($pagos, 200);
 
+            return response()->json($pagos, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -167,16 +165,16 @@ class PagoController extends Controller
             AND CodigoSede = $codigoSede
             GROUP BY CodigoDocumentoReferencia
         ";
-        
-        $ventas = DB::table('documentoventa as VENTA')
-            ->leftJoin(DB::raw("($subquery) AS NOTACREDITO"), 'NOTACREDITO.CodigoDocumentoReferencia', '=', 'VENTA.Codigo')
-            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'VENTA.CodigoTipoDocumentoVenta')
-            ->whereNull('VENTA.CodigoMotivoNotaCredito')
-            ->where('VENTA.Vigente', 1) // Se pasa como valor directo
-            ->where('VENTA.CodigoSede', $codigoSede) // Se pasa como valor directo
-            ->whereRaw('(VENTA.MontoTotal - VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) > 0')
-            ->orderByDesc('VENTA.Codigo')
-            ->selectRaw('
+
+            $ventas = DB::table('documentoventa as VENTA')
+                ->leftJoin(DB::raw("($subquery) AS NOTACREDITO"), 'NOTACREDITO.CodigoDocumentoReferencia', '=', 'VENTA.Codigo')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'VENTA.CodigoTipoDocumentoVenta')
+                ->whereNull('VENTA.CodigoMotivoNotaCredito')
+                ->where('VENTA.Vigente', 1) // Se pasa como valor directo
+                ->where('VENTA.CodigoSede', $codigoSede) // Se pasa como valor directo
+                ->whereRaw('(VENTA.MontoTotal - VENTA.MontoPagado + COALESCE(NOTACREDITO.MontoTotalNC, 0)) > 0')
+                ->orderByDesc('VENTA.Codigo')
+                ->selectRaw('
                 VENTA.Codigo, 
                 VENTA.MontoPagado, 
                 VENTA.MontoTotal, 
@@ -186,8 +184,8 @@ class PagoController extends Controller
                 VENTA.Numero, 
                 DATE(VENTA.Fecha) AS Fecha
             ')
-            ->get();
-            
+                ->get();
+
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -200,14 +198,14 @@ class PagoController extends Controller
     {
         $codigoPago = $request->input('codigoPago');
         $codigoTrabajador = $request->input('codigoTrabajador');
-        
+
         DB::beginTransaction();
         try {
 
             $registroPagoExiste = DB::table('pago')
                 ->where('Codigo', $codigoPago)
                 ->exists();
-    
+
             if ($registroPagoExiste) {
                 // Actualizar 'pago' si existe
                 DB::table('pago')
@@ -216,7 +214,7 @@ class PagoController extends Controller
                         'CodigoTrabajador' => $codigoTrabajador,
                         'Vigente' => 0
                     ]);
-            }else{
+            } else {
                 DB::rollBack();
                 return response()->json([
                     'message' => 'El Pago no existe.',
@@ -235,7 +233,7 @@ class PagoController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function consultarPago(Request $request)
     {
