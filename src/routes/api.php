@@ -292,7 +292,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/registrarComisionPendiente', [PagoComisionController::class, 'registrarComisionPendiente']);
-    
+
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::get('pagoComision/listarComisionesPagar/{sede}/{medico}', [PagoComisionController::class, 'listarComisionesPagar']);
     Route::get('pagoComision/listarMedicosPendientesP/{sede}', [PagoComisionController::class, 'listarMedicosPendientesP']);
@@ -514,6 +514,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //TRANSFORMACION
 
     Route::get('transformacion/listarProductosDisponibles/{sede}', [TransformacionController::class, 'listarProductosDisponibles']);
+    Route::post('transformacion/registrarTransformacion', [TransformacionController::class, 'registrarTransformacion']);
 
 
 
@@ -546,7 +547,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
     Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
-    
+
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
