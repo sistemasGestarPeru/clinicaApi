@@ -274,9 +274,10 @@ class UserController extends Controller
 
             $perfil = UsuarioPerfil::find($request->Codigo);
 
-            $rolAnterior = $perfil->CodigoRol;
-
             if ($perfil) {
+
+                $rolAnterior = $perfil->CodigoRol;
+
                 $perfil->update([
                     'CodigoRol' => $request->CodigoRol
                 ]);

@@ -57,8 +57,30 @@ class PagoComisionController extends Controller
         //
     }
 
-    public function registrarComisionPendiente(Request $request){
+    public function listarMedicosPendientesP($sede){
 
+        try{
+
+            $medicos = DB::table('comision as c')
+
+            ->join('personas as p', 'p.Codigo', '=', 'c.CodigoMedico')
+            ->whereNull('c.CodigoPagoComision')
+            ->distinct()
+            ->select('c.CodigoMedico as Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"))
+            ->get();
+
+            return response()->json($medicos, 200);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al listar los medicos pendientes',
+                'bd' => $e->getMessage()
+            ], 500);
+        }   
+    }
+
+    public function registrarComisionPendiente(Request $request){
+        $medico = $request->input('medico');
         $comision = $request->input('comisionPendiente');
         $dataEgreso = $request->input('egreso');
 
@@ -109,6 +131,13 @@ class PagoComisionController extends Controller
 
             $egresoCreado = Egreso::create($dataEgreso)->Codigo;
 
+            $pagoComision = ['Codigo' => $egresoCreado,'CodigoMedico' => $medico];
+            PagoComision::create($pagoComision);
+
+            DB::table('comision')
+            ->whereIn('Codigo', $comision)
+            ->update(['CodigoPagoComision' => $egresoCreado]);
+
             DB::commit();
 
             return response()->json([
@@ -117,8 +146,8 @@ class PagoComisionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Error al registrar la comisión',
-                'error' => $e->getMessage()
+                'error' => 'Error al registrar la comisión',
+                'bd' => $e->getMessage()
             ], 500);
         }
 
@@ -218,7 +247,7 @@ class PagoComisionController extends Controller
     }
 
 
-    public function listarComisionesPagar(){
+    public function listarComisionesPagar($sede, $medico){
         //falta la sede
         try{
             $comisiones = DB::table('comision as c')
@@ -239,6 +268,7 @@ class PagoComisionController extends Controller
                     'c.Vigente'
                 )
                 ->whereNull('c.CodigoPagoComision')
+                ->where('c.CodigoMedico', $medico)
                 ->where('c.Vigente', 1)
                 ->get();
 
