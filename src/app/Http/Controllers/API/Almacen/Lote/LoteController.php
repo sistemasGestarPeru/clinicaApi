@@ -219,7 +219,7 @@ class LoteController extends Controller
                 $movimientoLote['CodigoDetalleIngreso'] = $lote['CodigoDetalleIngreso'];
                 $movimientoLote['CodigoLote'] = $loteCreado->Codigo;
                 $movimientoLote['Cantidad'] = $lote['Cantidad'];
-                $movimientoLote['Stock'] = $nuevoStock;
+                $movimientoLote['Stock'] = $lote['Cantidad'];
                 $movimientoLote['CostoPromedio'] = $nuevoCosto;
                 $movimientoLote['Fecha'] = $lote['Fecha'];
                 $movimientoLote['TipoOperacion'] = 'I';
