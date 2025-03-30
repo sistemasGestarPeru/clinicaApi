@@ -112,6 +112,37 @@ class TransformacionController extends Controller
                 ->where('CodigoSede', $data['CodigoSede'])
                 ->decrement('Stock', $data['CantidadOrigen']);
 
+            //Transformación de producto DESTINO (INGRESO)
+            $loteDestino = Lote::create([
+                'CodigoProducto' => $data['ProductoDestino'],
+                'Stock' => $data['CantidadDestino'],
+                'Cantidad' => $data['CantidadDestino'],
+                'Costo' => $costoSede,
+                'FechaCaducidad' => '2025-12-31', // cambiar
+                'MontoIGV' => 0, //cambiar
+                'CodigoSede' => $data['CodigoSede'],
+                'CodigoDetalleIngreso' => 5,
+                'Serie' => '123',
+            ]);
+
+            $movimientoLote['CodigoDetalleIngreso'] = 5;
+            $movimientoLote['CodigoLote'] = $loteDestino->Codigo;
+            $movimientoLote['Cantidad'] = $data['CantidadDestino'];
+            $movimientoLote['Stock'] = $data['CantidadDestino'];
+            $movimientoLote['CostoPromedio'] = 2; //cambiar
+            $movimientoLote['Fecha'] = '2025-12-31'; //cambiar
+            $movimientoLote['TipoOperacion'] = 'T';
+            MovimientoLote::create($movimientoLote);
+
+
+            DB::table('SedeProducto')
+                ->where('CodigoProducto', $data['ProductoDestino'])
+                ->where('CodigoSede', $data['CodigoSede'])
+                ->update([
+                    'CostoCompraPromedio' => 2, //cambiar
+                    'Stock' => 2 //cambiar
+                ]);
+
             DB::commit();
 
             return response()->json([

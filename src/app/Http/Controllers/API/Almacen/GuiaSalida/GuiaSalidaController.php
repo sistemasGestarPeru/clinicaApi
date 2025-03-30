@@ -72,9 +72,9 @@ class GuiaSalidaController extends Controller
         $filtros = $request->all();
         try {
 
-            $guiaIngreso = GuiaSalida::all()->where('CodigoSede', $filtros['CodigoSede']);
+            $guiaSalida = GuiaSalida::where('CodigoSede', $filtros['CodigoSede'])->get();
 
-            return response()->json($guiaIngreso, 200);
+            return response()->json($guiaSalida, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar las Guias de Salida', 'bd' => $e->getMessage()], 500);
         }
