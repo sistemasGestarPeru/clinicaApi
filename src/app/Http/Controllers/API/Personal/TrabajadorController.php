@@ -139,7 +139,7 @@ class TrabajadorController extends Controller
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('t.Codigo', $codTrab)
                 ->where('s.Vigente', 1)
-                ->where('ase.Vigente', 1)
+                // ->where('ase.Vigente', 1)
                 ->where('e.Vigente', 1)
                 ->where('e.Codigo', $codEmpresa)
                 ->select(
@@ -149,8 +149,8 @@ class TrabajadorController extends Controller
                     'ase.FechaFin',
                     'ase.Vigente',
                     DB::raw("CASE 
-                                WHEN ase.FechaFin IS NULL OR ase.FechaFin < ? THEN 0 
-                                ELSE 1 
+                                WHEN ase.FechaFin IS NULL OR ase.FechaFin > ? THEN 1 
+                                ELSE 0 
                             END as EstadoAsignacion")
                 )
                 ->addBinding([$fecha], 'select') // Bind de la fecha
