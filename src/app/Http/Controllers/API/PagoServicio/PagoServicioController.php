@@ -198,4 +198,33 @@ class PagoServicioController extends Controller
             ], 500);
         }
     }
+
+    public function actualizarPago(){
+        $egreso = request()->input('egreso');
+        DB::beginTransaction();
+        
+        try{
+            
+            $egresoData = Egreso::find($egreso['Codigo']);
+            if(!$egresoData){
+                return response()->json([
+                    'error' => 'Egreso no encontrado'
+                ], 404);
+            }
+
+            if($egresoData['Vigente'] == 1){
+                $egresoData->update($egreso);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Pago del servicio actualizado correctamente'
+            ], 200);
+        }catch(\Exception $e){
+            return response()->json([
+                'error' => 'Error al actualizar el pago del servicio',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

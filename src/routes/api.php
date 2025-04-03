@@ -286,6 +286,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('pagoDonante/consultarPagoDonante/{codigo}', [PagoDonanteController::class, 'consultarPagoDonante']);
     /********************************** PAGO SERVICIOS **********************************/
     Route::post('pagoServicio/registrarPago', [PagoServicioController::class, 'registrarPago']);
+    Route::post('pagoServicio/actualizarPago', [PagoServicioController::class, 'actualizarPago']);
     Route::post('pagoServicio/listarPagos', [PagoServicioController::class, 'listarPagos']);
     Route::get('pagoServicio/consultarPagoServicio/{codigo}', [PagoServicioController::class, 'consultarPagoServicio']);
 
@@ -542,12 +543,16 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('perfil/cambiarContrasenia', [PersonaController::class, 'cambiarContrasenia']);
 
     //REPORTES 
+    Route::get('reportes/listarProducto/{sede}', [ReportesController::class, 'listarProducto']);
     Route::get('reportes/empleados', [ReportesController::class, 'empleados']);
     Route::get('reportes/sedes', [ReportesController::class, 'sedes']);
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
     Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
-
+    Route::post('reportes/reporteKardexSimple', [ReportesController::class, 'reporteKardexSimple']);
+    Route::post('reportes/reporteKardexValorizado', [ReportesController::class, 'reporteKardexValorizado']);
+    Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);
+    
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);

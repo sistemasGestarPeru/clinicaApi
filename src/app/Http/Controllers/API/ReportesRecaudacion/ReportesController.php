@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\ReportesRecaudacion;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -46,6 +47,30 @@ class ReportesController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function listarProducto($sede)
+    {
+        // $sede = $request->input('sede');
+        // $nombre = $request->input('nombre');
+        try {
+            $productos = DB::table('sedeproducto as sp')
+                ->select(
+                    'p.Codigo',
+                    'p.Nombre',
+                )
+                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+                ->where('p.Tipo', 'B') // Filtro por Tipo = 'B'
+                ->where('p.Vigente', 1) // Filtro por Vigente en producto
+                // ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
+                ->get();
+
+
+            return response()->json($productos, 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al listar los productos', $e], 500);
+        }
     }
 
     public function empleados(){
@@ -239,7 +264,105 @@ class ReportesController extends Controller
             return response()->json($query, 200);
         
         }catch(\Exception $e){
-            return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
+    public function reporteKardexSimple(){
+
+        $fechaActual = date('Y-m-d');
+        $codigoProducto = request()->input('producto'); // Requerido
+        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
+
+        try{
+            $datos = DB::table('movimientolote AS ml')
+            ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
+            ->select(
+                'l.Serie',
+                'ml.Fecha',
+                DB::raw("
+                    CASE
+                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
+                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
+                        ELSE 'Otros'
+                    END AS TipoOperacion
+                "),
+                'l.Cantidad',
+                'ml.Stock'
+            )
+            ->where('l.CodigoProducto', $codigoProducto)
+            ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
+            ->get();
+
+            return response()->json($datos, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
+    public function reporteKardexValorizado(){
+
+        $fechaActual = date('Y-m-d');
+        $codigoProducto = request()->input('producto'); // Requerido
+        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
+
+        try{
+
+            $datos = DB::table('movimientolote AS ml')
+            ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
+            ->select(
+                'l.Serie',
+                'ml.Fecha',
+                DB::raw("
+                    CASE
+                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
+                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
+                        ELSE 'Otros'
+                    END AS TipoOperacion
+                "),
+                DB::raw('l.Stock / l.Costo AS Inversion'),
+                'l.Cantidad',
+                'ml.Stock',
+                'ml.CostoPromedio'
+            )
+            ->where('l.CodigoProducto', $codigoProducto)
+            ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
+            ->get();
+
+            return response()->json($datos, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
+    public function reporteProductosPorVencer(){
+        $fecha = request()->input('fecha');
+    
+        // Calcular fecha fin (30 días después)
+        $fechaFin = Carbon::parse($fecha)->addDays(30)->toDateString();
+    
+        try {
+            $productos = DB::table('producto AS p')
+                ->join('lote AS l', 'p.Codigo', '=', 'l.CodigoProducto')
+                ->select(
+                    'l.Serie',
+                    'p.Nombre',
+                    'l.Cantidad',
+                    'l.Stock',
+                    'l.FechaCaducidad',
+                    DB::raw("DATEDIFF(l.FechaCaducidad, ?) AS DiasPorVencer")
+                )
+                ->whereBetween('l.FechaCaducidad', [$fecha, $fechaFin]) // ✅ Laravel maneja los valores automáticamente
+                ->addBinding([$fecha], 'select') // ✅ Se pasa correctamente la fecha solo para DATEDIFF
+                ->get();
+    
+            return response()->json($productos, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
 }

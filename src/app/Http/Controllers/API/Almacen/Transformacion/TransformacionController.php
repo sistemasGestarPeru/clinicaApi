@@ -90,7 +90,9 @@ class TransformacionController extends Controller
                 //Transformación de producto ORIGEN (SALIDA)
 
                 //Stock Actual
-                $stockActual = DB::table('lote')->where('Codigo', $detalle['Codigo'])->value('Stock');
+                $loteActual = DB::table('lote')->where('Codigo', $detalle['Codigo'])->select('Cantidad','CodigoDetalleIngreso','Serie', 'FechaCaducidad', 'Stock')->first();
+
+                
                 //Stock Nuevo
                 DB::table('lote')->where('Codigo', $detalle['Codigo'])->decrement('Stock', $detalle['Cantidad']);
 
@@ -99,11 +101,63 @@ class TransformacionController extends Controller
                 $movimientoLote['CodigoLote'] = $detalle['Codigo'];
                 $movimientoLote['TipoOperacion'] = 'T';
                 $movimientoLote['Fecha'] = $fecha;
-                $movimientoLote['Cantidad'] = $stockActual - $detalle['Cantidad'];
-                $movimientoLote['Stock'] = $stockActual - $detalle['Cantidad'];
+                $movimientoLote['Cantidad'] = $loteActual->Cantidad;
+                $movimientoLote['Stock'] = $loteActual->Stock - $detalle['Cantidad'];
                 $movimientoLote['CostoPromedio'] = $costoSede;
-
+                $movimientoLote['CodigoDetalleIngreso'] = $loteActual->CodigoDetalleIngreso;
                 MovimientoLote::create($movimientoLote);
+
+                //Transformación de producto DESTINO (INGRESO)
+                //CREAR SI NO EXISTE EL LOTE DESTINO ACTUALIZAR SI EXISTE
+
+                $loteDestino = Lote::create([
+                    'CodigoProducto' => $data['ProductoDestino'],
+                    'Stock' => $data['CantidadDestino'],
+                    'Cantidad' => $data['CantidadDestino'],
+                    'Costo' => $data['CostoU'],
+                    'FechaCaducidad' => $loteActual->FechaCaducidad,
+                    'MontoIGV' => 0, //cambiar
+                    'CodigoSede' => $data['CodigoSede'],
+                    'CodigoDetalleIngreso' => $loteActual->CodigoDetalleIngreso,
+                    'Serie' => $loteActual->Serie, 
+                ]);
+
+                //GENERAR EL MOVIMIENTO DEL LOTE
+
+                //Consultar si existe stock y producto en la sede
+                $productoDestino = DB::table('SedeProducto')
+                ->where('CodigoProducto', $data['ProductoDestino'])
+                ->where('CodigoSede', $data['CodigoSede'])
+                ->first();
+
+                $stockSedeDestino = $productoDestino->Stock ?? 0;
+                $costoSedeDestino = $productoDestino->CostoCompraPromedio ?? 0;
+                $inversionSedeDestino = $stockSedeDestino * $costoSedeDestino;
+
+                $inversionLoteDestino = $data['CostoU'] * $data['CantidadDestino'];
+
+                $nuevoStockDestino = $data['CantidadDestino'] + $stockSedeDestino;
+                $nuevaInversionDestino = $inversionSedeDestino + $inversionLoteDestino;
+                $nuevoCostoDestino = $nuevaInversionDestino / $nuevoStockDestino;
+
+
+                $movimientoLote['CodigoDetalleIngreso'] = $loteActual->CodigoDetalleIngreso;
+                $movimientoLote['CodigoLote'] = $loteDestino->Codigo;
+                $movimientoLote['Cantidad'] = $data['CantidadDestino'];
+                $movimientoLote['Stock'] = $data['CantidadDestino'];
+                $movimientoLote['CostoPromedio'] = $nuevoCostoDestino; 
+                $movimientoLote['Fecha'] = $fecha; //cambiar
+                $movimientoLote['TipoOperacion'] = 'E';
+                MovimientoLote::create($movimientoLote);
+
+                DB::table('sedeproducto')
+                ->where('CodigoProducto', $data['ProductoDestino'])
+                ->where('CodigoSede', $data['CodigoSede'])
+                ->update([
+                    'CostoCompraPromedio' => $nuevoCostoDestino, //cambiar
+                    'Stock' => $nuevoStockDestino
+                ]);
+
             }
 
             //Actualizar el stock de la sede
@@ -111,37 +165,6 @@ class TransformacionController extends Controller
                 ->where('CodigoProducto', $data['ProductoOrigen'])
                 ->where('CodigoSede', $data['CodigoSede'])
                 ->decrement('Stock', $data['CantidadOrigen']);
-
-            //Transformación de producto DESTINO (INGRESO)
-            $loteDestino = Lote::create([
-                'CodigoProducto' => $data['ProductoDestino'],
-                'Stock' => $data['CantidadDestino'],
-                'Cantidad' => $data['CantidadDestino'],
-                'Costo' => $costoSede,
-                'FechaCaducidad' => '2025-12-31', // cambiar
-                'MontoIGV' => 0, //cambiar
-                'CodigoSede' => $data['CodigoSede'],
-                'CodigoDetalleIngreso' => 5,
-                'Serie' => '123',
-            ]);
-
-            $movimientoLote['CodigoDetalleIngreso'] = 5;
-            $movimientoLote['CodigoLote'] = $loteDestino->Codigo;
-            $movimientoLote['Cantidad'] = $data['CantidadDestino'];
-            $movimientoLote['Stock'] = $data['CantidadDestino'];
-            $movimientoLote['CostoPromedio'] = 2; //cambiar
-            $movimientoLote['Fecha'] = '2025-12-31'; //cambiar
-            $movimientoLote['TipoOperacion'] = 'T';
-            MovimientoLote::create($movimientoLote);
-
-
-            DB::table('SedeProducto')
-                ->where('CodigoProducto', $data['ProductoDestino'])
-                ->where('CodigoSede', $data['CodigoSede'])
-                ->update([
-                    'CostoCompraPromedio' => 2, //cambiar
-                    'Stock' => 2 //cambiar
-                ]);
 
             DB::commit();
 
