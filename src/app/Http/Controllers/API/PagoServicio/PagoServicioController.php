@@ -212,7 +212,9 @@ class PagoServicioController extends Controller
                 ], 404);
             }
 
-            $egresoData->update($egreso);
+            if($egresoData['Vigente'] == 1){
+                $egresoData->update($egreso);
+            }
 
             DB::commit();
             return response()->json([

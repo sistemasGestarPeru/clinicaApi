@@ -195,7 +195,7 @@ class CajaController extends Controller
                             WHERE c.Codigo = pp.CodigoCuota AND c.Vigente = 1 AND Co.Vigente = 1)
                             WHEN dnc.Codigo IS NOT NULL THEN (
                                 SELECT CONCAT(tdv.Nombre,' ',docv.Serie, '-', LPAD(docv.Numero, 5, '0')) 
-                            FROM DocumentoVenta as docv 
+                            FROM documentoventa as docv 
                             INNER JOIN tipodocumentoventa as tdv ON tdv.Codigo = docv.CodigoTipoDocumentoVenta
                             WHERE docv.Vigente = 1 AND docv.Codigo = dnc.CodigoDocumentoVenta)
                         ELSE '-' 
