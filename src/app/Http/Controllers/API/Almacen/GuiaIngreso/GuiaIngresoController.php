@@ -54,8 +54,22 @@ class GuiaIngresoController extends Controller
     {
         $filtros = $request->all();
         try {
-
-            $guiaIngreso = GuiaIngreso::where('CodigoSede', $filtros['CodigoSede'])->get();
+            $guiaIngreso = DB::table('guiaingreso')
+            ->select(
+                'Codigo',
+                DB::raw("
+                    CASE 
+                        WHEN TipoDocumento = 'G' THEN 'Guia de remisión'
+                        WHEN TipoDocumento = 'N' THEN 'Nota de salida'
+                        WHEN TipoDocumento = 'T' THEN 'Transformación'
+                        ELSE 'Desconocido'
+                    END AS TipoDocumento
+                "),
+                DB::raw("CONCAT(Serie, ' ', Numero) AS Documento"),
+                'Fecha'
+            )
+            ->where('CodigoSede', $filtros['CodigoSede'])
+            ->get();
 
             return response()->json($guiaIngreso, 200);
         } catch (\Exception $e) {

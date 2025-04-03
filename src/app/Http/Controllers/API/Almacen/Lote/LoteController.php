@@ -197,7 +197,7 @@ class LoteController extends Controller
             foreach ($data as $lote) {
                 $inversionLote = 0;
 
-                $producto = DB::table('SedeProducto')
+                $producto = DB::table('sedeproducto')
                     ->where('CodigoProducto', $lote['CodigoProducto'])
                     ->where('CodigoSede', $lote['CodigoSede'])
                     ->first();
@@ -225,7 +225,7 @@ class LoteController extends Controller
                 $movimientoLote['TipoOperacion'] = 'I';
                 MovimientoLote::create($movimientoLote);
 
-                DB::table('SedeProducto')
+                DB::table('sedeproducto')
                     ->where('CodigoProducto', $lote['CodigoProducto'])
                     ->where('CodigoSede', $lote['CodigoSede'])
                     ->update([

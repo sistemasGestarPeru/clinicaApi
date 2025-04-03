@@ -81,22 +81,43 @@ class TrabajadorController extends Controller
 
     public function actualizarAsignacion(Request $request)
     {
+        $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
+
         $asignacionData = $request->input('asignacionSede');
         try {
+            //Verificar
             $asignacion = AsignacionSede::find($asignacionData['Codigo']);
-            $asignacion->update($asignacionData);
+            $estadoActual = $asignacion->Vigente;
+
+            $asignacionVigente = $asignacion->FechaFin == null || $asignacion->FechaFin > $fecha;
+
+            if($estadoActual == 1 && $asignacionVigente){
+                $asignacion->update($asignacionData);
+            }
+            
             return response()->json(['msg' => 'Asignación actualizada correctamente'], 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al actualizar la Asignación: ' . $e->getMessage()], 400);
+            return response()->json(['error' => 'Error al actualizar la Asignación', 'bd' => $e->getMessage()], 400);
         }
     }
 
     public function actualizarContrato(Request $request)
     {
+        $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
+        
+
         $contratoData = $request->input('contrato');
         try {
             $contrato = ContratoLaboral::find($contratoData['Codigo']);
-            $contrato->update($contratoData);
+            $estadoActual = $contrato->Vigente;
+            //Verificar
+            // Verificar si el contrato está vigente antes de actualizarlo
+            $contratoVigente = $contrato->FechaFin == null || $contrato->FechaFin > $fecha;
+
+            if($estadoActual == 1 && $contratoVigente){
+                $contrato->update($contratoData);
+            }
+
             return response()->json(['msg' => 'Contrato actualizado correctamente'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al actualizar al Contrato: ' . $e->getMessage()], 400);
