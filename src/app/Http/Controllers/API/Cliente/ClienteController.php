@@ -188,7 +188,6 @@ class ClienteController extends Controller
                     'Vigente'
                 )
                 ->where('Codigo', '=', $id)
-                ->where('Vigente', '=', 1)
                 ->first();
 
             return response()->json($cliente);
@@ -203,7 +202,6 @@ class ClienteController extends Controller
                     'Vigente'
                 )
                 ->where('Codigo', '=', $id)
-                ->where('Vigente', '=', 1)
                 ->first();
             return response()->json($cliente);
         }
