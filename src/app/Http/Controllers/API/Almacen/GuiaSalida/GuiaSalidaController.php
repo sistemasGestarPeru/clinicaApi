@@ -56,7 +56,7 @@ class GuiaSalidaController extends Controller
     public function lotesDisponibles($sede, $producto)
     {
         try {
-            $lotes = Lote::select('Codigo', 'Serie', 'Cantidad', 'Stock', 'FechaCaducidad')
+            $lotes = Lote::select('Codigo', 'Serie', 'Cantidad', 'Stock', 'FechaCaducidad', 'Costo')
                 ->where('CodigoProducto', $producto)
                 ->where('CodigoSede', $sede)
                 ->where('Stock', '>', 0)
