@@ -216,9 +216,6 @@ class ReportesController extends Controller
         }
     }
 
-    public function reporteEgresosPeriodo(Request $request){
-
-    }
 
     public function reporteIngresosPeriodoEmpresa(){
 
@@ -343,25 +340,53 @@ class ReportesController extends Controller
         $fecha = request()->input('fecha');
     
         // Calcular fecha fin (30 días después)
-        $fechaFin = Carbon::parse($fecha)->addDays(30)->toDateString();
+        $fechaActual = Carbon::now()->toDateString(); // '2025-04-07' por ejemplo
     
         try {
             $productos = DB::table('producto AS p')
-                ->join('lote AS l', 'p.Codigo', '=', 'l.CodigoProducto')
-                ->select(
-                    'l.Serie',
-                    'p.Nombre',
-                    'l.Cantidad',
-                    'l.Stock',
-                    'l.FechaCaducidad',
-                    DB::raw("DATEDIFF(l.FechaCaducidad, ?) AS DiasPorVencer")
-                )
-                ->whereBetween('l.FechaCaducidad', [$fecha, $fechaFin]) // ✅ Laravel maneja los valores automáticamente
-                ->addBinding([$fecha], 'select') // ✅ Se pasa correctamente la fecha solo para DATEDIFF
-                ->get();
+            ->join('lote AS l', 'p.Codigo', '=', 'l.CodigoProducto')
+            ->select(
+                'l.Serie',
+                'p.Nombre',
+                'l.Cantidad',
+                'l.Stock',
+                'l.FechaCaducidad',
+                DB::raw("DATEDIFF(l.FechaCaducidad, ?) AS DiasPorVencer")
+            )
+            ->where('l.FechaCaducidad', $fecha)
+            ->where('l.Stock', '>', 0) // Solo productos con cantidad mayor a 0
+            ->addBinding([$fechaActual], 'select') // Pasa la fecha actual como parámetro para DATEDIFF
+            ->get();
     
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
+    public function reporteCatalogoProductos(Request $request){
+        
+        $categoria = request()->input('Fecha'); // Opcional
+        $sede = request()->input('CodigoSede'); // Opcional
+
+        try{
+
+            $productos = DB::table('sedeproducto as sp')
+            ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+            ->join('categoriaproducto as cp', 'p.CodigoCategoria', '=', 'cp.Codigo')
+            ->select('p.Nombre as Producto', 'cp.Nombre as Categoria')
+            ->where('p.Tipo', 'B')
+            ->when($sede, fn($query) => $query->where('sp.CodigoSede', $sede))
+            ->when($categoria, fn($query) => $query->where('cp.Codigo', $categoria))
+            ->get();
+
+            // ->when($sede, function ($query) use ($sede) {
+            //     return $query->where('c.CodigoSede', $sede);
+            // });
+
+            return response()->json($productos, 200);
+
+        }catch(\Exception $e){
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }

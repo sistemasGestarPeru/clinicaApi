@@ -84,7 +84,9 @@ class GuiaIngresoController extends Controller
             $compras = DB::table('compra as c')
                 ->select([
                     'c.Codigo',
-                    DB::raw("CONCAT(c.Serie, ' - ', LPAD(c.Numero, 4, '0')) as Descripcion")
+                    'c.Serie',
+                    DB::raw("LPAD(c.Numero, 4, '0') as Numero"),
+                    'c.Fecha',
                 ])
                 ->where('c.CodigoSede', $sede)
                 ->where('c.Vigente', 1)
