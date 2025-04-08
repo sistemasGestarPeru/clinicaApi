@@ -181,10 +181,8 @@ class ReportesController extends Controller
                         WHEN pdet.Codigo IS NOT NULL THEN 'PAGO DETRACCION'
                         ELSE 'OTRO'
                     END AS Detalle,
-                    CONCAT(DATE_FORMAT(e.Fecha, '%d/%m/%Y'), ' ', TIME(e.Fecha)) AS Fecha,
-                    e.Monto AS Monto,
                     mp.Nombre AS MedioPago,
-                    mp.CodigoSUNAT as CodigoSUNAT
+                    SUM(e.Monto) AS TotalMonto
                 ")
                 ->leftJoin('pagoservicio AS ps', 'ps.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagoproveedor as pp', 'pp.Codigo', '=', 'e.Codigo')
@@ -198,10 +196,14 @@ class ReportesController extends Controller
                 ->leftJoin('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->leftJoin('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
                 // Aplicar filtros opcionales
+                ->where('mp.CodigoSUNAT', '008')
+                ->where('e.Vigente', 1)
                 ->when($trabajador, fn($query) => $query->where('e.CodigoTrabajador', $trabajador))
                 ->when($fecha, fn($query) => $query->whereRaw("DATE(e.Fecha) = ?", [$fecha]))
                 ->when($sede, fn($query) => $query->where('c.CodigoSede', $sede))
                 // Obtener resultados
+                ->groupBy('Detalle', 'mp.Nombre')
+                ->orderBy('Detalle')
                 ->get();
     
                 $Ingresos = $query1

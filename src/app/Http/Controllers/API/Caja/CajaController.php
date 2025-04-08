@@ -203,13 +203,13 @@ class CajaController extends Controller
                         AS DOCUMENTO,
                     
                     -e.Monto AS MONTO
-                        FROM Egreso as e
+                        FROM egreso as e
                         LEFT JOIN pagoservicio AS ps ON ps.Codigo = e.Codigo
                         LEFT JOIN pagoproveedor as pp ON pp.Codigo = e.Codigo
                         LEFT JOIN salidadinero AS sd ON sd.Codigo = e.Codigo
                         LEFT JOIN devolucionnotacredito as dnc ON dnc.Codigo = e.Codigo
-                        LEFT JOIN pagoDonante as pd ON pd.Codigo = e.Codigo
-                        LEFT JOIN pagoComision as pc ON pc.Codigo = e.Codigo
+                        LEFT JOIN pagodonante as pd ON pd.Codigo = e.Codigo
+                        LEFT JOIN pagocomision as pc ON pc.Codigo = e.Codigo
                         LEFT JOIN pagopersonal as pper ON pper.Codigo = e.Codigo
                         LEFT JOIN pagosvarios as pvar ON pvar.Codigo = e.Codigo
                         LEFT JOIN pagodetraccion as pdet ON pdet.Codigo = e.Codigo
@@ -574,7 +574,7 @@ class CajaController extends Controller
                     return $query->where('c.Codigo', $caja);
                 });
 
-                $Egresos = DB::table('Egreso as e')
+                $Egresos = DB::table('egreso as e')
                 ->selectRaw("
                     CASE
                         WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
@@ -588,29 +588,29 @@ class CajaController extends Controller
                         WHEN pdet.Codigo IS NOT NULL THEN 'PAGO DETRACCION'
                         ELSE 'OTRO'
                     END AS Detalle,
-                    CONCAT(DATE_FORMAT(e.Fecha, '%d/%m/%Y'), ' ', TIME(e.Fecha)) AS Fecha,
-                    e.Monto AS Monto,
                     mp.Nombre AS MedioPago,
-                    mp.CodigoSUNAT as CodigoSUNAT
+                    SUM(e.Monto) AS TotalMonto
                 ")
-                ->leftJoin('pagoservicio AS ps', 'ps.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagoservicio as ps', 'ps.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagoproveedor as pp', 'pp.Codigo', '=', 'e.Codigo')
-                ->leftJoin('salidadinero AS sd', 'sd.Codigo', '=', 'e.Codigo')
+                ->leftJoin('salidadinero as sd', 'sd.Codigo', '=', 'e.Codigo')
                 ->leftJoin('devolucionnotacredito as dnc', 'dnc.Codigo', '=', 'e.Codigo')
-                ->leftJoin('pagoDonante as pd', 'pd.Codigo', '=', 'e.Codigo')
-                ->leftJoin('pagoComision as pc', 'pc.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagodonante as pd', 'pd.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagocomision as pc', 'pc.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagopersonal as pper', 'pper.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagosvarios as pvar', 'pvar.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagodetraccion as pdet', 'pdet.Codigo', '=', 'e.Codigo')
                 ->leftJoin('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
-            
-                // Aplicar filtros opcionales
+                ->where('mp.CodigoSUNAT', '008')
+                ->where('e.Vigente', 1)
                 ->when($trabajador, fn($query) => $query->where('e.CodigoTrabajador', $trabajador))
                 ->when($fecha, fn($query) => $query->whereRaw("DATE(e.Fecha) = ?", [$fecha]))
                 ->when($caja, fn($query) => $query->where('e.CodigoCaja', $caja))
-            
-                // Obtener resultados
+                ->groupBy('Detalle', 'mp.Nombre')
+                ->orderBy('Detalle')
                 ->get();
+
+
 
 
                 $Ingresos = $query1
@@ -621,7 +621,7 @@ class CajaController extends Controller
             return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
 
         }catch(\Exception $e){
-            return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Error al listar los ingresos y egresos', 'error' => $e->getMessage()], 400);
         }
     }
 
