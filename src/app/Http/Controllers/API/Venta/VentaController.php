@@ -749,6 +749,10 @@ class VentaController extends Controller
                     'sp.Stock'
                 )
                 ->where('sp.CodigoSede', $sede) // Usar la sede proporcionada en la solicitud
+                ->where(function ($query) {
+                    $query->where('sp.Stock', '>', 0)
+                          ->orWhere('p.Controlado', 0);
+                })                
                 ->where('sp.Vigente', 1)
                 ->where('p.Vigente', 1)
                 ->where('tg.Vigente', 1)

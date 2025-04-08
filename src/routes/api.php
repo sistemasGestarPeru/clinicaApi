@@ -549,6 +549,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
     Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
+    Route::post('reportes/reporteProductosReabastecer', [ReportesController::class, 'reporteProductosReabastecer']);
     Route::post('reportes/reporteKardexSimple', [ReportesController::class, 'reporteKardexSimple']);
     Route::post('reportes/reporteKardexValorizado', [ReportesController::class, 'reporteKardexValorizado']);
     Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);

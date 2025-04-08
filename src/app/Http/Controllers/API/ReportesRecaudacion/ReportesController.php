@@ -267,6 +267,32 @@ class ReportesController extends Controller
         }
     }
 
+    public function reporteProductosReabastecer(){
+
+        $sede = request()->input('Sede'); // Opcional
+
+        try{
+            $productos = DB::table('sedeproducto as sp')
+                ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+                ->join('categoriaproducto as c', 'p.CodigoCategoria', '=', 'c.Codigo')
+                ->select(
+                    'p.Nombre as Producto',
+                    'sp.Stock',
+                    'sp.StockMinimo'
+                )
+                ->where('sp.CodigoSede', $sede)
+                ->where('p.Tipo', 'B')
+                ->where('sp.Controlado', 1)
+                ->whereColumn('sp.Stock', '<=', 'sp.StockMinimo')
+                ->get();
+
+            return response()->json($productos, 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
     public function reporteKardexSimple(){
 
         $fechaActual = date('Y-m-d');

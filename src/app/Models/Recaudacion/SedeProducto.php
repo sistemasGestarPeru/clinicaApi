@@ -20,6 +20,8 @@ class SedeProducto extends Model
         'PrecioMinimo',
         'Stock',
         'Vigente',
-        'CodigoTipoGravado'
+        'CodigoTipoGravado',
+        'Controlado',
+        'StockMinimo'
     ];
 }
