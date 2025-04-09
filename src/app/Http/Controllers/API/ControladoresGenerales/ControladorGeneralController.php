@@ -335,11 +335,17 @@ class ControladorGeneralController extends Controller
             ->where('t.AutorizaDescuento', 1)
             ->where('t.Vigente', 1)
             ->where('p.Vigente', 1)
+            ->where('t.tipo', 'A')
             ->where('ass.Vigente', 1)
             ->where('ass.CodigoSede', $sede)
-            ->where('ass.FechaFin', '>=', $fecha)
+            ->where(function($query) use ($fecha) {
+                $query->whereNull('ass.FechaFin')
+                      ->orWhere('ass.FechaFin', '>=', $fecha);
+            })
             ->get();
-            return response()->json($trabajadores);
+        
+        return response()->json($trabajadores);
+        
         }catch(\Exception $e){
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }

@@ -111,6 +111,10 @@ class ContratoProductoeController extends Controller
 
         $detalleContratoValidar->validate();
 
+        if (isset($contratoProductoData['CodigoAutorizador']) && $contratoProductoData['CodigoAutorizador'] == 0) {
+            $contratoProductoData['CodigoAutorizador'] = null;
+        }
+
         if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
             $contratoProductoData['CodigoPaciente'] = null;
         }

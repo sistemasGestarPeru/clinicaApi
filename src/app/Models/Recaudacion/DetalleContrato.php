@@ -18,6 +18,7 @@ class DetalleContrato extends Model
         'Cantidad',
         'Descripcion',
         'CodigoContrato',
-        'CodigoProducto'
+        'CodigoProducto',
+        'Descuento'
     ];
 }

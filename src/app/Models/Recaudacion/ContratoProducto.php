@@ -25,6 +25,7 @@ class ContratoProducto extends Model
         'CodigoTrabajador',
         'Vigente',
         'CodigoMedico',
-        'CodigoPaciente02'
+        'CodigoPaciente02',
+        'CodigoAutorizador'
     ];
 }
