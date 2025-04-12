@@ -848,8 +848,8 @@ class VentaController extends Controller
             })
             ->when($documento, function ($queryD) use ($documento) {
                 $queryD->where(function ($q) use ($documento) {
-                    $q->where('p.NumeroDocumento', 'LIKE', "%$documento%")
-                        ->orWhere('ce.RUC', 'LIKE', "%$documento%");
+                    $q->where('p.NumeroDocumento', 'LIKE', "$documento%")
+                        ->orWhere('ce.RUC', 'LIKE', "$documento%");
                 });
             })
             ->orderByDesc('dv.Codigo')

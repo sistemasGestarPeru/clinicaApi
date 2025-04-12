@@ -134,10 +134,16 @@ class PagoComisionController extends Controller
             $pagoComision = ['Codigo' => $egresoCreado,'CodigoMedico' => $medico];
             PagoComision::create($pagoComision);
 
-            DB::table('comision')
-            ->whereIn('Codigo', $comision)
-            ->update(['CodigoPagoComision' => $egresoCreado]);
-
+            foreach ($comision as $item) {
+                DB::table('comision')
+                    ->where('Codigo', $item['Codigo'])
+                    ->update([
+                        'CodigoPagoComision' => $egresoCreado,
+                        'Serie' => $item['Serie'],
+                        'Numero' => $item['Numero'],
+                    ]);
+            }
+            
             DB::commit();
 
             return response()->json([
@@ -257,19 +263,26 @@ class PagoComisionController extends Controller
                 ->leftJoin('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
                 ->select(
                     'c.Codigo',
-                    'p.Codigo as CodigoMedico',
+                    DB::raw('p.Codigo AS CodigoMedico'),
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
-                    DB::raw("CASE 
-                                WHEN c.TipoDocumento = 'R' THEN 'Recibo por Honorario' 
-                                ELSE 'Nota de Pago' 
-                            END AS TipoDocumento"),
+                    'c.TipoDocumento as TipoDocumento',
                     'c.Monto',
-                    DB::raw("CONCAT(c.Serie, ' - ', c.Numero) as Documento"),
+                    'c.Serie',
+                    'c.Numero',
                     'c.Vigente'
                 )
                 ->whereNull('c.CodigoPagoComision')
-                ->where('c.CodigoMedico', $medico)
+                ->where('c.CodigoMedico', $medico) // <- reemplaza por tu variable si es necesario
                 ->where('c.Vigente', 1)
+                ->where(function ($query) use ($sede) {
+                    $query->where(function ($q) use ($sede) {
+                        $q->where('dv.CodigoSede', $sede)
+                          ->whereNotNull('dv.Codigo');
+                    })->orWhere(function ($q) use ($sede) {
+                        $q->where('cp.CodigoSede', $sede)
+                          ->whereNotNull('cp.Codigo');
+                    });
+                })
                 ->get();
 
             return response()->json($comisiones, 200);
