@@ -141,10 +141,10 @@ class PagoServicioController extends Controller
         $fechaPagoVal = Carbon::parse($pagoServicio['FechaDocumento'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha del pago de servicio no puede ser mayor a la fecha de apertura de caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
         if ($fechaCajaVal < $fechaPagoVal) {
-            return response()->json(['error' => 'La fecha La fecha del pago de servicio no puede ser mayor a la fecha de apertura la caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
 
         if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
@@ -165,7 +165,7 @@ class PagoServicioController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if ($egreso['Monto'] > $total) {
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
         } else if ($egreso['CodigoSUNAT'] == '003') {
             $egreso['Lote'] = null;
@@ -209,7 +209,7 @@ class PagoServicioController extends Controller
 
             if ($estadoCaja->Estado == 'C') {
                 return response()->json([
-                    'error' => 'No se puede actualizar el pago del servicio, La caja registrada está cerrada.'
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'servicio']),
                 ], 400);
             }
 
@@ -225,7 +225,7 @@ class PagoServicioController extends Controller
                 $egresoData->update(['Vigente' => $egreso['Vigente']]);
             } else {
                 return response()->json([
-                    'error' => 'No se puede actualizar el pago del servicio en estado Inactivo.'
+                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
                 ], 400);
             }
 
