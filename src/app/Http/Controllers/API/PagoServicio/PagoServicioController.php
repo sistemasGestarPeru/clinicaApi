@@ -90,23 +90,24 @@ class PagoServicioController extends Controller
 
         try {
             $results = DB::table('pagoservicio as ps')
-            ->select([
-                'ps.Codigo',
-                DB::raw("DATE_FORMAT(ps.FechaDocumento, '%d/%m/%Y') as FechaDocumento"),
-                'ps.TipoDocumento',
-                DB::raw("CONCAT(ps.Serie, ' ', ps.Numero) as Documento"),
-                'p.RazonSocial',
-                'mps.Nombre as Motivo',
-                'mp.Nombre as MedioPago',
-                'e.Monto'
-            ])
-            ->join('motivopagoservicio as mps', 'ps.CodigoMotivoPago', '=', 'mps.Codigo')
-            ->join('proveedor as p', 'ps.CodigoProveedor', '=', 'p.Codigo')
-            ->join('egreso as e', 'ps.Codigo', '=', 'e.Codigo')
-            ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
-            ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-            ->where('c.CodigoSede', $sede)
-            ->get();
+                ->select([
+                    'ps.Codigo',
+                    DB::raw("DATE_FORMAT(ps.FechaDocumento, '%d/%m/%Y') as FechaDocumento"),
+                    'ps.TipoDocumento',
+                    DB::raw("CONCAT(ps.Serie, ' ', ps.Numero) as Documento"),
+                    'p.RazonSocial',
+                    'mps.Nombre as Motivo',
+                    'mp.Nombre as MedioPago',
+                    'e.Monto',
+                    'e.Vigente'
+                ])
+                ->join('motivopagoservicio as mps', 'ps.CodigoMotivoPago', '=', 'mps.Codigo')
+                ->join('proveedor as p', 'ps.CodigoProveedor', '=', 'p.Codigo')
+                ->join('egreso as e', 'ps.Codigo', '=', 'e.Codigo')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
+                ->where('c.CodigoSede', $sede)
+                ->get();
 
             return response()->json([
                 'pagos' => $results
@@ -118,7 +119,7 @@ class PagoServicioController extends Controller
             ], 500);
         }
     }
-    
+
     public function registrarPago(Request $request)
     {
         $pagoServicio = $request->input('pagoServicio');
@@ -140,17 +141,17 @@ class PagoServicioController extends Controller
         $fechaPagoVal = Carbon::parse($pagoServicio['FechaDocumento'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+            return response()->json(['error' => 'La fecha del pago de servicio no puede ser mayor a la fecha de apertura de caja.'], 400);
         }
         if ($fechaCajaVal < $fechaPagoVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+            return response()->json(['error' => 'La fecha La fecha del pago de servicio no puede ser mayor a la fecha de apertura la caja.'], 400);
         }
 
-        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+        if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
             $egreso['CodigoCuentaOrigen'] = null;
         }
 
-        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+        if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
             $egreso['CodigoBilleteraDigital'] = null;
         }
 
@@ -163,15 +164,13 @@ class PagoServicioController extends Controller
 
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
-            if($egreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+            if ($egreso['Monto'] > $total) {
+                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
             }
-
-        }else if($egreso['CodigoSUNAT'] == '003'){
+        } else if ($egreso['CodigoSUNAT'] == '003') {
             $egreso['Lote'] = null;
             $egreso['Referencia'] = null;
-
-        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+        } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
             $egreso['CodigoCuentaBancaria'] = null;
             $egreso['CodigoBilleteraDigital'] = null;
         }
@@ -199,28 +198,42 @@ class PagoServicioController extends Controller
         }
     }
 
-    public function actualizarPago(){
+    public function actualizarPago()
+    {
         $egreso = request()->input('egreso');
         DB::beginTransaction();
-        
-        try{
-            
-            $egresoData = Egreso::find($egreso['Codigo']);
-            if(!$egresoData){
+
+        try {
+
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+
+            if ($estadoCaja->Estado == 'C') {
                 return response()->json([
-                    'error' => 'Egreso no encontrado'
+                    'error' => 'No se puede actualizar el pago del servicio, La caja registrada está cerrada.'
+                ], 400);
+            }
+
+            $egresoData = Egreso::find($egreso['Codigo']);
+            if (!$egresoData) {
+                return response()->json([
+                    'error' => 'No se ha encontrado el Pago del Servicio.'
                 ], 404);
             }
 
-            if($egresoData['Vigente'] == 1){
-                $egresoData->update($egreso);
+
+            if ($egresoData['Vigente'] == 1) {
+                $egresoData->update(['Vigente' => $egreso['Vigente']]);
+            } else {
+                return response()->json([
+                    'error' => 'No se puede actualizar el pago del servicio en estado Inactivo.'
+                ], 400);
             }
 
             DB::commit();
             return response()->json([
                 'message' => 'Pago del servicio actualizado correctamente'
             ], 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Error al actualizar el pago del servicio',
                 'message' => $e->getMessage()
