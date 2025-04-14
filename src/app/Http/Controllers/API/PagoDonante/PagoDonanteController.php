@@ -56,7 +56,48 @@ class PagoDonanteController extends Controller
     }
 
 
+    public function actualizarPagoDonante(Request $request){
+        $egreso = request()->input('egreso');
+        DB::beginTransaction();
 
+        try{
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+
+            if ($estadoCaja->Estado == 'C') {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
+                ], 400);
+            }
+
+            $egresoData = Egreso::find($egreso['Codigo']);
+
+            if (!$egresoData) {
+                return response()->json([
+                    'error' => 'No se ha encontrado el Pago Varios.'
+                ], 404);
+            }
+
+            if ($egresoData['Vigente'] == 1) {
+                $egresoData->update(['Vigente' => $egreso['Vigente']]);
+            } else {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
+                ], 400);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Pago Varios actualizado correctamente.'
+            ], 200);
+
+        }catch(\Exception $e){
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al actualizar el pago del donante',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function registrarPagoDonante(Request $request)
     {
@@ -81,7 +122,7 @@ class PagoDonanteController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
 
         if ($egreso['CodigoSUNAT'] == '008') {
@@ -94,7 +135,7 @@ class PagoDonanteController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if($egreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
@@ -139,13 +180,13 @@ class PagoDonanteController extends Controller
                     'e.Codigo',
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Donante"),
                     DB::raw('DATE(e.Fecha) as Fecha'),
-                    'e.Monto as Monto'
+                    'e.Monto as Monto',
+                    'e.Vigente as Vigente'
                 )
                 ->join('egreso as e', 'e.Codigo', '=', 'pd.Codigo')
                 ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
                 ->join('personas as p', 'p.Codigo', '=', 'pd.CodigoDonante')
                 ->where('c.CodigoSede', $data['CodigoSede'])  // Puedes cambiar el 1 por una variable dinámica $codigoSede
-                ->where('e.Vigente', 1)
                 ->get();
                 return response()->json($resultados, 200);  
 
@@ -183,8 +224,4 @@ class PagoDonanteController extends Controller
         }
     }
 
-    public function actualizarPagoDonante(Request $request)
-    {
-        
-    }
 }
