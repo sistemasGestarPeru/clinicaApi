@@ -99,6 +99,8 @@ class GuiaSalidaController extends Controller
             ->join('tipodocumentoventa as td', 'dv.CodigoTipoDocumentoVenta', '=', 'td.Codigo')
             ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
             ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+            ->where('dv.Vigente', 1)
+            ->where('dv.CodigoSede', $sede)
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->fromSub(function ($sub) {

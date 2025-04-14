@@ -55,6 +55,45 @@ class PagosVariosController extends Controller
         //
     }
 
+    public function actualizarPagoVarios(Request $request){
+        $egreso = request()->input('egreso');
+        DB::beginTransaction();
+        try{
+
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+
+            if ($estadoCaja->Estado == 'C') {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
+                ], 400);
+            }
+
+            $egresoData = Egreso::find($egreso['Codigo']);
+
+            if (!$egresoData) {
+                return response()->json([
+                    'error' => 'No se ha encontrado el Pago Varios.'
+                ], 404);
+            }
+
+            if ($egresoData['Vigente'] == 1) {
+                $egresoData->update(['Vigente' => $egreso['Vigente']]);
+            } else {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
+                ], 400);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Pago Varios actualizado correctamente.'
+            ], 200);
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Error al actualizar el pago varios.', 'message' => $e->getMessage()], 500);
+        }
+    }
+
 
     public function registrarPagoVarios(Request $request)
     {
@@ -67,7 +106,7 @@ class PagosVariosController extends Controller
         $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
         if($egreso['Monto'] > $total){
-            return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+            return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
         }
 
         $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
@@ -75,7 +114,7 @@ class PagosVariosController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
 
 
@@ -108,8 +147,8 @@ class PagosVariosController extends Controller
             ->join('egreso as e', 'e.Codigo', '=', 'pv.Codigo')
             ->join('personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
             ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-            ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
-            ->where('e.Vigente', 1)
+            ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, e.Vigente, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
+            // ->where('e.Vigente', 1)
             ->where('c.CodigoSede', $sede)
             ->when(!empty($tipo), function ($query) use ($tipo) {
                 return $query->where('pv.Tipo', $tipo);
@@ -140,7 +179,7 @@ class PagosVariosController extends Controller
 
             // Obtener datos de egreso
             $egreso = DB::table('egreso')
-            ->select('Monto', 'Fecha')
+            ->select('Codigo','Monto', 'Fecha','Vigente', 'CodigoCaja')
             ->where('Codigo', $codigo)
             ->first(); // Usamos first() para obtener un solo resultado
 

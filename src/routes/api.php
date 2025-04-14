@@ -304,6 +304,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
     /********************************** PAGOS VARIOS **********************************/
     Route::post('pagosVarios/registrarPagoVarios', [PagosVariosController::class, 'registrarPagoVarios']);
+    Route::post('pagosVarios/actualizarPagoVarios', [PagosVariosController::class, 'actualizarPagoVarios']);
     Route::post('pagosVarios/listarPagosVarios', [PagosVariosController::class, 'listarPagosVarios']);
     Route::get('pagosVarios/consultarPagosVarios/{codigo}', [PagosVariosController::class, 'consultarPagosVarios']);
 
