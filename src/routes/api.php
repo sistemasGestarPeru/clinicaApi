@@ -282,6 +282,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************** PAGO DONANTE **********************************/
     Route::post('pagoDonante/registrarPagoDonante', [PagoDonanteController::class, 'registrarPagoDonante']);
+    Route::post('pagoDonante/actualizarPagoDonante', [PagoDonanteController::class, 'actualizarPagoDonante']);
     Route::post('pagoDonante/listarPagosDonante', [PagoDonanteController::class, 'listarPagosDonante']);
     Route::get('pagoDonante/consultarPagoDonante/{codigo}', [PagoDonanteController::class, 'consultarPagoDonante']);
     /********************************** PAGO SERVICIOS **********************************/
@@ -292,6 +293,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /********************************** PAGO COMISION **********************************/
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
+    Route::post('pagoComision/actualizarPagoComision', [PagoComisionController::class, 'actualizarPagoComision']);
     Route::post('pagoComision/registrarComisionPendiente', [PagoComisionController::class, 'registrarComisionPendiente']);
 
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);

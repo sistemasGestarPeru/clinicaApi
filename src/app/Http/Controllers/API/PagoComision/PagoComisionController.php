@@ -103,7 +103,7 @@ class PagoComisionController extends Controller
             $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
 
             if($dataEgreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
 
         }else if($dataEgreso['CodigoSUNAT'] == '003'){
@@ -121,7 +121,7 @@ class PagoComisionController extends Controller
 
 
         if ($fechaCajaVal < $fechaEgresoVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
         //Validar Egreso
         $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
@@ -184,7 +184,7 @@ class PagoComisionController extends Controller
             $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
             if ($fechaCajaVal < $fechaVentaVal) {
-                return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+                return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
             }
 
 
@@ -198,7 +198,7 @@ class PagoComisionController extends Controller
                 $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
                 if ($egreso['Monto'] > $total) {
-                    return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
+                    return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
                 }
             } else if ($egreso['CodigoSUNAT'] == '003') {
                 $egreso['Lote'] = null;
@@ -220,7 +220,7 @@ class PagoComisionController extends Controller
                 $egreso = Egreso::create($egreso);
                 $pagoComision['Codigo'] = $egreso->Codigo;
                 $codigoPagoComision = PagoComision::create($pagoComision);
-                $comision['CodigoPagoComision'] = $egreso->Codigo   ;
+                $comision['CodigoPagoComision'] = $egreso->Codigo;
             }
 
             $codigoComision = Comision::create($comision)->Codigo;
@@ -318,7 +318,11 @@ class PagoComisionController extends Controller
                     'c.Monto',
                     DB::raw("CONCAT(c.Serie, ' - ', c.Numero) as Documento"),
                     DB::raw("DATE(e.Fecha) as FechaPago"),
-                    'c.Vigente'
+                    DB::raw("CASE 
+                        WHEN e.Codigo IS NULL THEN c.Vigente
+                                            ELSE e.Vigente
+                        END AS Vigente")
+                    
                 )
                 ->where(function ($query) use ($sede) {
                     $query->where('cp.CodigoSede', $sede)
@@ -340,29 +344,58 @@ class PagoComisionController extends Controller
     {
         try {
             $comision = Comision::find($codigo);
-
             $egreso = Egreso::find($comision->CodigoPagoComision);
 
-            $paciente  = DB::table('comision as c')
+            $detalleComision = DB::table('comision as c')
+                ->join('detallecomision as dc', 'c.Codigo', '=', 'dc.CodigoComision')
+                ->leftJoin('detallecontrato as dcont', 'dc.CodigoDetalleContrato', '=', 'dcont.Codigo')
+                ->leftJoin('detalledocumentoventa as ddv', 'dc.CodigoDetalleVenta', '=', 'ddv.Codigo')
+                ->leftJoin('producto as p1', 'dcont.CodigoProducto', '=', 'p1.Codigo')
+                ->leftJoin('producto as p2', 'ddv.CodigoProducto', '=', 'p2.Codigo')
+                ->select([
+                    'dc.Codigo as DetComision',
+                    'dc.Monto',
+                    DB::raw("CASE 
+                                WHEN dcont.Codigo IS NOT NULL THEN p1.Nombre 
+                                ELSE p2.Nombre 
+                            END AS Descripcion")
+                ])
+                ->where('dc.CodigoComision', $codigo)
+                ->get();
+
+
+                $paciente = DB::table('comision as c')
                 ->leftJoin('documentoventa as dv', 'dv.Codigo', '=', 'c.CodigoDocumentoVenta')
                 ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'c.CodigoContrato')
                 ->leftJoin('personas as pDV', 'pDV.Codigo', '=', 'dv.CodigoPaciente')
                 ->leftJoin('personas as pCON', 'pCON.Codigo', '=', 'cp.CodigoPaciente')
                 ->selectRaw("
-                CASE 
-                    WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(pDV.Nombres, ' ', pDV.Apellidos)
-                    WHEN cp.CodigoPaciente IS NOT NULL THEN CONCAT(pCON.Nombres, ' ', pCON.Apellidos)
-                    ELSE 'No encontrado'
-                END AS Paciente
-            ")
+                    CASE 
+                        WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(pDV.Nombres, ' ', pDV.Apellidos)
+                        WHEN cp.CodigoPaciente IS NOT NULL THEN CONCAT(pCON.Nombres, ' ', pCON.Apellidos)
+                        ELSE 'No encontrado'
+                    END AS Paciente,
+                    CASE 
+                        WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(dv.Serie, ' - ', LPAD(dv.Numero, 5, '0'))
+                        WHEN cp.CodigoPaciente IS NOT NULL THEN LPAD(cp.NumContrato, 5, '0')
+                        ELSE 'No encontrado'
+                    END AS Documento,
+                    CASE 
+                        WHEN dv.CodigoPaciente IS NOT NULL THEN DATE(dv.Fecha)
+                        WHEN cp.CodigoPaciente IS NOT NULL THEN DATE(cp.Fecha)
+                        ELSE 'No encontrado'
+                    END AS Fecha
+                ")
                 ->where('c.Codigo', $codigo)
                 ->first();
+            
 
 
 
             if ($comision) {
                 return response()->json([
                     'comision' => $comision,
+                    'detalleComision' => $detalleComision,
                     'egreso' => $egreso,
                     'paciente' => $paciente
                 ], 200);
@@ -379,7 +412,118 @@ class PagoComisionController extends Controller
         }
     }
 
-    public function actualizarPagoComision(Request $request, string $id) {}
+    public function actualizarPagoComision(Request $request) {
+        //revisar todo
+        $egreso = $request->input('egreso');
+        $comision = $request->input('comision');
+
+        DB::beginTransaction();
+
+        try{
+            
+            $comisionData = Comision::find($comision['Codigo']);
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+
+            if (!$comisionData) {
+                return response()->json([
+                    'error' => 'No se ha encontrado la Comisión.'
+                ], 404);
+            }
+
+            if ($estadoCaja->Estado == 'C') {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
+                ], 400);
+            }
+
+            if($comisionData['Vigente'] == 0){
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
+                ], 400);
+            }
+
+            if(isset($egreso['Codigo']) && $egreso['Codigo'] != 0){
+                
+                if($comision['Vigente'] == 0){
+
+                    $egresoData = Egreso::find($egreso['Codigo']);
+                    $egresoData->update(['Vigente' => 0]);
+    
+                    $comisionData->update(['Vigente' => 0]);
+                }
+
+            }else if(isset($egreso) && !isset($egreso['Codigo']) && $comision['Vigente'] == 1){
+
+                //Validar Egreso
+                $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+                $egresoValidator->validate();
+    
+                if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
+                    $egreso['CodigoCuentaOrigen'] = null;
+                }
+    
+                if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
+                    $egreso['CodigoBilleteraDigital'] = null;
+                }
+    
+                $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+                $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+                $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+    
+                if ($fechaCajaVal < $fechaVentaVal) {
+                    return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
+                }
+    
+                if ($egreso['CodigoSUNAT'] == '008') {
+                    $egreso['CodigoCuentaOrigen'] = null;
+                    $egreso['CodigoBilleteraDigital'] = null;
+                    $egreso['Lote'] = null;
+                    $egreso['Referencia'] = null;
+                    $egreso['NumeroOperacion'] = null;
+    
+                    $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+    
+                    if ($egreso['Monto'] > $total) {
+                        return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
+                    }
+                } else if ($egreso['CodigoSUNAT'] == '003') {
+                    $egreso['Lote'] = null;
+                    $egreso['Referencia'] = null;
+                } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
+                    $egreso['CodigoCuentaBancaria'] = null;
+                    $egreso['CodigoBilleteraDigital'] = null;
+                }
+            
+                $egreso = Egreso::create($egreso);
+                $pagoComision['CodigoMedico'] = $comisionData['CodigoMedico'];
+                $pagoComision['Codigo'] = $egreso->Codigo;
+                PagoComision::create($pagoComision);
+                $comision['CodigoPagoComision'] = $egreso->Codigo;
+                
+                $comisionData->update([
+                    'CodigoPagoComision' => $comision['CodigoPagoComision'],
+                    'TipoDocumento' => $comision['TipoDocumento'],
+                    'Serie' => $comision['Serie'],
+                    'Numero' => $comision['Numero'],
+                    'Comentario' => $comision['Comentario'],
+                ]);
+            }else if(!isset($egreso['Codigo']) && $comision['Vigente'] == 0){
+                $comisionData->update(['Vigente' => 0]);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Pago Comisión actualizado correctamente.'
+            ], 200);
+        
+        }catch(\Exception $e){
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Error al actualizar el pago de comisión',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function listarDocumentos(Request $request)
     {
@@ -402,8 +546,8 @@ class PagoComisionController extends Controller
                         DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
                         DB::raw("DATE(cp.Fecha) as Fecha")
                     ])
-                    ->where('cp.CodigoMedico', 1774)
-                    ->where('cp.CodigoSede', 7)
+                    ->where('cp.CodigoMedico', $medico)
+                    ->where('cp.CodigoSede', $sede)
                     ->where('cp.Vigente', 1)
                     ->whereNull('c.Codigo')
                     ->when($termino, function ($query) use ($termino) {
