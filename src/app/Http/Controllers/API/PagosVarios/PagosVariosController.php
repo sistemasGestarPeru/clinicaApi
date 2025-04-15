@@ -131,7 +131,7 @@ class PagosVariosController extends Controller
             return response()->json(['message' => 'Pago Varios registrado correctamente'], 200);
         }catch(\Exception $e){
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Error al registrar el pago', 'bd' => $e->getMessage()], 500);
         }
     }
 

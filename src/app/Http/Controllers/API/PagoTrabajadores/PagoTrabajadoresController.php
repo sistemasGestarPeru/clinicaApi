@@ -57,7 +57,7 @@ class PagoTrabajadoresController extends Controller
     }
 
 
-    public function consultarPagoTrabajador($codigo){
+    public function consultarPagoTrabajador($codigo, $empresa){
         try{
             $pagoTrabajador = PagoPlanilla::where('Codigo', $codigo)->first();
             $egreso = Egreso::where('Codigo', $codigo)->first();
@@ -76,7 +76,8 @@ class PagoTrabajadoresController extends Controller
                 'sp.Nombre as Pension',
             )
             ->where('t.Codigo', $pagoTrabajador->CodigoTrabajador)
-            ->limit(1)
+            ->where('cl.CodigoEmpresa', $empresa)
+            ->orderByDesc('cl.Codigo')
             ->first();
 
             return response()->json(['pagoTrabajador' => $pagoTrabajador, 'egreso' => $egreso, 'trabajador' => $trabajador], 200);
@@ -88,26 +89,78 @@ class PagoTrabajadoresController extends Controller
 
     public function listarPagosRealizados(Request $request)
     {
-        $fechaActual = date('Y-m-d'); // Asegúrate de que $fechaActual tenga el formato correcto
+        $filtro = $request->input('nombre');
+        $fecha = $request->input('mes');
     
         try {
-            $resultado = DB::table('pagopersonal as pp')
+
+            $query = DB::table('pagopersonal as pp')
                 ->join('personas as p', 'p.Codigo', '=', 'pp.CodigoTrabajador')
                 ->join('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
                 ->select(
-                    'pp.Codigo as CodigoPago',
-                    'p.Nombres',
-                    'p.Apellidos',
-                    'pp.Mes',
-                    DB::raw("CASE WHEN pp.Mes < '$fechaActual' THEN 0 ELSE 1 END as validacion") 
-                )
-                ->where('p.Vigente', 1)
-                ->where('e.Vigente', 1)
-                ->get();
-    
-            return response()->json($resultado, 200);
+                    'pp.Codigo',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"),
+                    DB::raw("DATE_FORMAT(pp.Mes, '%m/%Y') AS Mes"),
+                    'e.Vigente'
+                );
+            
+            // Condición opcional por fecha (si existe)
+            if (!empty($fecha)) {
+                $query->whereRaw("DATE_FORMAT(pp.Mes, '%Y-%m') = ?", [$fecha]);
+            }
+            
+            // Condición opcional por filtro de nombre o apellido (si existe)
+            if (!empty($filtro)) {
+                $query->where(function ($q) use ($filtro) {
+                    $q->where('p.Nombres', 'LIKE', "$filtro%")
+                    ->orWhere('p.Apellidos', 'LIKE', "$filtro%");
+                });
+            }
+            
+            $resultados = $query->get();
+            return response()->json($resultados, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al listar los pagos realizados'], 500);
+            return response()->json(['bd' => $e->getMessage(), 'error' => 'Ocurrió un error al listar los pagos realizados'], 500);
+        }
+    }
+
+    public function actualizarPagoIndividual(Request $request){
+        $egreso = request()->input('egreso');
+        DB::beginTransaction();
+        try{
+
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+
+            if ($estadoCaja->Estado == 'C') {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'trabajador']),
+                ], 400);
+            }
+
+            $egresoData = Egreso::find($egreso['Codigo']);
+
+            if (!$egresoData) {
+                return response()->json([
+                    'error' => 'No se ha encontrado el Pago Trabajador.'
+                ], 404);
+            }
+
+            if ($egresoData['Vigente'] == 1) {
+                $egresoData->update(['Vigente' => $egreso['Vigente']]);
+            } else {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'trabajador']),
+                ], 400);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Pago trabajador actualizado correctamente.'
+            ], 200);
+
+        }catch(Exception $e){
+            DB::rollBack();
+            return response()->json(['bd' => $e->getMessage(), 'error' => 'Ocurrió un error al actualizar el pago'], 500);
         }
     }
 
@@ -153,7 +206,7 @@ class PagoTrabajadoresController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
 
         if ($egreso['CodigoSUNAT'] == '008') {
@@ -166,7 +219,7 @@ class PagoTrabajadoresController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if($egreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
@@ -190,7 +243,7 @@ class PagoTrabajadoresController extends Controller
             return response()->json(['mensaje' => 'Pago Trabajador registrada correctamente'], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Ocurrió un error al registrar el pago Trabajador'], 500);
+            return response()->json(['bd' => $e->getMessage(), 'error' => 'Ocurrió un error al registrar el pago Trabajador'], 500);
         }
 
     }
@@ -328,6 +381,8 @@ class PagoTrabajadoresController extends Controller
                     $formattedFecha = date('Y-m', strtotime($fecha)); // Formatear la fecha como YYYY-MM
                     $query->select('PP.CodigoTrabajador')
                         ->from('pagopersonal as PP')
+                        ->join('egreso as E', 'PP.Codigo', '=', 'E.Codigo')
+                        ->where('E.Vigente', 1)
                         ->whereRaw("DATE_FORMAT(PP.Mes, '%Y-%m') = ?", [$formattedFecha]);
                 })
                 ->orderBy('p.Codigo')
@@ -378,6 +433,8 @@ class PagoTrabajadoresController extends Controller
                 $formattedFecha = date('Y-m', strtotime($fecha)); // Formatear la fecha como YYYY-MM
                 $query->select('PP.CodigoTrabajador')
                       ->from('pagopersonal as PP')
+                      ->join('egreso as E', 'PP.Codigo', '=', 'E.Codigo')
+                      ->where('E.Vigente', 1)
                       ->whereRaw("DATE_FORMAT(PP.Mes, '%Y-%m') = ?", [$formattedFecha]);
             })
             ->limit(1)

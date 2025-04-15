@@ -538,6 +538,7 @@ class PagoComisionController extends Controller
             if ($tipoComision == 'C') {
 
                 $query = DB::table('contratoproducto as cp')
+                    ->distinct()
                     ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
                     ->leftJoin('comision as c', 'cp.Codigo', '=', 'c.CodigoContrato')
                     ->select([
@@ -549,7 +550,10 @@ class PagoComisionController extends Controller
                     ->where('cp.CodigoMedico', $medico)
                     ->where('cp.CodigoSede', $sede)
                     ->where('cp.Vigente', 1)
-                    ->whereNull('c.Codigo')
+                    ->where(function ($q) {
+                        $q->whereNull('c.Codigo')
+                          ->orWhere('c.Vigente', 0);
+                    })
                     ->when($termino, function ($query) use ($termino) {
                         return $query->where(function ($q) use ($termino) {
                             $q->where('p.Nombres', 'LIKE', "{$termino}%")
@@ -565,6 +569,7 @@ class PagoComisionController extends Controller
                     });
             } else {
                 $query = DB::table('documentoventa as dv')
+                    ->distinct()
                     ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPaciente')
                     ->leftJoin('comision as c', 'dv.Codigo', '=', 'c.CodigoDocumentoVenta')
                     ->select([
@@ -578,7 +583,10 @@ class PagoComisionController extends Controller
                     ->where('dv.CodigoSede', $sede)
                     ->whereNull('dv.CodigoMotivoNotaCredito')
                     ->whereNull('dv.CodigoContratoProducto')
-                    ->whereNull('c.Codigo')
+                    ->where(function ($q) {
+                        $q->whereNull('c.Codigo')
+                          ->orWhere('c.Vigente', 0);
+                    })
                     ->where(function ($query) use ($termino) {
                         $query->where('p.Nombres', 'LIKE', "{$termino}%")
                             ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
