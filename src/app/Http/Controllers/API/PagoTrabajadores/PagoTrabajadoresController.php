@@ -250,6 +250,7 @@ class PagoTrabajadoresController extends Controller
 
     public function registrarPlanilla(Request $request)
     {
+        $totalEgreso = 0;
 
         date_default_timezone_set('America/Lima');
         $fechaActual = date('d');
@@ -262,6 +263,7 @@ class PagoTrabajadoresController extends Controller
             return response()->json(['mensaje' => 'No se han enviado datos'], 400);
         }
 
+        
         foreach ($egreso as $index => $egresos) {
 
             $egresoValidator = Validator::make($egresos, [
@@ -278,6 +280,7 @@ class PagoTrabajadoresController extends Controller
                     'mensaje' => "Error en el trabajador del índice $index "
                 ], 400);
             }
+            $totalEgreso += $egresos['Monto'];
         }
 
         // Validar cada objeto dentro del arreglo
@@ -298,7 +301,17 @@ class PagoTrabajadoresController extends Controller
             }
         }
 
+        
+        $caja = $egreso[0]['CodigoCaja'];
+        $fecha = $egreso[0]['Fecha'];
 
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($caja);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaEgresoVal = Carbon::parse($fecha)->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaEgresoVal) {
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
+        }
 
         DB::beginTransaction();
         try {
@@ -318,7 +331,13 @@ class PagoTrabajadoresController extends Controller
                     $egresos['CodigoBilleteraDigital'] = null;
                     $egresos['Lote'] = null;
                     $egresos['Referencia'] = null;
-                    $egresos['NumeroOperacion'] = null;
+                    $egresos['NumeroOperacion'] = null;    
+                    
+                    $total = MontoCaja::obtenerTotalCaja($caja);
+
+                    if ($totalEgreso > $total) {
+                        return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
+                    }
         
                 }else if($egresos['CodigoSUNAT'] == '003'){
                     $egresos['Lote'] = null;
