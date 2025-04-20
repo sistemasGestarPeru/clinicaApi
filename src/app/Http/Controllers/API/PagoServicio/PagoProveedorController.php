@@ -83,8 +83,7 @@ class PagoProveedorController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
-        }
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);}
 
         if ($egreso['CodigoSUNAT'] == '008') {
             $egreso['CodigoCuentaOrigen'] = null;
@@ -96,7 +95,7 @@ class PagoProveedorController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if($egreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
 
         }else if($egreso['CodigoSUNAT'] == '003'){
@@ -211,17 +210,59 @@ class PagoProveedorController extends Controller
         $pagoProveedor = $request->input('pagoProveedor');
         $egreso = $request->input('egreso');
 
+        //Validar Egreso
+        $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+        $egresoValidator->validate();
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
+        }
+
+        if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
+            $egreso['CodigoCuentaOrigen'] = null;
+        }
+
+        if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        if ($egreso['CodigoSUNAT'] == '008') {
+            $egreso['CodigoCuentaOrigen'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+            $egreso['NumeroOperacion'] = null;
+
+            $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+            if ($egreso['Monto'] > $total) {
+                return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
+            }
+        } else if ($egreso['CodigoSUNAT'] == '003') {
+            $egreso['Lote'] = null;
+            $egreso['Referencia'] = null;
+        } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
+            $egreso['CodigoCuentaBancaria'] = null;
+            $egreso['CodigoBilleteraDigital'] = null;
+        }
+
+        DB::beginTransaction();
+
         try {
 
-
-            
             $DataEgreso = Egreso::create($egreso);
             $idEgreso = $DataEgreso->Codigo;
 
             $pagoProveedor['Codigo'] = $idEgreso;
 
             //agregar pago proveedor    
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
