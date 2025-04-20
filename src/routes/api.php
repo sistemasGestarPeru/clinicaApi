@@ -274,6 +274,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
     Route::get('compra/consultarCompra/{codigo}', [CompraController::class, 'consultarCompra']);
     Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
+    Route::post('compra/actualizarCompra', [CompraController::class, 'actualizarCompra']);
 
     /********************************** PAGO PROVEEDOR **********************************/
 
@@ -559,7 +560,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('reportes/reporteKardexValorizado', [ReportesController::class, 'reporteKardexValorizado']);
     Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);
     Route::post('reportes/reporteCatalogoProductos', [ReportesController::class, 'reporteCatalogoProductos']);
-    
+
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);

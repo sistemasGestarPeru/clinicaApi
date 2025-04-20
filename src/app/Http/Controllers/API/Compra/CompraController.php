@@ -152,7 +152,15 @@ class CompraController extends Controller
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
                 ->join('detallecompra as dc', 'dc.CodigoCompra', '=', 'c.Codigo')
-                ->select('c.Codigo', 'c.Serie', 'c.Numero', 'c.Fecha', 'p.RazonSocial', 'p.Codigo as CodigoProveedor')
+                ->select(
+                    'c.Codigo',
+                    'c.Serie',
+                    'c.Numero',
+                    'c.Fecha',
+                    'p.RazonSocial',
+                    'p.Codigo as CodigoProveedor',
+                    'c.Vigente'
+                )
                 ->where('c.CodigoSede', $filtro['sede'])
                 ->where(function ($query) use ($filtro) {
                     if ($filtro['tipo'] == 1) {
@@ -230,7 +238,7 @@ class CompraController extends Controller
                 $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
                 $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
                 $fechaCompraVal = Carbon::parse($compra['Fecha'])->toDateString(); // Convertir el string a Carbon
-        
+
                 if ($fechaCajaVal < $fechaCompraVal) {
                     return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
                 }
@@ -297,6 +305,53 @@ class CompraController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Error al registrar la compra', 'error' => $e], 500);
+        }
+    }
+
+    public function actualizarCompra(Request $request)
+    {
+        $compra = $request->input('compra');
+        DB::beginTransaction();
+        try {
+
+            // $compra = Compra::find($compra['Codigo']);
+            // $compra->update($request->input('compra'));
+
+            $existePagoActivo = DB::table('cuota as cu')
+                ->join('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                ->join('egreso as e', 'pp.Codigo', '=', 'e.Codigo')
+                ->where('cu.CodigoCompra', $compra['Codigo'])
+                ->where('e.Vigente', 1)
+                ->exists();
+
+            if ($existePagoActivo) {
+                return response()->json(['error' => 'No se puede actualizar la compra porque tiene pagos activos.'], 400);
+            }
+
+            //Que no tenga guias de ingreso falta
+
+            $compraEncontrada = Compra::find($compra['Codigo']);
+            if (!$compraEncontrada) {
+                return response()->json(['error' => 'Compra no encontrada'], 404);
+            }
+
+            // Actualizar la compra
+            if ($compraEncontrada['Vigente'] == 1) {
+                $compraEncontrada->update(['Vigente' => $compra['Vigente']]);
+                DB::table('cuota')
+                    ->where('CodigoCompra', $compra['Codigo'])
+                    ->update(['Vigente' => 0]);
+            } else {
+                return response()->json([
+                    'error' => __('mensajes.error_act_compra')
+                ], 400);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Compra actualizada correctamente'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al actualizar la compra', 'bd' => $e->getMessage()], 500);
         }
     }
 }

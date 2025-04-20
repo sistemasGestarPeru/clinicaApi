@@ -234,6 +234,7 @@ class PagoServicioController extends Controller
                 'message' => 'Pago del servicio actualizado correctamente'
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'error' => 'Error al actualizar el pago del servicio',
                 'message' => $e->getMessage()
