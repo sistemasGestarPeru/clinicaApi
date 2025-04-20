@@ -67,7 +67,8 @@ class LoteController extends Controller
                     'L.Serie',
                     'P.Nombre',
                     'L.Cantidad',
-                    'L.Stock'
+                    'L.Stock',
+                    'L.Vigente'
                 ])
                 ->get();
             return response()->json($lotes, 200);
@@ -107,7 +108,7 @@ class LoteController extends Controller
 
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Ocurrió un error al listar Guías de Ingreso', 'bd' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al listar Guías de Ingreso.', 'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -137,7 +138,7 @@ class LoteController extends Controller
 
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía', 'bd' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía.', 'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -171,7 +172,7 @@ class LoteController extends Controller
                 ->first();
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía', 'bd' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía.', 'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -238,7 +239,72 @@ class LoteController extends Controller
             return response()->json($lote, 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Ocurrió un error al registrar Lote', 'bd' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al registrar Lote.', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+    public function consultarLote($codigo)
+    {
+        try {
+            $lote = DB::table('lote as l')
+                ->join('detalleguiaingreso as dgi', 'l.CodigoDetalleIngreso', '=', 'dgi.Codigo')
+                ->join('producto as p', 'dgi.CodigoProducto', '=', 'p.Codigo')
+                ->join('guiaingreso as gi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->where('l.Codigo', $codigo)
+                ->select(
+                    'l.Codigo',
+                    DB::raw("CONCAT(gi.Serie, ' - ', gi.Numero) as Documento"),
+                    'p.Nombre as Producto',
+                    'l.Cantidad',
+                    'l.Costo',
+                    'l.MontoIGV',
+                    'l.FechaCaducidad as Fecha',
+                    'l.Serie',
+                    'l.Vigente'
+                )
+                ->first(); // O ->get() si esperas múltiples resultados
+            return response()->json($lote, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Ocurrió un error al consultar Lote.', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarLote(Request $request)
+    {
+
+        DB::beginTransaction();
+        try {
+            $loteEncontrado = Lote::find($request->Codigo);
+
+            if (!$loteEncontrado) {
+                return response()->json(['error' => 'Lote no encontrado.'], 404);
+            }
+
+            if ($loteEncontrado->Vigente == 0) {
+                return response()->json(['error' => 'No se puede actualizar un Lote en estado Inactivo.'], 404);
+            }
+
+            // if (($loteEncontrado->Cantidad != $loteEncontrado->Stock) && ($request->Vigente == 0)) {
+            //     return response()->json(['error' => 'No se puede dar de baja un Lote con Stock diferente a la Cantidad.'], 404);
+            // }
+
+            if (($loteEncontrado->Cantidad != $loteEncontrado->Stock)) {
+                return response()->json(['error' => 'No se puede actualizar un Lote con Stock diferente a la Cantidad.'], 404);
+            }
+
+            $loteEncontrado->update(
+                [
+                    'Vigente' => $request->Vigente,
+                    'FechaCaducidad' => $request->Fecha,
+                    'Serie' => $request->Serie,
+                ]
+            );
+
+            DB::commit();
+            return response()->json('Se actualizó el lote correctamente.', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Ocurrió un error al actualizar Lote.', 'bd' => $e->getMessage()], 500);
         }
     }
 }
