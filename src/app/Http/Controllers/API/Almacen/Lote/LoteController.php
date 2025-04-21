@@ -59,7 +59,7 @@ class LoteController extends Controller
                 ->join('lote as L', 'DGI.Codigo', '=', 'L.CodigoDetalleIngreso')
                 ->join('producto as P', 'P.Codigo', '=', 'L.CodigoProducto')
                 ->where('L.CodigoSede', $data['sede'])
-                ->where('GI.Vigente', 1)
+                // ->where('GI.Vigente', 1)
                 ->select([
                     'L.Codigo',
                     'GI.Fecha as FechaIngreso',
