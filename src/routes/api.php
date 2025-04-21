@@ -516,6 +516,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('lote/listarDetalleGuia/{codigo}', [LoteController::class, 'listarDetalleGuia']);
     Route::get('lote/detallexGuia/{codigo}', [LoteController::class, 'detallexGuia']);
     Route::post('lote/registrarLote', [LoteController::class, 'registrarLote']);
+    Route::get('lote/consultarLote/{codigo}', [LoteController::class, 'consultarLote']);
+    Route::post('lote/actualizarLote', [LoteController::class, 'actualizarLote']);
 
 
     //TRANSFORMACION

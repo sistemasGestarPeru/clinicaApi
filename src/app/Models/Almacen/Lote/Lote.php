@@ -21,6 +21,7 @@ class Lote extends Model
         'FechaCaducidad',
         'CodigoProducto',
         'CodigoSede',
-        'CodigoDetalleIngreso'
+        'CodigoDetalleIngreso',
+        'Vigente'
     ];
 }
