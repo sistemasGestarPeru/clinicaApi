@@ -502,7 +502,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('guiaIngreso/listarComprasActivas/{sede}', [GuiaIngresoController::class, 'listarComprasActivas']);
     Route::get('guiaIngreso/listarDetalleCompra/{compra}', [GuiaIngresoController::class, 'listarDetalleCompra']);
     Route::post('guiaIngreso/registrarGuiaIngreso', [GuiaIngresoController::class, 'registrarGuiaIngreso']);
-
+    Route::get('guiaIngreso/consultarGuia/{codigo}', [GuiaIngresoController::class, 'consultarGuia']);
+    Route::post('guiaIngreso/actualizarGuiaIngreso', [GuiaIngresoController::class, 'actualizarGuiaIngreso']);
     //SALIDA PRODUCTOS
     Route::post('guiaSalida/listarGuiaSalida', [GuiaSalidaController::class, 'listarGuiaSalida']);
     Route::get('guiaSalida/listarVentasActivas/{sede}', [GuiaSalidaController::class, 'listarVentasActivas']);
