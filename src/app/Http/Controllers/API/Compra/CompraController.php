@@ -317,6 +317,7 @@ class CompraController extends Controller
             // $compra = Compra::find($compra['Codigo']);
             // $compra->update($request->input('compra'));
 
+            // Que no tenga pago activos
             $existePagoActivo = DB::table('cuota as cu')
                 ->join('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
                 ->join('egreso as e', 'pp.Codigo', '=', 'e.Codigo')
@@ -328,7 +329,20 @@ class CompraController extends Controller
                 return response()->json(['error' => 'No se puede actualizar la compra porque tiene pagos activos.'], 400);
             }
 
-            //Que no tenga guias de ingreso falta
+            // Verificar si la compra tiene guia ingreso
+
+            $guiaActiva = DB::table('compra as c')
+                ->join('guiaingreso as g', 'c.Codigo', '=', 'g.CodigoCompra')
+                ->where('g.Vigente', 1)
+                ->where('c.Codigo', $compra['Codigo'])
+                ->where('c.Vigente', 1)
+                ->exists();
+
+            if ($guiaActiva) {
+                return response()->json(['error' => 'No se puede actualizar la compra porque tiene una guía de ingreso activa.'], 400);
+            }
+
+            // Verificar si la compra existe
 
             $compraEncontrada = Compra::find($compra['Codigo']);
             if (!$compraEncontrada) {
