@@ -96,6 +96,7 @@ class LoteController extends Controller
                                 SUM(Cantidad) as Cantidad,
                                 SUM(Costo) as Costo
                             FROM lote 
+                            WHERE Vigente = 1
                             GROUP BY CodigoProducto, CodigoDetalleIngreso
                         ) AS LOTEREG'), function ($join) {
                             $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
@@ -125,6 +126,7 @@ class LoteController extends Controller
                     SUM(Cantidad) as Cantidad,
                     SUM(Costo) as Costo
                 FROM lote 
+                WHERE Vigente = 1
                 GROUP BY CodigoProducto, CodigoDetalleIngreso
                 ) AS LOTEREG'), function ($join) {
                     $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto')
@@ -153,6 +155,7 @@ class LoteController extends Controller
                     SUM(Costo) as Costo
                 FROM lote 
                 WHERE CodigoDetalleIngreso = ' . $codigo . '
+                    AND Vigente = 1
                 GROUP BY CodigoProducto
             ) AS LOTEREG'), function ($join) {
                     $join->on('LOTEREG.CodigoProducto', '=', 'dgi.CodigoProducto');
@@ -288,17 +291,84 @@ class LoteController extends Controller
             //     return response()->json(['error' => 'No se puede dar de baja un Lote con Stock diferente a la Cantidad.'], 404);
             // }
 
-            if (($loteEncontrado->Cantidad != $loteEncontrado->Stock)) {
-                return response()->json(['error' => 'No se puede actualizar un Lote con Stock diferente a la Cantidad.'], 404);
-            }
+            if($request->Vigente == 0){
+                //validar que no se ha generado egresos de productos de este lote
+                if (($loteEncontrado->Cantidad != $loteEncontrado->Stock)) {
+                    return response()->json(['error' => 'No se puede anular un Lote con Stock diferente a la Cantidad.'], 404);
+                }
+                //Buscar si es el ultimo lote activo
+                $ultimoLote = DB::table('lote')
+                    ->select('Codigo', 'Serie', 'Cantidad', 'CodigoProducto')
+                    ->where('Vigente', 1)
+                    ->orderByDesc('Codigo')
+                    ->limit(1)
+                    ->first();
+                //Verificar si el que ingresa es el ultimo lote activo
+                if($request->Codigo != $ultimoLote->Codigo) {
+                    return response()->json([
+                        'error' => 'No se puede anular este lote. Primero debe eliminar el lote de Serie: ' . $ultimoLote->Serie
+                    ], 404);                
+                }
+                //Actualizar el movimiento Lote (Vigente = 0)
 
-            $loteEncontrado->update(
-                [
-                    'Vigente' => $request->Vigente,
-                    'FechaCaducidad' => $request->Fecha,
-                    'Serie' => $request->Serie,
-                ]
-            );
+                DB::table('movimientolote')
+                    ->where('CodigoLote', $request->Codigo)
+                    ->update([
+                        'Vigente' => 0,
+                    ]);
+
+                //Actualizar el lote (Vigente = 0)
+
+                $loteEncontrado->update(
+                    [
+                        'Vigente' => 0,
+                    ]
+                );
+
+                //Buscar el ultimo movimiento de lote activo
+                $ultimoMovimientoLoteActivo = DB::table('movimientolote as ml')
+                    ->join('lote as l', 'ml.CodigoLote', '=', 'l.Codigo')
+                    ->select('ml.CostoPromedio')
+                    ->where('l.CodigoProducto', $ultimoLote->CodigoProducto)
+                    ->where('ml.Vigente', 1)
+                    ->orderByDesc('ml.Codigo')
+                    ->limit(1)
+                    ->first();
+            
+
+                // Actualizar el stock de la sede
+
+                if ($ultimoMovimientoLoteActivo) {
+                    DB::table('sedeproducto')
+                        ->where('CodigoProducto', $ultimoLote->CodigoProducto)
+                        ->update([
+                            'CostoCompraPromedio' => $ultimoMovimientoLoteActivo->CostoPromedio,
+                            'Stock' => DB::raw('Stock - ' . $ultimoLote->Cantidad)
+                        ]);
+                } else {
+                    
+
+                    DB::table('sedeproducto')
+                    ->where('CodigoProducto', $ultimoLote->CodigoProducto)
+                    ->update([
+                        'CostoCompraPromedio' => 0,
+                        'Stock' => 0
+                    ]);
+
+
+                    // return response()->json([
+                    //     'error' => 'No se encontró un movimiento de lote activo para actualizar el producto.'
+                    // ], 404);
+                }
+
+            }else{
+                $loteEncontrado->update(
+                    [
+                        'FechaCaducidad' => $request->Fecha,
+                        'Serie' => $request->Serie,
+                    ]
+                );
+            }
 
             DB::commit();
             return response()->json('Se actualizó el lote correctamente.', 200);

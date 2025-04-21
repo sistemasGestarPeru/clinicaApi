@@ -21,6 +21,7 @@ class MovimientoLote extends Model
         'CodigoLote',
         'CodigoDetalleIngreso',
         'CodigoDetalleSalida',
-        'Stock'
+        'Stock',
+        'Vigente'
     ];
 }
