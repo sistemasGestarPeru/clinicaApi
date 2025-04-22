@@ -19,6 +19,7 @@ class PagoProveedor extends Model
         'CodigoCuota',
         'CodigoProveedor',
         'TipoMoneda',
-        'MontoMonedaExtranjera'
+        'MontoMonedaExtranjera',
+        'Adelanto'
     ];
 }

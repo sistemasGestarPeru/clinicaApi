@@ -186,6 +186,7 @@ class PagoProveedorController extends Controller
                         ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
                     END AS MontoRestante
                 "),
+                'PP.Adelanto',
                 'C.TipoMoneda AS CodMoneda',
                 'tm.Siglas AS TipoMoneda',
                 
@@ -194,7 +195,7 @@ class PagoProveedorController extends Controller
             ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
             ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
             ->where('C.CodigoCompra', '=', $codigoCompra)
-            ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas')
+            ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas', 'PP.Adelanto')
             ->get();
 
             return response()->json($resultado, 200);
