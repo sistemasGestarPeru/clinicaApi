@@ -275,6 +275,7 @@ class ContratoProductoeController extends Controller
                 DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
                 DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
                 'cp.CodigoMedico as CodigoMedico',
+                'cp.Codigo'
                 // DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
             )
             // ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
@@ -406,6 +407,32 @@ class ContratoProductoeController extends Controller
         }catch(\Exception $e){
             return response()->json([
                 'message' => 'Error al generar PDF',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function listarDetallesPagados($contrato){
+        try{
+
+            $detalles = DB::table('documentoventa as dv')
+                ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                ->join('detallecontrato as dc', 'ddv.CodigoDetalleContrato', '=', 'dc.Codigo')
+                ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
+                ->select(
+                    'dc.Codigo as detalleContrato',
+                    'p.Nombre as Producto',
+                    DB::raw('SUM(ddv.MontoTotal) as DetalleMonto')
+                )
+                ->where('dv.CodigoContratoProducto', $contrato)
+                ->groupBy('dc.Codigo', 'p.Nombre')
+                ->get();
+
+            return response()->json($detalles, 200);
+
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al listar detalles pagados',
                 'error' => $e->getMessage()
             ], 500);
         }

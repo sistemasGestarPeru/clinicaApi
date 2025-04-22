@@ -105,8 +105,10 @@ class TrabajadorController extends Controller
     {
         $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
         
-
         $contratoData = $request->input('contrato');
+        $trabajador = $request->input('trabajador');
+
+        DB::beginTransaction();
         try {
             $contrato = ContratoLaboral::find($contratoData['Codigo']);
             $estadoActual = $contrato->Vigente;
@@ -114,12 +116,60 @@ class TrabajadorController extends Controller
             // Verificar si el contrato está vigente antes de actualizarlo
             $contratoVigente = $contrato->FechaFin == null || $contrato->FechaFin > $fecha;
 
+            if($estadoActual == 0){
+                return response()->json(['error' => 'No se puede actualizar un contrato Inactivo.'], 400);
+            }
+
+            if(!$contratoVigente){
+                return response()->json(['error' => 'No se puede actualizar un contrato Finalizado.'], 400);
+            }
+
             if($estadoActual == 1 && $contratoVigente){
+
+                $resultados = DB::table('trabajadors as t')
+                    ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
+                    ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
+                    ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+                    ->where('t.Codigo', $trabajador)
+                    ->where('s.Vigente', 1)
+                    ->where('ase.Vigente', 1)
+                    ->where('e.Codigo', $contratoData['CodigoEmpresa'])
+                    ->select('ase.Codigo', 'ase.FechaInicio', 'ase.FechaFin')
+                    ->get();
+
+                // validar que las fechas $contratoData['FechaInicio'] y $contratoData['FechaFin'] no se superpongan con las fechas de las asignaciones existentes
+                foreach ($resultados as $resultado) {
+                    if (($contratoData['FechaInicio'] >= $resultado->FechaInicio && $contratoData['FechaInicio'] <= $resultado->FechaFin) ||
+                        ($contratoData['FechaFin'] >= $resultado->FechaInicio && $contratoData['FechaFin'] <= $resultado->FechaFin)) {
+                        return response()->json(['error' => 'Las fechas del contrato se superponen con las fechas de la asignación existente.'], 400);
+                    }
+                }
+
                 $contrato->update($contratoData);
             }
 
-            return response()->json(['msg' => 'Contrato actualizado correctamente'], 200);
+            if($contratoData['Vigente'] == 0){
+                $resultados = DB::table('trabajadors as t')
+                    ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
+                    ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
+                    ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
+                    ->where('t.Codigo', $trabajador)
+                    ->where('s.Vigente', 1)
+                    ->where('ase.Vigente', 1)
+                    ->where('e.Codigo', $contratoData['CodigoEmpresa'])
+                    ->select('ase.Codigo')
+                    ->get();
+                // actualizar los vigente = 0 de la tabla asignacion_sedes
+                foreach ($resultados as $resultado) {
+                    $asignacion = AsignacionSede::find($resultado->Codigo);
+                    $asignacion->update(['Vigente' => 0]);
+                }
+            }
+
+            DB::commit();
+            return response()->json(['msg' => 'Contrato actualizado correctamente.'], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['error' => 'Error al actualizar al Contrato: ' . $e->getMessage()], 400);
         }
     }
@@ -380,11 +430,40 @@ class TrabajadorController extends Controller
 
         DB::beginTransaction();
         try {
-            $persona = Persona::find($personaData['Codigo']);
-            $persona->update($personaData);
+            $personaRegistrado = Persona::find($personaData['Codigo']);
+            $trabajadorRegistrado = Trabajador::find($personaData['Codigo']);
 
-            $trabajador = Trabajador::find($personaData['Codigo']);
-            $trabajador->update($trabajadorData);
+            // Verificar si la persona existe
+            if (!$personaRegistrado) {
+                return response()->json(['error' => 'Trabajador no encontrado.'], 404);
+            }
+            // Verificar si el trabajador existe
+            if (!$trabajadorRegistrado) {
+                return response()->json(['error' => 'Trabajador no encontrado.'], 404);
+            }
+
+            $personaRegistrado->update($personaData);            
+            $trabajadorRegistrado->update($trabajadorData);
+
+            // Si trabajadorData tiene Vigente = 0 entonces damos de baja a todos sus usuarios, contratos y asignaciones vigentes = 1
+            if ($trabajadorData['Vigente'] == 0) {
+                // Actualizar los contratos laborales vigentes a 0
+                DB::table('contrato_laborals')
+                    ->where('CodigoTrabajador', $trabajadorRegistrado->Codigo)
+                    ->where('Vigente', 1)
+                    ->update(['Vigente' => 0]);
+
+                // Actualizar las asignaciones vigentes a 0
+                DB::table('asignacion_sedes')
+                    ->where('CodigoTrabajador', $trabajadorRegistrado->Codigo)
+                    ->where('Vigente', 1)
+                    ->update(['Vigente' => 0]);
+
+                DB::table('users')
+                    ->where('CodigoPersona', $trabajadorRegistrado->Codigo)
+                    ->where('Vigente', 1)
+                    ->update(['Vigente' => 0]);
+            }
 
             DB::commit();
             return response()->json(['msg' => 'Trabajador actualizado correctamente'], 200);
