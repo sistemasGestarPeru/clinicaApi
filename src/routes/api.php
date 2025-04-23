@@ -5,6 +5,7 @@ use App\Http\Controllers\API\Almacen\GuiaSalida\GuiaSalidaController;
 use App\Http\Controllers\API\Almacen\Lote\LoteController;
 use App\Http\Controllers\API\Almacen\Transformacion\TransformacionController;
 use App\Http\Controllers\API\AtencionCliente\Configuraciones\ConfiguracionesController;
+use App\Http\Controllers\API\AtencionCliente\HistorialClinicoController;
 use App\Http\Controllers\API\AtencionCliente\PacienteController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
@@ -126,6 +127,12 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
     Route::get('paciente/consultarPaciente/{codigo}', [PacienteController::class, 'consultarPaciente']);
     Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
 
+    /*********************************************************** Historial Clinico ***********************************************************/
+    Route::post('historiaClinica/actualizarHistorial', [HistorialClinicoController::class, 'actualizarHistorial']);
+    Route::post('historiaClinica/registrarHistorial', [HistorialClinicoController::class, 'registrarHistorial']);
+    Route::get('historiaClinica/consultarHistorial/{codigo}', [PacienteController::class, 'consultarHistorial']);
+    Route::post('historiaClinica/listarHistorial', [HistorialClinicoController::class, 'listarHistorial']);
+    Route::post('historiaClinica/buscarPacienteHistorial', [HistorialClinicoController::class, 'buscarPacienteHistorial']);
 //devolver luego
     Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
 
