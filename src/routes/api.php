@@ -4,6 +4,8 @@ use App\Http\Controllers\API\Almacen\GuiaIngreso\GuiaIngresoController;
 use App\Http\Controllers\API\Almacen\GuiaSalida\GuiaSalidaController;
 use App\Http\Controllers\API\Almacen\Lote\LoteController;
 use App\Http\Controllers\API\Almacen\Transformacion\TransformacionController;
+use App\Http\Controllers\API\AtencionCliente\Configuraciones\ConfiguracionesController;
+use App\Http\Controllers\API\AtencionCliente\PacienteController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
@@ -93,8 +95,37 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
 
 
 
+    //PASARLO A RUTAS PRIVADAS
+    /*********************************************************** ATENCION AL CLIENTE ***********************************************************/
 
+    /*********************************************************** Configuracion ***********************************************************/
 
+    Route::get('confAtencionCliente/listarColorOjos', [ConfiguracionesController::class, 'listarColorOjos']);
+    Route::get('confAtencionCliente/listarTonoPiel', [ConfiguracionesController::class, 'listarTonoPiel']);
+    Route::get('confAtencionCliente/listarTexturaCabello', [ConfiguracionesController::class, 'listarTexturaCabello']);
+    Route::get('confAtencionCliente/listarMedioPublicitario', [ConfiguracionesController::class, 'listarMedioPublicitario']);
+
+    Route::post('confAtencionCliente/registrarColorOjos', [ConfiguracionesController::class, 'registrarColorOjos']);
+    Route::post('confAtencionCliente/registrarTonoPiel', [ConfiguracionesController::class, 'registrarTonoPiel']);
+    Route::post('confAtencionCliente/registrarTexturaCabello', [ConfiguracionesController::class, 'registrarTexturaCabello']);
+    Route::post('confAtencionCliente/registrarMedioPublicitario', [ConfiguracionesController::class, 'registrarMedioPublicitario']);
+
+    Route::post('confAtencionCliente/actualizarColorOjos', [ConfiguracionesController::class, 'actualizarColorOjos']);
+    Route::post('confAtencionCliente/actualizarTonoPiel', [ConfiguracionesController::class, 'actualizarTonoPiel']);
+    Route::post('confAtencionCliente/actualizarTexturaCabello', [ConfiguracionesController::class, 'actualizarTexturaCabello']);
+    Route::post('confAtencionCliente/actualizarMedioPublicitario', [ConfiguracionesController::class, 'actualizarMedioPublicitario']);
+
+    Route::get('confAtencionCliente/consultarColorOjos/{codigo}', [ConfiguracionesController::class, 'consultarColorOjos']);
+    Route::get('confAtencionCliente/consultarTonoPiel/{codigo}', [ConfiguracionesController::class, 'consultarTonoPiel']);
+    Route::get('confAtencionCliente/consultarTexturaCabello/{codigo}', [ConfiguracionesController::class, 'consultarTexturaCabello']);
+    Route::get('confAtencionCliente/consultarMedioPublicitario/{codigo}', [ConfiguracionesController::class, 'consultarMedioPublicitario']);
+
+    /*********************************************************** Paciente ***********************************************************/
+    Route::post('paciente/buscarPersona', [PacienteController::class, 'buscarPersona']);
+    Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
+
+//devolver luego
+    Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
@@ -407,7 +438,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('nacionalidad/registrarNacionalidad', [NacionalidadController::class, 'registrarNacionalidad']);
     Route::post('nacionalidad/actualizarNacionalidad', [NacionalidadController::class, 'actualizarNacionalidad']);
     Route::get('nacionalidad/consultarNacionalidad/{codigo}', [NacionalidadController::class, 'consultarNacionalidad']);
-    Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
+
 
     /************************************************************ DEPARTAMENTO ************************************************************/
     Route::get('departamento/listar', [DepartamentoController::class, 'index']);
@@ -565,6 +596,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('reportes/reporteKardexValorizado', [ReportesController::class, 'reporteKardexValorizado']);
     Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);
     Route::post('reportes/reporteCatalogoProductos', [ReportesController::class, 'reporteCatalogoProductos']);
+
+
+
+
+
+
 
     /*********************************************************** PRUEBAS ***********************************************************/
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
