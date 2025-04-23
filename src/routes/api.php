@@ -121,6 +121,7 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
     Route::get('confAtencionCliente/consultarMedioPublicitario/{codigo}', [ConfiguracionesController::class, 'consultarMedioPublicitario']);
 
     /*********************************************************** Paciente ***********************************************************/
+    Route::post('paciente/listarPacientes', [PacienteController::class, 'listarPacientes']);
     Route::post('paciente/buscarPersona', [PacienteController::class, 'buscarPersona']);
     Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
 
