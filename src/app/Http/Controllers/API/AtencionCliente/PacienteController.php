@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\AtencionCliente;
 use App\Http\Controllers\Controller;
 use App\Models\AtencionCliente\EmbarazoPrevio;
 use App\Models\AtencionCliente\Paciente;
+use App\Models\AtencionCliente\Varon;
 use App\Models\Personal\Persona;
 use Faker\Provider\ar_EG\Person;
 use Illuminate\Http\Request;
@@ -95,7 +96,9 @@ class PacienteController extends Controller
         try{
 
             $persona = Persona::findOrFail($codigo);
-            
+            $embarazosPrevios = [];
+            $varon = null;
+
             if(!$persona){
                 return response()->json([
                     'success' => false,
@@ -116,11 +119,16 @@ class PacienteController extends Controller
                 $embarazosPrevios = EmbarazoPrevio::where('CodigoMujer', $codigo)->get();
             }
 
+            if($paciente && $paciente->Genero == 'M'){
+                $varon = Varon::where('Codigo', $codigo)->first();
+            }
+
 
             return response()->json([
                 'persona' => $persona,
                 'paciente' => $paciente,
                 'embarazoPrevio' => $embarazosPrevios,
+                'varon' => $varon
             ], 200);
         }catch(\Exception $e){
             return response()->json([
@@ -176,6 +184,7 @@ class PacienteController extends Controller
 
         $paciente = $query['Paciente'];
         $embarazosPrevios = $query['EmbarazosPrevios'] ?? [];
+        $varon = $query['Varon'] ?? null;
         
         DB::beginTransaction();
         try{
@@ -191,6 +200,12 @@ class PacienteController extends Controller
                     $embarazo['CodigoMujer'] = $paciente['Codigo'];
                     EmbarazoPrevio::create($embarazo);
                 }
+            }
+
+            if($paciente['Genero'] == 'M' && $varon != null){
+                // Insertar datos del varon
+                $varon['Codigo'] = $paciente['Codigo'];
+                Varon::create($varon);
             }
     
             DB::commit();
