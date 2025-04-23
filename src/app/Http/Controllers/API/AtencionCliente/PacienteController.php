@@ -143,16 +143,32 @@ class PacienteController extends Controller
     {
         try{
 
-            // Verificar existencia
-            $existe = DB::table('personas')
+            //Validar si existe el paciente
+
+            $codigoPaciente = DB::table('paciente as pa')
+            ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
+            ->where('p.CodigoTipoDocumento', $request->tipoDocumento)
+            ->where('p.NumeroDocumento', $request->numeroDocumento)
+            ->value('p.Codigo');
+
+            if($codigoPaciente != null && $codigoPaciente != 0){
+                // Si existe, retornar el codigo del paciente 
+                return response()->json([
+                    'paciente' => $codigoPaciente
+                ], 200);
+            }
+
+
+            // Verificar existencia en tabla persona
+            $existePersona = DB::table('personas')
                 ->where('NumeroDocumento', $request->numeroDocumento)
                 ->where('CodigoTipoDocumento', $request->tipoDocumento)
                 ->exists();
 
-            if ($existe) {
+            if ($existePersona) {
                 // Obtener datos si existe
                 $persona = DB::table('personas')
-                            ->select('Codigo', 'Nombres', 'Apellidos', 'Direccion', 'Celular', 'Correo', 'NumeroDocumento')
+                            ->select('Codigo', 'Nombres', 'Apellidos', 'Direccion', 'Celular', 'Correo', 'NumeroDocumento', 'CodigoTipoDocumento', 'CodigoNacionalidad')
                             ->where('NumeroDocumento', $request->numeroDocumento)
                             ->where('CodigoTipoDocumento', $request->tipoDocumento)
                             ->first();
@@ -161,7 +177,7 @@ class PacienteController extends Controller
             }
 
             return response()->json([
-                'existe' => $existe,
+                'existe' => $existePersona,
                 'data' => $persona
             ], 200);
 
@@ -185,9 +201,17 @@ class PacienteController extends Controller
         $paciente = $query['Paciente'];
         $embarazosPrevios = $query['EmbarazosPrevios'] ?? [];
         $varon = $query['Varon'] ?? null;
-        
+        $persona = $query['Persona'] ?? null;
+
+        $codp = 0;
         DB::beginTransaction();
         try{
+
+            if($paciente['Codigo'] == null || $paciente['Codigo'] == 0){
+                $codp = Persona::create($persona)->Codigo;
+                $paciente['Codigo'] = $codp;
+            }
+
             // Insertar paciente
             Paciente::create($paciente);
     
@@ -209,7 +233,7 @@ class PacienteController extends Controller
             }
     
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Paciente registrado correctamente.']);
+            return response()->json(['persona' => $paciente['Codigo'], 'message' => 'Paciente registrado correctamente.']);
         }catch(\Exception $e){
             DB::rollback();
             return response()->json([
