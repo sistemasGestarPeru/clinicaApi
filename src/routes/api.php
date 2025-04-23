@@ -123,6 +123,7 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
     /*********************************************************** Paciente ***********************************************************/
     Route::post('paciente/listarPacientes', [PacienteController::class, 'listarPacientes']);
     Route::post('paciente/buscarPersona', [PacienteController::class, 'buscarPersona']);
+    Route::get('paciente/consultarPaciente/{codigo}', [PacienteController::class, 'consultarPaciente']);
     Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
 
 //devolver luego
