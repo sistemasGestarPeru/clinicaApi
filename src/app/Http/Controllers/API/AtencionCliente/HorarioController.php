@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\AtencionCliente;
 use App\Http\Controllers\Controller;
 use App\Models\AtencionCliente\Horario;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HorarioController extends Controller
 {
@@ -61,7 +62,23 @@ class HorarioController extends Controller
     }
 
     public function registrarHorario(Request $request){
+
         try{
+            $validarHorario = DB::table('horario')
+            ->where('CodigoMedico', $request->CodigoMedico)
+            ->where('Vigente', 1)
+            ->whereDate('Fecha', $request->Fecha)
+            ->where(function ($query) use ($request) {
+                $query->whereTime('HoraInicio', '<', $request->HoraFin)
+                      ->whereTime('HoraFin', '>', $request->HoraInicio);
+            })
+            ->first();
+        
+
+            if($validarHorario){
+                return response()->json(['msg' => 'El horario se cruza con otro ya registrado. Cruce: ' . $validarHorario->HoraInicio . ' - ' . $validarHorario->HoraFin], 500);
+            }
+
             Horario::create($request->all());
             return response()->json([
                 'msg' => 'Horario registrado correctamente.'
