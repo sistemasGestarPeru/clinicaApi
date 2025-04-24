@@ -171,8 +171,23 @@ class ProductoController extends Controller
     {
         $producto = $request->all();
         try {
-            PrecioTemporal::where('Codigo', $producto['Codigo'])->update($producto);
-            return response()->json(['message' => 'Producto actualizado correctamente'], 200);
+
+            // Verificar si el producto existe antes de actualizar
+            $temporal = PrecioTemporal::findOrFail($producto['Codigo']);
+            // Actualizar el producto siempre y cuando la cantidad actual sea igual al stock
+
+            if($temporal->Vigente == 0){
+                return response()->json(['error' => 'No se puede actualizar un precio temporal con estado inactivo.'], 400);
+            }
+
+            if ($temporal->Stock == $producto['Stock']) {
+                PrecioTemporal::where('Codigo', $producto['Codigo'])->update($producto);
+                return response()->json(['message' => 'Producto actualizado correctamente'], 200);
+            } else {
+                return response()->json(['error' => 'No se puede actualizar el precio temporal porque la cantidad actual no coincide con el stock.'], 400);
+            }
+
+            
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

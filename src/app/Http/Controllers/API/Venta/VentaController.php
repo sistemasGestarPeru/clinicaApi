@@ -987,21 +987,22 @@ class VentaController extends Controller
 
             if ($anularPago == 1) {
 
-                DB::table('pagodocumentoventa')
-                    ->where('CodigoDocumentoVenta', $codigoVenta)
-                    ->update(['Vigente' => 0]);
-
                 // Obtener los códigos de pagos a desactivar
-                $pagosEfectivo = DB::table('pagodocumentoventa as pdv')
+                $pagos = DB::table('pagodocumentoventa as pdv')
                     ->join('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
                     ->where('pdv.CodigoDocumentoVenta', $codigoVenta)
                     ->where('pg.Vigente', 1)
                     ->where('pdv.Vigente', 1)
                     ->pluck('pdv.CodigoPago');
 
+                DB::table('pagodocumentoventa')
+                    ->where('CodigoDocumentoVenta', $codigoVenta)
+                    ->update(['Vigente' => 0]);
+
+
                 // Marcar como no vigentes los pagos encontrados
                 DB::table('pago')
-                    ->whereIn('Codigo', $pagosEfectivo)
+                    ->whereIn('Codigo', $pagos)
                     ->update(['Vigente' => 0]);
 
                 // Marcar la venta como no vigente
