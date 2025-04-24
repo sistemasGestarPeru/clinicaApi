@@ -145,16 +145,17 @@ class PacienteController extends Controller
 
             //Validar si existe el paciente
 
-            $codigoPaciente = DB::table('paciente as pa')
+            $pacienteData = DB::table('paciente as pa')
             ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
             ->where('p.CodigoTipoDocumento', $request->tipoDocumento)
             ->where('p.NumeroDocumento', $request->numeroDocumento)
-            ->value('p.Codigo');
+            ->select('p.Codigo', 'pa.Genero')
+            ->first();
 
-            if($codigoPaciente != null && $codigoPaciente != 0){
+            if($pacienteData){
                 // Si existe, retornar el codigo del paciente 
                 return response()->json([
-                    'paciente' => $codigoPaciente
+                    'paciente' => $pacienteData
                 ], 200);
             }
 

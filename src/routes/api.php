@@ -133,8 +133,8 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
     Route::get('historiaClinica/consultarHistorial/{codigo}', [PacienteController::class, 'consultarHistorial']);
     Route::post('historiaClinica/listarHistorial', [HistorialClinicoController::class, 'listarHistorial']);
     Route::post('historiaClinica/buscarPacienteHistorial', [HistorialClinicoController::class, 'buscarPacienteHistorial']);
-//devolver luego
-    Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
+
+    
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
@@ -447,7 +447,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('nacionalidad/registrarNacionalidad', [NacionalidadController::class, 'registrarNacionalidad']);
     Route::post('nacionalidad/actualizarNacionalidad', [NacionalidadController::class, 'actualizarNacionalidad']);
     Route::get('nacionalidad/consultarNacionalidad/{codigo}', [NacionalidadController::class, 'consultarNacionalidad']);
-
+    Route::get('nacionalidad/listarNacionalidad', [NacionalidadController::class, 'listarNacionalidad']);
 
     /************************************************************ DEPARTAMENTO ************************************************************/
     Route::get('departamento/listar', [DepartamentoController::class, 'index']);
