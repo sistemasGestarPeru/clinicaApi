@@ -64,17 +64,18 @@ class HistorialClinicoController extends Controller
             $pacientes = DB::table('paciente as pa')
                 ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
                 ->where('p.Vigente', 1)
+                ->where('p.CodigoTipoDocumento', $request->tipoDoc)
                 ->when($request->genero === 'F', function ($query) use ($request) {
                     $query->where('pa.Genero', $request->genero);
                 })
                 ->whereNotIn('p.Codigo', $subQuery)
                 ->select(
                     'p.Codigo',
-                    'p.Nombres as nombres',
-                    'p.Apellidos as apellidos',
-                    'p.NumeroDocumento as documento',
+                    'p.Nombres',
+                    'p.Apellidos',
+                    'p.NumeroDocumento as Documento',
                     'p.CodigoTipoDocumento as tipoDoc',
-                    'pa.Genero as genero'
+                    'pa.Genero'
                 )
                 ->get();
         
