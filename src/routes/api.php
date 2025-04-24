@@ -6,6 +6,7 @@ use App\Http\Controllers\API\Almacen\Lote\LoteController;
 use App\Http\Controllers\API\Almacen\Transformacion\TransformacionController;
 use App\Http\Controllers\API\AtencionCliente\Configuraciones\ConfiguracionesController;
 use App\Http\Controllers\API\AtencionCliente\HistorialClinicoController;
+use App\Http\Controllers\API\AtencionCliente\HorarioController;
 use App\Http\Controllers\API\AtencionCliente\PacienteController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
@@ -134,7 +135,10 @@ Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
     Route::post('historiaClinica/listarHistorial', [HistorialClinicoController::class, 'listarHistorial']);
     Route::post('historiaClinica/buscarPacienteHistorial', [HistorialClinicoController::class, 'buscarPacienteHistorial']);
 
-    
+    /*********************************************************** Horario ***********************************************************/
+    Route::post('horario/registrarHorario', [HorarioController::class, 'registrarHorario']);
+    Route::post('horario/listarHorarios', [HorarioController::class, 'listarHorarios']);
+
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
