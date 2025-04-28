@@ -737,7 +737,8 @@ class VentaController extends Controller
                     'tg.Codigo as CodigoTipoGravado',
                     'tg.Porcentaje',
                     'tg.CodigoSUNAT',
-                    'sp.Stock'
+                    'sp.Stock',
+                    'sp.Controlado'
                 )
                 ->where('sp.CodigoSede', $sede) // Usar la sede proporcionada en la solicitud
                 ->where(function ($query) {

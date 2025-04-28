@@ -477,6 +477,7 @@ class TrabajadorController extends Controller
     {
         $numDocumento = $request->input('numDocumento', '');
         $nombre = $request->input('nombre', '');
+        $tipo = $request->input('tipo', '');
 
         try {
             $personas = DB::table('personas as p')
@@ -488,11 +489,16 @@ class TrabajadorController extends Controller
                     'p.Apellidos',
                     'p.NumeroDocumento',
                     'td.Siglas as DescTipoDocumento',
-                    't.Vigente as VigenteTrabajador'
+                    't.Vigente as VigenteTrabajador',
+                    't.Tipo',
+                    't.Vigente as tVigente',
+                    'p.Vigente as pVigente'
                 )
-                ->where('p.NumeroDocumento', 'like', '%' . $numDocumento . '%')
-                ->where('p.Nombres', 'like', '%' . $nombre . '%')
-                ->where('p.Vigente', '=', 1)
+                ->where('p.NumeroDocumento', 'like', $numDocumento . '%')
+                ->where('p.Nombres', 'like', $nombre . '%')
+                ->where('t.Tipo', 'like', '%'. $tipo. '%')
+                // ->where('p.Vigente', '=', 1)
+                ->orderBy('p.Nombres', 'asc')
                 ->get();
 
             return response()->json($personas, 200);
