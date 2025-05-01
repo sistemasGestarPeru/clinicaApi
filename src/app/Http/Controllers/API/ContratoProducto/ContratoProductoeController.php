@@ -270,22 +270,25 @@ class ContratoProductoeController extends Controller
 
 
     public function visualizarContrato($contrato){
-            $contratoProducto = DB::table('contratoproducto as cp')
-            ->select(
-                DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
-                DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
-                'cp.CodigoMedico as CodigoMedico',
-                'cp.Codigo'
-                // DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
-            )
-            // ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
-            ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
-            ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
-            ->where('cp.Codigo', $contrato)
-            ->first();
+
+            $contratoProducto = ContratoProducto::find($contrato);
+
+            // $contratoProducto = DB::table('contratoproducto as cp')
+            // ->select(
+            //     DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
+            //     DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
+            //     'cp.CodigoMedico as CodigoMedico',
+            //     'cp.Codigo'
+            //     // DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
+            // )
+            // // ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
+            // ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
+            // ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
+            // ->where('cp.Codigo', $contrato)
+            // ->first();
 
         $detalleContrato = DB::table('detallecontrato as dc')
-            ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad')
+            ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad', 'dc.Descuento')
             ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
             ->where('dc.CodigoContrato', $contrato)
             ->get();
@@ -422,10 +425,12 @@ class ContratoProductoeController extends Controller
                 ->select(
                     'dc.Codigo as detalleContrato',
                     'p.Nombre as Producto',
+                    'p.Codigo as CodigoProducto',
                     DB::raw('SUM(ddv.MontoTotal) as DetalleMonto')
                 )
                 ->where('dv.CodigoContratoProducto', $contrato)
-                ->groupBy('dc.Codigo', 'p.Nombre')
+                ->where('dv.Vigente', 1)
+                ->groupBy('dc.Codigo', 'p.Nombre', 'p.Codigo')
                 ->get();
 
             return response()->json($detalles, 200);
@@ -433,6 +438,137 @@ class ContratoProductoeController extends Controller
         }catch(\Exception $e){
             return response()->json([
                 'message' => 'Error al listar detalles pagados',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function cambioContratoProducto(Request $request)
+    {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d H:i:s');
+
+        $detallesContrato = $request->input('detalleContrato');
+        $contratoProductoData = $request->input('contratoProducto');
+        $compromisoContrato = $request->input('compromisoContrato');
+
+        //Validar Contrato
+        $contratoValidar = Validator::make($contratoProductoData, (new RegistrarContratoProductoRequest())->rules());
+        $contratoValidar->validate();
+
+        //validar DetalleProductos
+        $detalleContratoValidar = Validator::make(
+            ['detalleContrato' => $detallesContrato],
+            (new RegistrarDetalleContratoRequest())->rules()
+        );
+
+        $detalleContratoValidar->validate();
+
+        $contratoOriginal = $contratoProductoData['Codigo']; //Contrato original codigo
+
+        $contratoProductoData['Codigo'] = null; //Para crear el nuevo contrato
+
+        if (isset($contratoProductoData['CodigoAutorizador']) && $contratoProductoData['CodigoAutorizador'] == 0) {
+            $contratoProductoData['CodigoAutorizador'] = null;
+        }
+
+        if (isset($contratoProductoData['CodigoPaciente']) && $contratoProductoData['CodigoPaciente'] == 0) {
+            $contratoProductoData['CodigoPaciente'] = null;
+        }
+
+        if (isset($contratoProductoData['CodigoPaciente02']) && $contratoProductoData['CodigoPaciente02'] == 0) {
+            $contratoProductoData['CodigoPaciente02'] = null;
+        }
+
+        if (isset($contratoProductoData['CodigoClienteEmpresa']) && $contratoProductoData['CodigoClienteEmpresa'] == 0) {
+            $contratoProductoData['CodigoClienteEmpresa'] = null;
+        }
+
+        // Obtener el CódigoSede desde los datos del contrato
+        $codigoSede = $contratoProductoData['CodigoSede'];
+
+        // Obtener el último NumContrato para la sede específica y sumarle 1
+        $ultimoNumContrato = ContratoProducto::where('CodigoSede', $codigoSede)->max('NumContrato');
+        $contratoProductoData['NumContrato'] = $ultimoNumContrato ? $ultimoNumContrato + 1 : 1;
+        $contratoProductoData['Fecha'] = $fecha;
+
+        DB::beginTransaction();
+        try {
+            // Crear el ContratoProducto
+            $Contrato = ContratoProducto::create($contratoProductoData);
+
+            $sumaMontoDetalles = 0;
+            // Crear los DetalleContrato
+            foreach ($detallesContrato as $detalle) {
+                $detalle['CodigoContrato'] = $Contrato->Codigo;
+                // Crear el detalle del contrato
+                $detalleContratoCreado = DetalleContrato::create($detalle);
+
+                if(isset($detalle['detallePagado']) && isset($detalle['detallePagado']) != null){
+
+                    $detalleContratoId = $detalle['detallePagado']['detalleContrato'] ?? null;
+                    $sumaMontoDetalles += $detalle['detallePagado']['montoPagado'] ?? 0;
+                     // Primero obtener los códigos
+                        $documentosIds = DB::table('documentoventa as dv')
+                        ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                        ->where('dv.CodigoContratoProducto', $contratoOriginal)
+                        ->where('dv.Vigente', 1)
+                        ->where('ddv.CodigoDetalleContrato', $detalleContratoId)
+                        ->pluck('dv.Codigo')
+                        ->toArray();
+
+                    // Luego actualizar
+                     if (!empty($documentosIds)) {
+                         DB::table('documentoventa')
+                             ->whereIn('Codigo', $documentosIds)
+                             ->update(['CodigoContratoProducto' => $Contrato->Codigo]);
+
+                         DB::table('detalledocumentoventa')
+                             ->whereIn('CodigoVenta', $documentosIds)
+                             ->where('CodigoDetalleContrato', $detalleContratoId)
+                             ->update(['CodigoDetalleContrato' => $detalleContratoCreado->Codigo]);
+                     }
+                }
+
+            }
+
+            // Actualizar el monto total del contrato
+            if($sumaMontoDetalles > 0){
+                DB::table('contratoproducto')
+                ->where('Codigo', $Contrato->Codigo)
+                ->update(['TotalPagado' => $sumaMontoDetalles]);
+            }
+
+            if (!empty($request->input('compromisoContrato')) && count($compromisoContrato) > 0) {
+                foreach ($compromisoContrato as $compromiso) {
+                    $compromiso['CodigoContrato'] = $Contrato->Codigo;
+                    CompromisoContrato::create($compromiso);
+                }
+            }
+
+            // Verificar si el contrato original existe
+            $contratoOriginal = ContratoProducto::find($contratoOriginal);
+            if (!$contratoOriginal) {
+                return response()->json([
+                    'message' => 'Contrato original no encontrado'
+                ], 404);
+            }
+            // Actualizar contrato Original Vigente = 0 
+            $contratoOriginal->Vigente = 0;
+            $contratoOriginal->save();
+            // Confirmar la transacción
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Cambio de contrato registrado correctamente.'
+            ], 200);
+        } catch (\Exception $e) {
+            // Hacer rollback en caso de error
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Error al cambiar el contrato.',
                 'error' => $e->getMessage()
             ], 500);
         }

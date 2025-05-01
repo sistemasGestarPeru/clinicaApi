@@ -12,7 +12,8 @@ class DetalleContrato extends Model
     public $timestamps = false;
 
     protected $table = 'detallecontrato';
-
+    protected $primaryKey = 'Codigo';
+    
     protected $fillable = [
         'MontoTotal',
         'Cantidad',

@@ -256,7 +256,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('contratoProducto/historialContratoVenta/{codigo}', [ContratoProductoeController::class, 'historialContratoVenta']);
     Route::get('contratoProducto/contratoPDF/{contrato}', [ContratoProductoeController::class, 'contratoPDF']);
     Route::get('contratoProducto/listarDetallesPagados/{contrato}', [ContratoProductoeController::class, 'listarDetallesPagados']);
-
+    Route::post('contratoProducto/cambioContratoProducto', [ContratoProductoeController::class, 'cambioContratoProducto']);
     /********************************* CAJA *********************************/
     Route::apiResource("caja", CajaController::class);
     Route::post('caja/estadoCajaLogin', [CajaController::class, 'estadoCajaLogin']);

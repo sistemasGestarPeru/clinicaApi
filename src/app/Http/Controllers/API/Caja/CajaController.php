@@ -471,7 +471,10 @@ class CajaController extends Controller
             ->where('p.Vigente', 1)
             ->where('ass.Vigente', 1)
             ->where('ass.CodigoSede', $sede)
-            ->where('ass.FechaFin', '>=', $fecha)
+            ->where(function($query) use ($fecha) {
+                $query->whereNull('ass.FechaFin')
+                      ->orWhere('ass.FechaFin', '>=', $fecha);
+            })
             ->select(
                 't.Codigo as Codigo',
                 DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombre")
@@ -557,7 +560,7 @@ class CajaController extends Controller
                         ELSE 'INGRESO' 
                     END AS Documento,
                     ' ' AS Paciente,
-                    (SELECT Nombre FROM MedioPago WHERE CodigoSUNAT = '008') AS MedioPago,
+                    (SELECT Nombre FROM mediopago WHERE CodigoSUNAT = '008') AS MedioPago,
                     CONCAT(DATE_FORMAT(i.Fecha, '%d/%m/%Y'), ' ', TIME(i.Fecha)) AS FechaPago,
                     i.Monto AS MontoPagado,
                     i.Vigente as Vigente,
@@ -600,7 +603,7 @@ class CajaController extends Controller
                 ->leftJoin('pagopersonal as pper', 'pper.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagosvarios as pvar', 'pvar.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagodetraccion as pdet', 'pdet.Codigo', '=', 'e.Codigo')
-                ->leftJoin('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->where('mp.CodigoSUNAT', '008')
                 ->where('e.Vigente', 1)
                 ->when($trabajador, fn($query) => $query->where('e.CodigoTrabajador', $trabajador))
