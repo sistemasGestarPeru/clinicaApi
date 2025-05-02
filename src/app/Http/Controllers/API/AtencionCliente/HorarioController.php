@@ -49,11 +49,45 @@ class HorarioController extends Controller
         //
     }
 
-    public function listarHorarios(){
-        try{
-            $horarios = Horario::all()->where('Vigente', 1);
+
+    // public function listarHorarios(){
+    //     try{
+    //         $horarios = Horario::all()->where('Vigente', 1);
+    //         return response()->json($horarios, 200);
+    //     }catch(\Exception $e){
+    //         return response()->json([
+    //             'msg' => 'Error al listar los horarios.',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+    public function listarHorarios(Request $request){
+        
+        try {
+
+            $query = Horario::where('Vigente', 1);
+            
+            // Filtro por médico (solo si no es 0)
+            if ($request->Medico != 0) {
+                $query->where('CodigoMedico', $request->Medico);
+            }
+            
+            // Filtro por sede
+            if ($request->Sede != 0) {
+                $query->where('CodigoSede', $request->Sede);
+            }
+            
+            // Filtro por rango de fechas
+            // if ($request->has('FechaInicio') && $request->has('FechaFin')) {
+            //     $query->whereBetween('Fecha', [$request->FechaInicio, $request->FechaFin]);
+            // }
+            
+            $horarios = $query->get();
+            
             return response()->json($horarios, 200);
-        }catch(\Exception $e){
+
+        } catch (\Exception $e) {
             return response()->json([
                 'msg' => 'Error al listar los horarios.',
                 'error' => $e->getMessage()

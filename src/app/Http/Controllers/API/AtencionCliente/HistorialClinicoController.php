@@ -52,32 +52,40 @@ class HistorialClinicoController extends Controller
     public function buscarPacienteHistorial(Request $request){
         try{
 
-            $subQuery = DB::table('historialclinico')
-            ->select('CodigoPaciente01')
-            ->whereNotNull('CodigoPaciente01')
-            ->union(
-                DB::table('historialclinico')
-                    ->select('CodigoPaciente02')
-                    ->whereNotNull('CodigoPaciente02')
-            );
+            $query = DB::table('personas as p')
+            ->join('paciente as pa', 'p.Codigo', '=', 'pa.Codigo')
+            ->select(
+                'p.Codigo',
+                'p.Nombres',
+                'p.Apellidos',
+                'p.NumeroDocumento AS Documento',
+                'p.CodigoTipoDocumento AS tipoDoc',
+                'pa.Genero',
+                DB::raw("CASE 
+                    WHEN EXISTS (
+                        SELECT 1 FROM historialclinico 
+                        WHERE CodigoPaciente01 = p.Codigo OR CodigoPaciente02 = p.Codigo
+                    ) THEN 1
+                    ELSE 0
+                END AS Existe")
+            )
+            ->where('p.Vigente', 1)
+            ->when($request->filled('tipoDoc'), function($query) use ($request) {
+                $query->where('p.CodigoTipoDocumento', $request->tipoDoc);
+            })
+            ->when($request->filled('termino'), function($query) use ($request) {
+                $termino = $request->termino.'%';
+                $query->where(function($q) use ($termino) {
+                    $q->where('p.NumeroDocumento', 'LIKE', $termino)
+                      ->orWhere('p.Nombres', 'LIKE', $termino)
+                      ->orWhere('p.Apellidos', 'LIKE', $termino);
+                });
+            })
+            ->when($request->genero === 'F', function ($query) use ($request) {
+                $query->where('pa.Genero', $request->genero);
+            });
         
-            $pacientes = DB::table('paciente as pa')
-                ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
-                ->where('p.Vigente', 1)
-                ->where('p.CodigoTipoDocumento', $request->tipoDoc)
-                ->when($request->genero === 'F', function ($query) use ($request) {
-                    $query->where('pa.Genero', $request->genero);
-                })
-                ->whereNotIn('p.Codigo', $subQuery)
-                ->select(
-                    'p.Codigo',
-                    'p.Nombres',
-                    'p.Apellidos',
-                    'p.NumeroDocumento as Documento',
-                    'p.CodigoTipoDocumento as tipoDoc',
-                    'pa.Genero'
-                )
-                ->get();
+            $pacientes = $query->get();
         
 
             return response()->json($pacientes, 200);
