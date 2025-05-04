@@ -460,8 +460,11 @@ class VentaController extends Controller
                 'detalles' => $detallesFormateados
             ];
 
-
-            return $facturacionElectronica;
+            $data = [
+                'facturacion' => $facturacionElectronica,
+                'token' => $datosEmisor->TokenPSE
+            ];
+            return $data;
     
         } catch (\Exception $e) {
             // Manejo de errores
@@ -609,30 +612,16 @@ class VentaController extends Controller
             DB::commit();
 
             // Generar JSON para facturación electrónica con los datos que ya tenemos
-            $jsonFacturacion = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
-
-            if ($jsonFacturacion) {
-                // Aquí podrías:
-                // 1. Guardar el JSON en la base de datos
-                // 2. Enviarlo a un servicio de facturación electrónica
-                // 3. Retornarlo en la respuesta
-                
-                return response()->json([
-                    'message' => 'Venta registrada correctamente.',
-                    'facturacion_electronica' => $jsonFacturacion,
-                    'cantidades_por_temporal' => $cantidadesPorTemporal
-                ], 201);
-            }
+            $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
 
             return response()->json([
                 'message' => 'Venta registrada correctamente.',
-                'cantidades_por_temporal' => $cantidadesPorTemporal
+                'facturacion' => $data
             ], 201);
 
-            return response()->json(['message' => 'Venta registrada correctamente.', $cantidadesPorTemporal], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Ocurrió un error al registrar la Venta', 'db' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Ocurrió un error al registrar la Venta.', 'db' => $e->getMessage()], 500);
         }
     }
 
