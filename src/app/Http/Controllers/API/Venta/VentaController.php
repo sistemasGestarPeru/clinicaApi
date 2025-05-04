@@ -462,7 +462,8 @@ class VentaController extends Controller
 
             $data = [
                 'facturacion' => $facturacionElectronica,
-                'token' => $datosEmisor->TokenPSE
+                'token' => $datosEmisor->TokenPSE,
+                'venta' => $ventaCreada
             ];
             return $data;
     

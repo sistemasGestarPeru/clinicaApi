@@ -50,6 +50,7 @@ use App\Http\Controllers\API\PortadaController;
 use App\Http\Controllers\API\Producto\ProductoController;
 use App\Http\Controllers\API\PromocionController;
 use App\Http\Controllers\API\Proveedor\ProveedorController;
+use App\Http\Controllers\API\Recaudacion\FacturacionElectronica\FacturacionElectronicaController;
 use App\Http\Controllers\API\ReportesRecaudacion\ReportesController;
 use App\Http\Controllers\API\Rol\RolController;
 use App\Http\Controllers\API\UserController;
@@ -295,6 +296,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('venta/notaVentaPDF/{venta}', [VentaController::class, 'notaVentaPDF']);
     Route::get('venta/listarPagosAsociados/{venta}', [VentaController::class, 'listarPagosAsociados']);
     Route::get('venta/anularPago/{venta}/{pago}', [VentaController::class, 'anularPago']);
+
     /********************************* PAGOS *********************************/
     Route::post('pago/registrarPago', [PagoController::class, 'registrarPago']);
     Route::post('pago/buscarPago', [PagoController::class, 'buscarPago']);
@@ -613,7 +615,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
 
 
-
+    /******************** FACTURACION ELECTRONICA ******************************/
+    Route::post('facturacionElectronica/registrarEnvio', [FacturacionElectronicaController::class, 'registrarEnvio']);
 
 
     /*********************************************************** PRUEBAS ***********************************************************/
