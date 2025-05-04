@@ -18,7 +18,13 @@ class Empresa extends Model
         'Direccion',
         'Correo',
         'Vigente',
-        'PorcentajeDetraccion'
+        'PorcentajeDetraccion',
+        'IDPSE',
+        'TokenPSE',
+        'Departamento',
+        'Provincia',
+        'Distrito',
+        'CodigoUbigeo'
     ];
 
 

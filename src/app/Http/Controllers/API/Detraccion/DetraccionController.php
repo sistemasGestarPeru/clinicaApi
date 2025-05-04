@@ -133,6 +133,11 @@ class DetraccionController extends Controller
             ->where('CodigoEmpresa', $empresa)
             ->value('CodigoEntidadBancaria');
 
+            if (!$codigoEntidadBancaria) {
+                return response()->json([
+                    'error' => 'No se ha configurado cuenta de Detracción para esta empresa.'
+                ], 400);
+            }
 
             $egresoCreado = Egreso::create($dataEgreso)->Codigo;
 

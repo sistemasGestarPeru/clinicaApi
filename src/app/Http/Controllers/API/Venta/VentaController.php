@@ -365,6 +365,111 @@ class VentaController extends Controller
     }
 
 
+
+    public function detallesFacturacionElectronica($ventaData, $detallesVenta, $ventaCreada)
+    {
+        try {
+
+            // Obtener tipo de documento identidad DNI, RUC, CE, etc
+
+            // Obtener datos del emisor 
+            $datosEmisor = DB::table('sedesrec as s')
+                ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
+                ->where('s.Codigo', $ventaData['CodigoSede'])
+                ->select([
+                    'e.Direccion as txt_dmcl_fisc_emis',
+                    'e.RUC as num_ruc_emis',
+                    'e.RazonSocial as nom_rzn_soc_emis',
+                    's.Codigo as cod_loc_emis',
+                    DB::raw('6 as cod_tip_nif_emis'),
+                    'e.Departamento as txt_dpto_emis',
+                    'e.Provincia as txt_prov_emis',
+                    'e.Distrito as txt_distr_emis',
+                    'e.CodigoUbigeo as cod_ubi_emis',
+                    'e.IDPSE as cod_cliente_emis',
+                    'e.TokenPSE as TokenPSE'
+                ])
+                ->first();
+    
+            if (!$datosEmisor) {
+                return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
+            }
+    
+            // Parsear fecha y hora
+            $fechaHora = Carbon::parse($ventaData['Fecha']);
+            $fechaEmision = $fechaHora->format('Y-m-d');
+            $horaEmision = $fechaHora->format('H:i:s');
+    
+            // Procesar detalles
+            $detallesFormateados = [];
+            
+            foreach ($detallesVenta as $detalle) {
+
+
+                $datosProductoSede = DB::table('sedeproducto as sp')
+                ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
+                ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
+                ->where('p.Codigo', $detalle['CodigoProducto'])
+                ->where('sp.CodigoSede', $ventaData['CodigoSede'])
+                ->select([
+                    'um.CodigoSUNAT as unidadMedida',
+                    'tg.CodigoSUNAT as tipoGravado'
+                ])
+                ->first();
+
+                $detallesFormateados[] = [
+                    'num_lin_item' => $detalle['Numero'],
+                    'cod_unid_item' => $datosProductoSede->unidadMedida,
+                    'cant_unid_item' => $detalle['Cantidad'] ?? 0,
+                    'val_vta_item' => round($detalle['MontoTotal'] - $detalle['MontoIGV'], 4) ?? 0,
+                    'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
+                    'prc_vta_unit_item' => round($detalle['MontoTotal'] / $detalle['Cantidad'], 4) ?? 0,
+                    'mnt_dscto_item' => round($detalle['Descuento'], 4) ?? 0,
+                    'mnt_igv_item' => round($detalle['MontoIGV'], 4) ?? 0,
+                    'txt_descr_item' => $detalle['Descripcion'] ?? 'Producto sin descripción',
+                    'cod_prod_sunat' => $detalle['CodigoSunat'] ?? '00000000',
+                    'cod_item' => $detalle['CodigoProducto'] ?? '00000',
+                    'val_unit_item' => round(($detalle['MontoTotal'] - $detalle['MontoIGV'])/$detalle['Cantidad'], 4) ?? 0,
+                    'importe_total_item' => $detalle['MontoTotal'] ?? 0
+                ];
+            }
+
+            // Construir el JSON final
+            $facturacionElectronica = [
+                //Detalle Emisor
+                'identificador' => 'BF', // Tipo de documento BF: Boleta de Venta, FC: Factura algo
+                'fec_emis' => $fechaEmision,
+                'hora_emis' => $horaEmision,
+                'txt_serie' => $ventaData['Serie'] ?? '',
+                'txt_correlativo' => $ventaData['Numero'] ?? '',
+                'cod_tip_cpe' =>  '01', //Tipo de comprobante 01 Factura y 03 Boleta
+                'cod_mnd'=> 'PEN', //Moneda en Duracel por el momento
+                'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
+                'num_ruc_emis'=> $datosEmisor->num_ruc_emis,
+                'nom_rzn_soc_emis' => $datosEmisor->nom_rzn_soc_emis,
+                'cod_tip_nif_emis' => $datosEmisor->cod_tip_nif_emis, 
+                'cod_loc_emis' => 1, // NI IDEA QUE SIGNIFICA
+                'cod_ubi_emis' => $datosEmisor->cod_ubi_emis,
+                'txt_dmcl_fisc_emis' => $datosEmisor->txt_dmcl_fisc_emis,
+                'txt_prov_emis' => $datosEmisor->txt_prov_emis,
+                'txt_dpto_emis' => $datosEmisor->txt_dpto_emis,
+                'txt_distr_emis' => $datosEmisor->txt_distr_emis,
+
+                //Detalles Receptor - Falta completa
+                'detalles' => $detallesFormateados
+            ];
+
+
+            return $facturacionElectronica;
+    
+        } catch (\Exception $e) {
+            // Manejo de errores
+            return response()->json(['error' => 'Error al generar el JSON de facturación electrónica: ' . $e->getMessage()], 500);
+        }
+    }
+
+
     public function registrarVenta(Request $request)
     {
         $ventaData = $request->input('venta');
@@ -502,6 +607,27 @@ class VentaController extends Controller
             }
 
             DB::commit();
+
+            // Generar JSON para facturación electrónica con los datos que ya tenemos
+            $jsonFacturacion = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
+
+            if ($jsonFacturacion) {
+                // Aquí podrías:
+                // 1. Guardar el JSON en la base de datos
+                // 2. Enviarlo a un servicio de facturación electrónica
+                // 3. Retornarlo en la respuesta
+                
+                return response()->json([
+                    'message' => 'Venta registrada correctamente.',
+                    'facturacion_electronica' => $jsonFacturacion,
+                    'cantidades_por_temporal' => $cantidadesPorTemporal
+                ], 201);
+            }
+
+            return response()->json([
+                'message' => 'Venta registrada correctamente.',
+                'cantidades_por_temporal' => $cantidadesPorTemporal
+            ], 201);
 
             return response()->json(['message' => 'Venta registrada correctamente.', $cantidadesPorTemporal], 201);
         } catch (\Exception $e) {
