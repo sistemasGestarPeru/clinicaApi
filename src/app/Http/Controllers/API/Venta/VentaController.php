@@ -438,12 +438,12 @@ class VentaController extends Controller
             // Construir el JSON final
             $facturacionElectronica = [
                 //Detalle Emisor
-                'identificador' => 'BF', // Tipo de documento BF: Boleta de Venta, FC: Factura algo
+                'identificador' => 'BC', // Tipo de documento BC: Boleta de Venta, FC: Factura algo
                 'fec_emis' => $fechaEmision,
                 'hora_emis' => $horaEmision,
                 'txt_serie' => $ventaData['Serie'] ?? '',
                 'txt_correlativo' => $ventaData['Numero'] ?? '',
-                'cod_tip_cpe' =>  '01', //Tipo de comprobante 01 Factura y 03 Boleta
+                'cod_tip_cpe' =>  '03', //Tipo de comprobante 01 Factura y 03 Boleta
                 'cod_mnd'=> 'PEN', //Moneda en Duracel por el momento
                 'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
                 'num_ruc_emis'=> $datosEmisor->num_ruc_emis,
