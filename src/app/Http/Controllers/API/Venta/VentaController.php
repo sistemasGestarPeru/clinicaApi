@@ -370,8 +370,6 @@ class VentaController extends Controller
     {
         try {
 
-            // Obtener tipo de documento identidad DNI, RUC, CE, etc
-
             // Obtener datos del emisor 
             $datosEmisor = DB::table('sedesrec as s')
                 ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
@@ -390,11 +388,43 @@ class VentaController extends Controller
                     'e.TokenPSE as TokenPSE'
                 ])
                 ->first();
-    
+            
             if (!$datosEmisor) {
                 return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
             }
+
+            // Obtener tipo de documento venta
+            $tipoDocumentoVenta = DB::table('tipodocumentoventa as tdv')
+                ->where('tdv.Codigo', $ventaData['CodigoTipoDocumentoVenta'])
+                ->select('tdv.CodigoSUNAT')
+                ->first();
     
+            // Obtener datos del cliente
+            if ($ventaData['CodigoPersona'] != null) {
+                $cliente = DB::table('personas as p')
+                    ->join('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
+                    ->where('p.Codigo', $ventaData['CodigoPersona'])
+                    ->select(
+                        'p.NumeroDocumento',
+                        DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"),
+                        'td.CodigoSUNAT',
+                        'p.Direccion'
+                    )
+                    ->first();
+            } 
+            elseif ($ventaData['CodigoClienteEmpresa'] != null) {
+                $cliente = DB::table('clienteempresa')
+                    ->where('Codigo', $ventaData['CodigoClienteEmpresa'])
+                    ->select(
+                        'RUC as NumeroDocumento',
+                        'RazonSocial as Nombres',
+                        DB::raw("6 as CodigoSUNAT"), // Asumiendo que 6 es el código SUNAT para RUC
+                        'Direccion'
+                    )
+                    ->first();
+            }
+
+
             // Parsear fecha y hora
             $fechaHora = Carbon::parse($ventaData['Fecha']);
             $fechaEmision = $fechaHora->format('Y-m-d');
@@ -404,7 +434,6 @@ class VentaController extends Controller
             $detallesFormateados = [];
             
             foreach ($detallesVenta as $detalle) {
-
 
                 $datosProductoSede = DB::table('sedeproducto as sp')
                 ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
@@ -435,15 +464,33 @@ class VentaController extends Controller
                 ];
             }
 
+            switch ($tipoDocumentoVenta->CodigoSUNAT) {
+                case '01':
+                    $identificador = 'FC'; // Factura
+                    break;
+                case '03':
+                    $identificador = 'BC'; // Boleta de venta
+                    break;
+                case '07':
+                    $identificador = 'BC'; // Nota de crédito cambiar
+                    break;
+                case '08':
+                    $identificador = 'BC'; // Nota de debito cambiar
+                    break;
+
+                default:
+                    return response()->json(['error' => 'Tipo de comprobante no válido.'], 400);
+            }
+
             // Construir el JSON final
             $facturacionElectronica = [
                 //Detalle Emisor
-                'identificador' => 'BC', // Tipo de documento BC: Boleta de Venta, FC: Factura algo
+                'identificador' => $identificador, // Tipo de documento BC: Boleta de Venta, FC: Factura 
                 'fec_emis' => $fechaEmision,
                 'hora_emis' => $horaEmision,
                 'txt_serie' => $ventaData['Serie'] ?? '',
                 'txt_correlativo' => $ventaData['Numero'] ?? '',
-                'cod_tip_cpe' =>  '03', //Tipo de comprobante 01 Factura y 03 Boleta
+                'cod_tip_cpe' =>  $tipoDocumentoVenta->CodigoSUNAT, //Tipo de comprobante 01 Factura y 03 Boleta
                 'cod_mnd'=> 'PEN', //Moneda en Duracel por el momento
                 'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
                 'num_ruc_emis'=> $datosEmisor->num_ruc_emis,
@@ -456,7 +503,24 @@ class VentaController extends Controller
                 'txt_dpto_emis' => $datosEmisor->txt_dpto_emis,
                 'txt_distr_emis' => $datosEmisor->txt_distr_emis,
 
-                //Detalles Receptor - Falta completa
+                //Detalles del cliente / receptor
+
+                'num_iden_recp' => $cliente->NumeroDocumento ?? null,
+                'cod_tip_nif_recp' => $cliente->CodigoSUNAT ?? null,
+                'nom_rzn_soc_recp' => $cliente->Nombres ?? null,
+                'txt_dmcl_fisc_recep'=> $cliente->Direccion ?? null,
+
+                // 'txt_correo_adquiriente'
+                
+                //Detalle de la venta
+                'mnt_tot_gravadas'=> $ventaData['TotalGravado'] ?? 0.00,
+                'mnt_tot_inafectas'=> $ventaData['TotalInafecto'] ?? 0.00,
+                'mnt_tot_exoneradas'=> $ventaData['TotalExonerado'] ?? 0.00,
+                'mnt_tot_gratuitas'=> $ventaData['TotalGratis'] ?? 0.00,
+                'mnt_tot_desc_global'=> $ventaData['TotalDescuento'], 
+                'mnt_tot_igv'=> $ventaData['IGVTotal'] ?? 0.00,
+                'mnt_tot' => $ventaData['MontoTotal'] ?? 0.00,
+                
                 'detalles' => $detallesFormateados
             ];
 
@@ -572,12 +636,15 @@ class VentaController extends Controller
 
             $ventaCreada = Venta::create($ventaData);
 
+            $ventaData['TotalDescuento'] = 0;
+
             foreach ($detallesVentaData as $detalle) {
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
                 if (!isset($detalle['Descuento'])) {
                     $detalle['Descuento'] = 0;
                 }
                 // $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
+                $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
                 DetalleVenta::create($detalle);
             }
 
