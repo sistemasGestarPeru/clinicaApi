@@ -457,8 +457,8 @@ class VentaController extends Controller
                     'mnt_dscto_item' => round($detalle['Descuento'], 4) ?? 0,
                     'mnt_igv_item' => round($detalle['MontoIGV'], 4) ?? 0,
                     'txt_descr_item' => $detalle['Descripcion'] ?? 'Producto sin descripción',
-                    'cod_prod_sunat' => $detalle['CodigoSunat'] ?? '00000000',
-                    'cod_item' => $detalle['CodigoProducto'] ?? '00000',
+                    'cod_prod_sunat' => $detalle['CodigoSunat'] ?? '00000000', //Ni idea de que es
+                    'cod_item' => $detalle['CodigoProducto'] ?? '00000', //Ni idea de que es
                     'val_unit_item' => round(($detalle['MontoTotal'] - $detalle['MontoIGV'])/$detalle['Cantidad'], 4) ?? 0,
                     'importe_total_item' => $detalle['MontoTotal'] ?? 0
                 ];
@@ -831,11 +831,12 @@ class VentaController extends Controller
                             }
                         )
                         ->where('DC.CodigoContrato', $idContrato)
-                        ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo')
+                        ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo', 'DC.Descuento')
                         ->select(
                             'DC.CodigoProducto',
                             'DC.Descripcion',
                             'DC.Codigo',
+                            'DC.Descuento',
                             DB::raw('SUM(DC.Cantidad) - COALESCE(SUM(Bol.CantidadBoleteada), 0) AS Cantidad'),
                             DB::raw('SUM(DC.MontoTotal) - COALESCE(SUM(Bol.MontoBoleteado), 0) AS Monto')
                         ),
@@ -852,6 +853,7 @@ class VentaController extends Controller
                     'S.Codigo AS CodigoDetalleContrato',
                     'S.CodigoProducto',
                     'S.Descripcion',
+                    'S.Descuento',
                     'P.Tipo',
                     DB::raw('CASE WHEN P.Tipo = "B" THEN S.Cantidad ELSE 1 END AS Cantidad'),
                     'S.Monto as MontoTotal',
@@ -1197,7 +1199,7 @@ class VentaController extends Controller
             } 
 
             $anulacionJSON = [
-                'identificador' => 'CB', //Para todo // Tipo de documento BC: Boleta de Venta, FC: Factura algo
+                'identificador' => 'CB', //Para todo incluyendo Bolete Factura etc (creo)
                 'cod_tip_cpe' => $datosVenta->CodigoSUNAT,
 
                 'fec_emis' => $datosVenta->Fecha,
