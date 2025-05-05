@@ -55,8 +55,7 @@ class FacturacionElectronicaController extends Controller
         try{
             EnvioFacturacion::create($data);
             return response()->json([
-                'message' => 'Envio de la factura electronica registrado correctamente',
-                'data' => $data
+                'message' => 'Envio de la factura electronica registrado correctamente'
             ], 201);
         }catch(\Exception $e){
             return response()->json([
