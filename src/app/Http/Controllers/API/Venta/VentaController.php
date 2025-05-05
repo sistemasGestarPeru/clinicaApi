@@ -333,11 +333,16 @@ class VentaController extends Controller
         try {
             $ventaCreada = Venta::create($ventaData);
 
+            $ventaData['TotalDescuento'] = 0;
             foreach ($detallesVentaData as $detalle) {
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
                 $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
                 $detalle['MontoIGV'] = $detalle['MontoIGV'] * -1;
-                // $detalle['Descuento'] = $detalle['Descuento'] * -1;
+                if (!isset($detalle['Descuento'])) {
+                    $detalle['Descuento'] = 0;
+                }
+                $detalle['Descuento'] = $detalle['Descuento'] * -1;
+                $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
 
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
                 DetalleVenta::create($detalle);
@@ -357,7 +362,14 @@ class VentaController extends Controller
 
             DB::commit();
 
-            return response()->json(['message' => 'Nota de Crédito registrada correctamente.'], 201);
+            // Generar JSON para facturación electrónica con los datos que ya tenemos
+            $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
+
+            return response()->json([
+                'message' => 'Nota de Crédito registrada correctamente.',
+                'facturacion' => $data
+            ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al registrar Nota de Crédito', 'db' => $e->getMessage()], 500);
@@ -1653,6 +1665,7 @@ class VentaController extends Controller
                         DDNC.CodigoProducto, 
                         DDNC.Descripcion, 
                         DDNC.Codigo, 
+                        DDNC.Descuento,
                         SUM(DDNC.Cantidad) - COALESCE(NOTAC.CantidadBoleteada, 0) AS Cantidad, 
                         SUM(DDNC.MontoTotal) + COALESCE(NOTAC.MontoBoleteado, 0) AS Monto
                     ')
@@ -1674,7 +1687,7 @@ class VentaController extends Controller
                             'DDNC.CodigoProducto'
                         )
                         ->where('DDNC.CodigoVenta', $CodVenta)
-                        ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo'),
+                        ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo', 'DDNC.Descuento'),
                     'S',
                     'P.Codigo',
                     '=',
@@ -1687,6 +1700,7 @@ class VentaController extends Controller
                 ->selectRaw('
                 S.CodigoProducto, 
                 S.Descripcion, 
+                S.Descuento,
                 P.Tipo, 
                 CASE WHEN P.Tipo = "B" THEN S.Cantidad ELSE 1 END AS Cantidad, 
                 S.Monto as MontoTotal, 
