@@ -90,6 +90,7 @@ class ReportesController extends Controller
         try{
             $empresas = DB::table('empresas')
                 ->select('Codigo', 'RazonSocial')
+                ->where('Vigente', 1)
                 ->get();
             return response()->json($empresas, 200); 
         }catch(\Exception $e){
@@ -97,11 +98,17 @@ class ReportesController extends Controller
         }
     }
 
-    public function sedes(){
+    public function sedes($empresa = null){
         try{
             $sedes = DB::table('sedesrec')
-                ->select('Codigo', 'Nombre')
-                ->get();
+            ->select('Codigo', 'Nombre')
+            ->where('Vigente', 1)
+            ->when(!is_null($empresa) && $empresa != 0, function ($query) use ($empresa) {
+                return $query->where('CodigoEmpresa', $empresa);
+            })
+            ->get();
+
+        return response()->json($sedes, 200); 
             return response()->json($sedes, 200); 
         }catch(\Exception $e){
             return response()->json(['message' => 'Error al listar las Sedes', 'bd' => $e->getMessage()], 400);
@@ -299,6 +306,7 @@ class ReportesController extends Controller
         $codigoProducto = request()->input('producto'); // Requerido
         $fechaIncio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
+        $sede = request()->input('sede'); // Opcional
 
         try{
             $datos = DB::table('movimientolote AS ml')
@@ -317,6 +325,7 @@ class ReportesController extends Controller
                 'ml.Stock'
             )
             ->where('l.CodigoProducto', $codigoProducto)
+            ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
             ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
             ->get();
 
@@ -333,6 +342,7 @@ class ReportesController extends Controller
         $codigoProducto = request()->input('producto'); // Requerido
         $fechaIncio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
+        $sede = request()->input('sede'); // Opcional
 
         try{
 
@@ -354,6 +364,7 @@ class ReportesController extends Controller
                 'ml.CostoPromedio'
             )
             ->where('l.CodigoProducto', $codigoProducto)
+            ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
             ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
             ->get();
 
@@ -366,7 +377,8 @@ class ReportesController extends Controller
 
     public function reporteProductosPorVencer(){
         $fecha = request()->input('fecha');
-    
+        $sede = request()->input('Sede');
+
         // Calcular fecha fin (30 días después)
         $fechaActual = Carbon::now()->toDateString(); // '2025-04-07' por ejemplo
     
@@ -383,6 +395,7 @@ class ReportesController extends Controller
             )
             ->where('l.FechaCaducidad', $fecha)
             ->where('l.Stock', '>', 0) // Solo productos con cantidad mayor a 0
+            ->when($sede, fn($query) => $query->where('l.CodigoSede', $sede))
             ->addBinding([$fechaActual], 'select') // Pasa la fecha actual como parámetro para DATEDIFF
             ->get();
     
@@ -394,18 +407,20 @@ class ReportesController extends Controller
 
     public function reporteCatalogoProductos(Request $request){
         
-        $categoria = request()->input('Fecha'); // Opcional
-        $sede = request()->input('CodigoSede'); // Opcional
+        $categoria = request()->input('Categoria'); // Opcional
+        $sede = request()->input('Sede'); // Opcional
+        $nombre = request()->input('Nombre'); // Opcional
 
         try{
 
             $productos = DB::table('sedeproducto as sp')
             ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
             ->join('categoriaproducto as cp', 'p.CodigoCategoria', '=', 'cp.Codigo')
-            ->select('p.Nombre as Producto', 'cp.Nombre as Categoria')
+            ->select('p.Nombre as Producto', 'cp.Nombre as Categoria', 'sp.Stock')
             ->where('p.Tipo', 'B')
             ->when($sede, fn($query) => $query->where('sp.CodigoSede', $sede))
             ->when($categoria, fn($query) => $query->where('cp.Codigo', $categoria))
+            ->when($nombre, fn($query) => $query->where('p.Nombre', 'LIKE', "{$nombre}%"))
             ->get();
 
             // ->when($sede, function ($query) use ($sede) {

@@ -602,7 +602,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //REPORTES 
     Route::get('reportes/listarProducto/{sede}', [ReportesController::class, 'listarProducto']);
     Route::get('reportes/empleados', [ReportesController::class, 'empleados']);
-    Route::get('reportes/sedes', [ReportesController::class, 'sedes']);
+    Route::get('reportes/sedes/{empresa}', [ReportesController::class, 'sedes']);
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
     Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
