@@ -1082,6 +1082,83 @@ class VentaController extends Controller
         }
     }
 
+
+    public function anularFacturacionElectronica($codigoVenta, $anulacionData){
+
+        try{
+
+            //Obtener datos de la venta
+
+            $datosVenta = DB::table('documentoventa as dv')
+            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+            ->where('dv.Codigo', $codigoVenta)
+            ->select([
+                'dv.Codigo',
+                'dv.Fecha',
+                'dv.Serie',
+                'dv.Numero',
+                'tdv.CodigoSUNAT',
+                'dv.CodigoSede'
+            ])
+            ->first();
+
+            // Obtener datos del emisor 
+            $datosEmisor = DB::table('sedesrec as s')
+            ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
+            ->where('s.Codigo', $datosVenta->CodigoSede)
+            ->select([
+                'e.RUC as num_ruc_emis',
+                'e.IDPSE as cod_cliente_emis',
+                'e.TokenPSE as TokenPSE'
+            ])
+            ->first();
+
+            if (!$datosEmisor) {
+            return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
+            }
+            // Construir el JSON final
+
+            switch ($datosVenta->CodigoSUNAT) {
+            case '03':
+                $identificador = 'CB'; // Boleta de Venta
+                break;
+            case '01':
+                $identificador = 'FC'; // Factura
+                break;
+            default:
+                return response()->json(['error' => 'Tipo de documento no soportado.'], 400);
+            } 
+
+            $anulacionJSON = [
+                'identificador' => 'CB', //Para todo // Tipo de documento BC: Boleta de Venta, FC: Factura algo
+                'cod_tip_cpe' => $datosVenta->CodigoSUNAT,
+
+                'fec_emis' => $datosVenta->Fecha,
+                'txt_serie' => $datosVenta->Serie,
+                'txt_correlativo' => $datosVenta->Numero,
+
+                'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
+                'num_ruc_emis' => $datosEmisor->num_ruc_emis,
+
+                'cod_iden_cb' => 'C', // Ni idea
+                'cod_tip_escenario' => '01', // Algo de Codigo SUNAT CREO
+                'fec_gener_baja' => $anulacionData['Fecha'], 
+                'txt_descr_mtvo_baja' =>  'ERROR EN EL SISTEMA'//Creo o Relacionado al codigo Sunat o es el CodigoMotivo.
+
+            ];
+
+            $data = [
+                'anulacion' => $anulacionJSON,
+                'token' => $datosEmisor->TokenPSE
+            ];
+            return $data;
+
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Error al generar el JSON de anulación electrónica.', 'bd'=> $e->getMessage()], 500);
+        }
+
+    }
+
     public function anularVenta(Request $request)
     {
         date_default_timezone_set('America/Lima');
@@ -1100,7 +1177,7 @@ class VentaController extends Controller
         DB::beginTransaction();
         try {
 
-            Anulacion::create($anulacionData);
+            $anulacionCreada = Anulacion::create($anulacionData);
 
             if ($anularPago == 1) {
 
@@ -1157,7 +1234,10 @@ class VentaController extends Controller
 
             DB::commit();
 
-            return response()->json(['message' => 'Venta anulada correctamente.'], 201);
+            // Generar JSON para anulacion electrónica con los datos que ya tenemos
+            $data = $this->anularFacturacionElectronica($codigoVenta, $anulacionData);
+
+            return response()->json(['message' => 'Venta anulada correctamente.', 'anulacion' => $data, 'codigo' => $anulacionCreada->Codigo], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al anular la venta.', 'bd' => $e->getMessage()], 500);
