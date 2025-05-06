@@ -1429,10 +1429,11 @@ class VentaController extends Controller
                 ]);
 
                 // Insertar en detalledocumentoventa con los valores obtenidos
-                $canjeData['TotalDescuento'] = 0;
+                $nuevoDocumentoVenta->TotalDescuento = 0;
+
                 foreach ($detalleVenta as $detalle) {
 
-                    $canjeData['TotalDescuento'] += $detalle->Descuento * $detalle->Cantidad;
+                    $nuevoDocumentoVenta->TotalDescuento += $detalle->Descuento * $detalle->Cantidad;
 
                     if (!isset($detalle->Descuento)) {
                         $detalle->Descuento = 0;
