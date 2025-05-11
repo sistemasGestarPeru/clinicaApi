@@ -173,6 +173,7 @@ class UserController extends Controller
     public function acceso(AccesoRequest $request)
     {
         try {
+            
             $user = User::where('name', $request->identifier)->first();
 
             if (!$user) {
@@ -206,9 +207,6 @@ class UserController extends Controller
             $expiresAt = now()->addHour(5); // Fecha de vencimiento a 10 minutos en el futuro
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
-            // $menus = DB::table('menu')->select('GUID')->where('vigente', 1)->get();
-
-
             $menus = DB::table('perfil_menu as pm')
                 ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
                 ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
@@ -220,7 +218,15 @@ class UserController extends Controller
                     return ['GUID' => $item->GUID];
                 });
 
-
+            $aplicacion = DB::table('usuario_perfil as up')
+                ->join('aplicacion as a', 'a.Codigo', '=', 'up.CodigoAplicacion')
+                ->where('up.CodigoPersona', $user->CodigoPersona)
+                ->where('a.Vigente', 1)
+                ->orderBy('up.Codigo')
+                ->get(['a.Identificador']) // Obtener los GUIDs como un array de objetos
+                ->map(function ($item) {
+                    return ['Identificador' => $item->Identificador];
+                });
 
             $mensaje = 'Acceso Correcto';
             return response()->json([
@@ -230,7 +236,8 @@ class UserController extends Controller
                 'trabajador' => $trabajador,
                 'token_expired' => $expiresAt->toIso8601String(),
                 'permisos' => $menus,
-                'mensaje' => $mensaje
+                'mensaje' => $mensaje,
+                'aplicacion' => $aplicacion
             ], 200);
         } catch (ValidationException $e) {
             return response()->json([
