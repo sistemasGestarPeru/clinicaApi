@@ -20,6 +20,7 @@ class EnvioFacturacion extends Model
         'CodigoTrabajador',
         'Estado',
         'CodigoDocumentoVenta',
-        'CodigoAnulacion'
+        'CodigoAnulacion',
+        'Mensaje'
     ];
 }
