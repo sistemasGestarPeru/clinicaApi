@@ -1946,9 +1946,10 @@ class VentaController extends Controller
 
             $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
                 ->select([
                     'ddv.Cantidad as cantidad',
-                    DB::raw("'unidad' AS unidad"),
+                    'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
                     DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
@@ -2018,9 +2019,10 @@ class VentaController extends Controller
 
             $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
                 ->select([
                     'ddv.Cantidad as cantidad',
-                    DB::raw("'unidad' AS unidad"),
+                    'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
                     DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
@@ -2102,9 +2104,10 @@ class VentaController extends Controller
 
             $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
                 ->select([
                     DB::raw("ABS(ddv.Cantidad) as cantidad"),
-                    DB::raw("'unidad' AS unidad"),
+                    'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
                     DB::raw("ABS(((ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad)) as precioUnitario"),
                     DB::raw("ABS(ddv.Descuento) as descuento"),
@@ -2163,9 +2166,10 @@ class VentaController extends Controller
 
             $detalleQuery = DB::table('detalledocumentoventa as ddv')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
                 ->select([
                     'ddv.Cantidad as cantidad',
-                    DB::raw("'unidad' AS unidad"),
+                    'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
                     DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
