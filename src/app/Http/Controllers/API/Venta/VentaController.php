@@ -696,7 +696,7 @@ class VentaController extends Controller
             $dataEnvio['URL'] = env('PSE_API_URL');
             $dataEnvio['Fecha'] = $ventaData['Fecha'];
             $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $data['success']; 
+            $dataEnvio['Estado'] = $data['Estado']; 
             $dataEnvio['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
             $dataEnvio['Mensaje'] = $data['Mensaje'];
             // 'success' => $resultado,
@@ -874,7 +874,7 @@ class VentaController extends Controller
             $dataEnvio['URL'] = env('PSE_API_URL');
             $dataEnvio['Fecha'] = $ventaData['Fecha'];
             $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $data['success']; 
+            $dataEnvio['Estado'] = $data['Estado']; 
             $dataEnvio['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
             $dataEnvio['Mensaje'] = $data['Mensaje'];
             // 'success' => $resultado,
@@ -1622,7 +1622,7 @@ class VentaController extends Controller
                 $dataEnvio['URL'] = env('PSE_API_URL');
                 $dataEnvio['Fecha'] = $canjeData['Fecha'];
                 $dataEnvio['CodigoTrabajador'] = $canjeData['CodigoTrabajador'];
-                $dataEnvio['Estado'] = $data['success']; 
+                $dataEnvio['Estado'] = $data['Estado']; 
                 $dataEnvio['CodigoDocumentoVenta'] = $nuevoDocumentoVenta->Codigo;
                 $dataEnvio['Mensaje'] = $data['Mensaje'];
                 // 'success' => $resultado,

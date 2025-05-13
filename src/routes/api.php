@@ -612,11 +612,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);
     Route::post('reportes/reporteCatalogoProductos', [ReportesController::class, 'reporteCatalogoProductos']);
 
-
-
-
     /******************** FACTURACION ELECTRONICA ******************************/
     Route::post('facturacionElectronica/registrarEnvio', [FacturacionElectronicaController::class, 'registrarEnvio']);
+    Route::post('facturacionElectronica/listarEnviosFallidos', [FacturacionElectronicaController::class, 'listarEnviosFallidos']);
 
 
     /*********************************************************** PRUEBAS ***********************************************************/
