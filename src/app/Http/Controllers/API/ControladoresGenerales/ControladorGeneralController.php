@@ -48,6 +48,22 @@ class ControladorGeneralController extends Controller
         //
     }
 
+    public function listarApp($codigoTrabajador){
+        try{
+            $resultado = DB::table('usuario_perfil as u')
+                ->join('aplicacion as a', 'u.CodigoAplicacion', '=', 'a.Codigo')
+                ->where('u.CodigoPersona', $codigoTrabajador)
+                ->where('a.Vigente', 1)
+                ->select('a.Nombre', 'a.URL')
+                ->get();
+
+            return response()->json($resultado,200);
+
+        }catch(\Exception $e){
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
     public function ConsultaEmpresasTrab($codigoTrabajador)
     {
         try {
