@@ -95,24 +95,63 @@ class LocalDocumentoVentaController extends Controller
         }
     }
 
-    public function listarDocumentosReferencia($sede){
+    public function listarDocumentosReferencia($sede, $consultaDoc){
         try{
+
             $documentos = DB::table('localdocumentoventa as ldv')
                 ->join('tipodocumentoventa as tpv', 'ldv.CodigoTipoDocumentoVenta', '=', 'tpv.Codigo')
-                ->leftJoin('localdocumentoventa as subquery', function ($join) use ($sede) { 
+                ->leftJoin('localdocumentoventa as subquery', function ($join) use ($sede) {
                     $join->on('ldv.Codigo', '=', 'subquery.CodigoSerieDocumentoVenta')
-                        ->where('subquery.CodigoSede', $sede)
+                        ->where('subquery.CodigoSede', '=', $sede)
                         ->whereNotNull('subquery.CodigoSerieDocumentoVenta');
                 })
-                ->where('ldv.CodigoSede', $sede)
-                ->where('tpv.Tipo', 'V')
-                ->whereNotNull('tpv.CodigoSUNAT')
-                ->whereNull('subquery.CodigoSerieDocumentoVenta') 
+                ->where(function ($query) use ($sede, $consultaDoc) {
+                    $query->where(function ($q) use ($sede) {
+                        $q->where('ldv.CodigoSede', '=', $sede)
+                        ->where('tpv.Tipo', '=', 'V')
+                        ->whereNotNull('tpv.CodigoSUNAT')
+                        ->whereNull('subquery.CodigoSerieDocumentoVenta');
+                    })
+                    ->orWhere('subquery.CodigoSerieDocumentoVenta', '=', $consultaDoc);
+                })
                 ->select('ldv.Codigo', 'ldv.Serie', 'tpv.Nombre', 'ldv.TipoProducto')
                 ->get();
+
+            // $documentos = DB::table('localdocumentoventa as ldv')
+            //     ->join('tipodocumentoventa as tpv', 'ldv.CodigoTipoDocumentoVenta', '=', 'tpv.Codigo')
+            //     ->leftJoin('localdocumentoventa as subquery', function ($join) use ($sede) { 
+            //         $join->on('ldv.Codigo', '=', 'subquery.CodigoSerieDocumentoVenta')
+            //             ->where('subquery.CodigoSede', $sede)
+            //             ->whereNotNull('subquery.CodigoSerieDocumentoVenta');
+            //     })
+            //     ->where('ldv.CodigoSede', $sede)
+            //     ->where('tpv.Tipo', 'V')
+            //     ->whereNotNull('tpv.CodigoSUNAT')
+            //     ->whereNull('subquery.CodigoSerieDocumentoVenta') 
+            //     ->select('ldv.Codigo', 'ldv.Serie', 'tpv.Nombre', 'ldv.TipoProducto')
+            //     ->get();
             return response()->json($documentos, 200);
         }catch(\Exception $e){
             return response()->json($e, 500);
+        }
+    }
+
+
+    public function actualizarSedeDocVenta(Request $request){
+        $sedeDocVenta = $request->input('documento');
+        try{
+            //Actualizar todos los campos
+            LocalDocumentoVenta::where('Codigo', $sedeDocVenta['Codigo'])
+                ->update([
+                    'CodigoTipoDocumentoVenta' => $sedeDocVenta['CodigoTipoDocumentoVenta'],
+                    'Serie' => $sedeDocVenta['Serie'],
+                    'TipoProducto' => $sedeDocVenta['TipoProducto'],
+                    'Vigente' => $sedeDocVenta['Vigente'],
+                    'CodigoSede' => $sedeDocVenta['CodigoSede'],
+                    'CodigoSerieDocumentoVenta' => $sedeDocVenta['CodigoSerieDocumentoVenta']
+                ]);
+        }catch(\Exception $e){
+            return response()->json(['error' => 'Ocurrió un error al actualizar Sede Documento Venta.', 'bd' => $e->getMessage()], 500);
         }
     }
 }
