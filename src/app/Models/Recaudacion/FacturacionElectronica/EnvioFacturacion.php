@@ -21,6 +21,7 @@ class EnvioFacturacion extends Model
         'Estado',
         'CodigoDocumentoVenta',
         'CodigoAnulacion',
-        'Mensaje'
+        'Mensaje',
+        'CodigoSede'
     ];
 }
