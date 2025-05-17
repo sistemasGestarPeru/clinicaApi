@@ -50,9 +50,18 @@ class RolController extends Controller
         //
     }
 
-    public function listarRolesVigentes(){
+    public function listarRolesVigentes($app){
         try{
-            $roles = Rol::where('Vigente', 1)->get();
+
+            $codigo = DB::table('aplicacion')
+            ->where('URL', $app)
+            ->value('Codigo');
+
+            if (empty($codigo) || $codigo == 0) {
+                return response()->json(['error' => 'La aplicación no existe.'], 404);
+            }
+
+            $roles = Rol::where('Vigente', 1)->where('CodigoAplicacion', $codigo)->get();
             return response()->json($roles, 200);
         }catch (\Exception $e) {
             // Capturar otros errores inesperados
@@ -62,9 +71,18 @@ class RolController extends Controller
         }
     }
 
-    public function listarRoles(){
+    public function listarRoles($app){
+
         try{
-            $roles = Rol::all();
+            $codigo = DB::table('aplicacion')
+                ->where('URL', $app)
+                ->value('Codigo');
+
+            if (empty($codigo) || $codigo == 0) {
+                return response()->json(['error' => 'La aplicación no existe.'], 404);
+            }
+
+            $roles = Rol::select('Codigo', 'Nombre', 'Vigente')->where('CodigoAplicacion', $codigo)->get();
             return response()->json($roles, 200);
 
         }catch (\Exception $e) {
@@ -93,9 +111,20 @@ class RolController extends Controller
     public function registroRol(Request $request){
         try{
 
+            $codigo = DB::table('aplicacion')
+            ->where('URL', $request->aplicacion)
+            ->value('Codigo');
+        
+            if (empty($codigo) || $codigo == 0) {
+                return response()->json(['error' => 'La aplicación no existe.'], 404);
+            }
+            
+            $request->merge(['CodigoAplicacion' => $codigo]);
+            
             Rol::create($request->all());
             
-            return response()->json(['message' => 'Rol registrado correctamente'], 201);
+            return response()->json(['message' => 'Rol registrado correctamente.'], 201);
+        
 
         }catch (QueryException $e) {
             // Verificar si el error es por clave duplicada (código SQL 1062)

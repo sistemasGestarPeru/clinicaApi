@@ -50,12 +50,15 @@ class ControladorGeneralController extends Controller
 
     public function listarApp($codigoTrabajador){
         try{
-            $resultado = DB::table('usuario_perfil as u')
-                ->join('aplicacion as a', 'u.CodigoAplicacion', '=', 'a.Codigo')
-                ->where('u.CodigoPersona', $codigoTrabajador)
-                ->where('a.Vigente', 1)
-                ->select('a.Nombre', 'a.URL')
-                ->get();
+            $resultado = DB::table('usuario_perfil as up')
+            ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
+            ->join('aplicacion as a', 'r.CodigoAplicacion', '=', 'a.Codigo')
+            ->where('up.CodigoPersona', $codigoTrabajador)
+            ->where('a.Vigente', 1)
+            ->distinct()
+            ->select('a.Nombre', 'a.URL')
+            ->get();
+        
 
             return response()->json($resultado,200);
 

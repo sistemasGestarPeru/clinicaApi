@@ -218,12 +218,13 @@ class UserController extends Controller
                     return ['GUID' => $item->GUID];
                 });
 
-            $aplicacion = DB::table('usuario_perfil as up')
-                ->join('aplicacion as a', 'a.Codigo', '=', 'up.CodigoAplicacion')
+                $aplicaciones = DB::table('usuario_perfil as up')
+                ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
+                ->join('aplicacion as a', 'r.CodigoAplicacion', '=', 'a.Codigo')
                 ->where('up.CodigoPersona', $user->CodigoPersona)
-                ->where('a.Vigente', 1)
-                ->orderBy('up.Codigo')
-                ->get(['a.Identificador']) // Obtener los GUIDs como un array de objetos
+                ->where('r.Vigente', 1)
+                ->distinct()
+                ->get(['a.Identificador'])
                 ->map(function ($item) {
                     return ['Identificador' => $item->Identificador];
                 });
@@ -237,8 +238,9 @@ class UserController extends Controller
                 'token_expired' => $expiresAt->toIso8601String(),
                 'permisos' => $menus,
                 'mensaje' => $mensaje,
-                'aplicacion' => $aplicacion
+                'aplicacion' => $aplicaciones
             ], 200);
+
         } catch (ValidationException $e) {
             return response()->json([
                 'res' => false,
@@ -257,11 +259,24 @@ class UserController extends Controller
     }
 
 
-    public function consultarPerfil($codigo)
+    public function consultarPerfil($codigo, $app)
     {
         try {
 
-            $perfil = UsuarioPerfil::where('CodigoPersona', $codigo)->first();
+            $codApp = DB::table('aplicacion')
+            ->where('URL', $app)
+            ->value('Codigo');
+
+            if (empty($codigo) || $codigo == 0) {
+                return response()->json(['error' => 'La aplicación no existe.'], 404);
+            }
+
+            $perfil = DB::table('usuario_perfil as up')
+                ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
+                ->select('up.Codigo', 'up.CodigoPersona', 'up.CodigoRol')
+                ->where('r.CodigoAplicacion', $codApp)
+                ->where('up.CodigoPersona', $codigo)
+                ->first();
 
             return response()->json([
                 'res' => true,
