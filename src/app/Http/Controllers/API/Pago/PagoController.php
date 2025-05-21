@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Pago\RegistrarPagoRequest;
 use App\Models\Recaudacion\Pago;
 use App\Models\Recaudacion\PagoDocumentoVenta;
+use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -198,13 +200,23 @@ class PagoController extends Controller
     {
         $codigoPago = $request->input('codigoPago');
         $codigoTrabajador = $request->input('codigoTrabajador');
+        $codigoCaja = $request->input('codigoCaja');
 
         DB::beginTransaction();
         try {
 
-            $registroPagoExiste = DB::table('pago')
-                ->where('Codigo', $codigoPago)
-                ->exists();
+            //Verificar si pertenece a  su caja
+
+            $registroPagoExiste = Pago::find($codigoPago); //Encontro resultado
+
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($registroPagoExiste->CodigoCaja); // Caja Actual
+
+            if ($estadoCaja->Estado == 'C') {
+                return response()->json([
+                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
+                ], 400);
+            }
+
 
             if ($registroPagoExiste) {
                 // Actualizar 'pago' si existe
@@ -225,6 +237,7 @@ class PagoController extends Controller
             return response()->json([
                 'message' => 'Pago anulado correctamente.',
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -240,12 +253,10 @@ class PagoController extends Controller
         $codigoPago = $request->input('codigoPago');
 
         try {
-            $pago = DB::table('pago')
-                ->select('Codigo', 'CodigoMedioPago', 'CodigoCuentaBancaria', 'NumeroOperacion', DB::raw("DATE(Fecha) as Fecha"), 'Monto', 'CodigoBilleteraDigital')
-                ->where('Vigente', 1)
-                ->where('Codigo', $codigoPago)
-                ->first(); // Obtiene el primer registro que cumple con la condición
+
+            $pago = Pago::find($codigoPago); //Encontro resultado
             return response()->json($pago, 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -255,9 +266,66 @@ class PagoController extends Controller
 
     public function editarPago(Request $request)
     {
-        $pagoData = $request->input('pago');
+        $pagoData = $request->input('pago'); //Viene del front
+
+        $pagoEncontrado = Pago::find($pagoData['Codigo']); //Encontro resultado
+        $estadoCaja = ValidarFecha::obtenerFechaCaja($pagoEncontrado->CodigoCaja); // Caja Actual
+        
+        
+        if (!$pagoEncontrado) {
+            return response()->json([
+                'error' => 'No se ha encontrado el pago.'
+            ], 404);
+        }
+
+        // if($pagoEncontrado->CodigoCaja != $pagoData['CodigoCaja']){
+        //     return response()->json([
+        //         'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
+        //     ], 400);
+        // }
+
+        if ($estadoCaja->Estado == 'C') {
+            return response()->json([
+                 'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
+            ], 400);
+        }
+
+         if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+            $pagoData['CodigoCuentaBancaria'] = null;
+        }
+
+        if (isset($pagoData['CodigoBilleteraDigital']) && $pagoData['CodigoBilleteraDigital'] == 0) {
+            $pagoData['CodigoBilleteraDigital'] = null;
+        }
+
+        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($pagoData['CodigoCaja']);
+        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
+        $fechaVentaVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
+
+        if ($fechaCajaVal < $fechaVentaVal) {
+            return response()->json([
+                'error' => __('mensajes.error_fecha_recaudacion'),
+            ], 400);
+        }
+
+        if ($pagoData['CodigoSUNAT'] == '008') {
+            $pagoData['CodigoCuentaBancaria'] = null;
+            $pagoData['CodigoBilleteraDigital'] = null;
+            $pagoData['Lote'] = null;
+            $pagoData['Referencia'] = null;
+            $pagoData['NumeroOperacion'] = null;
+        } else if ($pagoData['CodigoSUNAT'] == '003') {
+            $pagoData['Lote'] = null;
+            $pagoData['Referencia'] = null;
+        } else if ($pagoData['CodigoSUNAT'] == '005' || $pagoData['CodigoSUNAT'] == '006') {
+            $pagoData['CodigoCuentaBancaria'] = null;
+            $pagoData['CodigoBilleteraDigital'] = null;
+        }
+
 
         try {
+
+        
             DB::table('pago')
                 ->where('Codigo', $pagoData['Codigo'])
                 ->update([
@@ -267,7 +335,10 @@ class PagoController extends Controller
                     'Fecha' => $pagoData['Fecha'],
                     'Monto' => $pagoData['Monto'],
                     'CodigoBilleteraDigital' => $pagoData['CodigoBilleteraDigital'],
-                    'CodigoTrabajador' => $pagoData['CodigoTrabajador']
+                    'CodigoTrabajador' => $pagoData['CodigoTrabajador'],
+                    'Lote' => $pagoData['Lote'],
+                    'Referencia' => $pagoData['Referencia'],
+                    'NumeroOperacion' => $pagoData['NumeroOperacion'],
                 ]);
 
             return response()->json([
