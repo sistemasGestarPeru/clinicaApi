@@ -603,6 +603,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //REPORTES 
     Route::get('reportes/listarProducto/{sede}', [ReportesController::class, 'listarProducto']);
     Route::get('reportes/empleados', [ReportesController::class, 'empleados']);
+    Route::get('reportes/medicos', [ReportesController::class, 'medicos']);
     Route::get('reportes/sedes/{empresa}', [ReportesController::class, 'sedes']);
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
@@ -612,7 +613,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('reportes/reporteKardexValorizado', [ReportesController::class, 'reporteKardexValorizado']);
     Route::post('reportes/reporteProductosPorVencer', [ReportesController::class, 'reporteProductosPorVencer']);
     Route::post('reportes/reporteCatalogoProductos', [ReportesController::class, 'reporteCatalogoProductos']);
-
+    Route::post('reportes/reporteComisionesPendientesPago', [ReportesController::class, 'reporteComisionesPendientesPago']);
+    Route::post('reportes/reporteContrato_X_Medico', [ReportesController::class, 'reporteContrato_X_Medico']);
+   
     /******************** FACTURACION ELECTRONICA ******************************/
     Route::post('facturacionElectronica/registrarEnvio', [FacturacionElectronicaController::class, 'registrarEnvio']);
     Route::post('facturacionElectronica/listarEnviosFallidos', [FacturacionElectronicaController::class, 'listarEnviosFallidos']);

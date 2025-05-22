@@ -86,6 +86,19 @@ class ReportesController extends Controller
         }
     }
 
+    public function medicos(){
+        try{
+            $trabajadores = DB::table('trabajadors as t')
+            ->join('personas as p', 't.Codigo', '=', 'p.Codigo')
+            ->where('t.Tipo', 'M')
+            ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+            ->get();        
+            return response()->json($trabajadores, 200);
+        }catch(\Exception $e){
+            return response()->json(['message' => 'Error al listar los Médicos', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
     public function empresas(){
         try{
             $empresas = DB::table('empresas')
@@ -157,7 +170,7 @@ class ReportesController extends Controller
                             ELSE 'INGRESO' 
                         END AS Documento,
                         ' ' AS Paciente,
-                        (SELECT Nombre FROM MedioPago WHERE CodigoSUNAT = '008') AS MedioPago,
+                        (SELECT Nombre FROM mediopago WHERE CodigoSUNAT = '008') AS MedioPago,
                         CONCAT(DATE_FORMAT(i.Fecha, '%d/%m/%Y'), ' ', TIME(i.Fecha)) AS FechaPago,
                         i.Monto AS MontoPagado,
                         i.Vigente AS Vigente,
@@ -174,7 +187,7 @@ class ReportesController extends Controller
                         return $query->where('c.CodigoSede', $sede);
                     });
     
-                $Egresos = DB::table('Egreso as e')
+                $Egresos = DB::table('egreso as e')
                 ->selectRaw("
                     CASE
                         WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
@@ -195,12 +208,12 @@ class ReportesController extends Controller
                 ->leftJoin('pagoproveedor as pp', 'pp.Codigo', '=', 'e.Codigo')
                 ->leftJoin('salidadinero AS sd', 'sd.Codigo', '=', 'e.Codigo')
                 ->leftJoin('devolucionnotacredito as dnc', 'dnc.Codigo', '=', 'e.Codigo')
-                ->leftJoin('pagoDonante as pd', 'pd.Codigo', '=', 'e.Codigo')
-                ->leftJoin('pagoComision as pc', 'pc.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagodonante as pd', 'pd.Codigo', '=', 'e.Codigo')
+                ->leftJoin('pagocomision as pc', 'pc.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagopersonal as pper', 'pper.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagosvarios as pvar', 'pvar.Codigo', '=', 'e.Codigo')
                 ->leftJoin('pagodetraccion as pdet', 'pdet.Codigo', '=', 'e.Codigo')
-                ->leftJoin('medioPago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
                 ->leftJoin('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
                 // Aplicar filtros opcionales
                 ->where('mp.CodigoSUNAT', '008')
@@ -433,4 +446,89 @@ class ReportesController extends Controller
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
+
+    public function reporteComisionesPendientesPago(Request $request){
+
+        $sede = request()->input('Sede'); // Opcional
+        $medico = request()->input('Medico'); // Opcional
+
+        try{
+            $comisiones = DB::table('comision as c')
+                ->leftJoin('pagocomision as pc', 'c.CodigoPagoComision', '=', 'pc.Codigo')
+                ->leftJoin('documentoventa as dv', 'c.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->leftJoin('contratoproducto as cp', 'c.CodigoContrato', '=', 'cp.Codigo')
+                ->leftJoin('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
+                ->select(
+                    'c.Codigo',
+                    DB::raw('p.Codigo AS CodigoMedico'),
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
+                    'c.TipoDocumento as TipoDocumento',
+                    'c.Monto',
+                    'c.Serie',
+                    'c.Numero',
+                    'c.Vigente'
+                )
+                ->whereNull('c.CodigoPagoComision')
+                ->when($medico, function ($query) use ($medico) {
+                    $query->where('c.CodigoMedico', $medico);
+                })
+                ->where('c.Vigente', 1)
+                ->where(function ($query) use ($sede) {
+                    $query->where(function ($q) use ($sede) {
+                        $q->where('dv.CodigoSede', $sede)
+                        ->whereNotNull('dv.Codigo');
+                    })->orWhere(function ($q) use ($sede) {
+                        $q->where('cp.CodigoSede', $sede)
+                        ->whereNotNull('cp.Codigo');
+                    });
+                })
+                ->get();
+
+            return response()->json($comisiones, 200);
+
+        }catch(\Exception $e){
+
+            return response()->json([
+                'message' => 'Error al listar las comisiones por pagar.',
+                'bd' => $e->getMessage()
+            ], 500);
+
+        }
+    }
+
+    public function reporteContrato_X_Medico(Request $request){
+
+        $sede = request()->input('Sede'); // Opcional
+        $medico = request()->input('Medico'); // Opcional
+
+        try{
+
+            $contratos = DB::table('contratoproducto as cp')
+                ->join('personas as p', 'cp.CodigoPaciente', '=', 'p.Codigo')
+                ->select(
+                    DB::raw('DATE(cp.Fecha) as Fecha'),
+                    DB::raw("LPAD(cp.NumContrato, 5, '0') as Numero"),
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente01"),
+                    'cp.Total',
+                    'cp.TotalPagado'
+                )
+                ->when($medico, function ($query) use ($medico) {
+                    $query->where('cp.CodigoMedico', $medico);
+                })
+                ->where('cp.CodigoSede', $sede) // Asegúrate de tener definido $sede
+                ->where('cp.Vigente', 1)
+                ->get();
+
+            return response()->json($contratos, 200);
+
+        }catch(\Exception $e){
+
+            return response()->json([
+                'message' => 'Error al listar los Contratos por Médico.',
+                'bd' => $e->getMessage()
+            ], 500);
+
+        }
+    }
+
 }

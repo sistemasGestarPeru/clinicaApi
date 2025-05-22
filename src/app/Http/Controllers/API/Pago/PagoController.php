@@ -79,6 +79,7 @@ class PagoController extends Controller
 
         $pagoDocData = $request->input('pagoDocVenta');
         DB::beginTransaction();
+
         try {
             DB::table('pagodocumentoventa')->insert([
                 'CodigoPago' => $pagoDocData['CodigoPago'],
@@ -92,20 +93,20 @@ class PagoController extends Controller
 
             DB::commit();
             return response()->json([
-                'message' => 'Pago Asociado correctamente',
+                'message' => 'Pago Asociado correctamente.',
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'error' => $e->getMessage(),
+                'error' => 'Error al asociar el Pago.',
+                'bd' => $e->getMessage(),
             ], 500);
         }
     }
 
 
     // ---------------------------------------------------------------------------------------
-
-
 
 
     public function buscarPago(Request $request)
@@ -186,7 +187,7 @@ class PagoController extends Controller
                 VENTA.Numero, 
                 DATE(VENTA.Fecha) AS Fecha
             ')
-                ->get();
+            ->get();
 
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
@@ -209,7 +210,7 @@ class PagoController extends Controller
 
             $registroPagoExiste = Pago::find($codigoPago); //Encontro resultado
 
-            $estadoCaja = ValidarFecha::obtenerFechaCaja($registroPagoExiste->CodigoCaja); // Caja Actual
+            $estadoCaja = ValidarFecha::obtenerFechaCaja($registroPagoExiste->CodigoCaja); // Caja que registra el pago
 
             if ($estadoCaja->Estado == 'C') {
                 return response()->json([

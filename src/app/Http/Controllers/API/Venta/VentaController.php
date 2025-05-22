@@ -170,16 +170,16 @@ class VentaController extends Controller
                     'num_lin_item' => $detalle['Numero'],
                     'cod_unid_item' => $datosProductoSede->unidadMedida,
                     'cant_unid_item' => $detalle['Cantidad'] ?? 0,
-                    'val_vta_item' => round($detalle['MontoTotal'] - $detalle['MontoIGV'], 4) ?? 0,
+                    'val_vta_item' => round(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)), 4),
                     'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
-                    'prc_vta_unit_item' => round($detalle['MontoTotal'] / $detalle['Cantidad'], 4) ?? 0,
-                    'mnt_dscto_item' => round($detalle['Descuento'], 4) ?? 0,
-                    'mnt_igv_item' => round($detalle['MontoIGV'], 4) ?? 0,
+                    'prc_vta_unit_item' => round(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1)), 4),
+                    'mnt_dscto_item' => round(abs($detalle['Descuento'] ?? 0), 4),
+                    'mnt_igv_item' => round(abs($detalle['MontoIGV'] ?? 0), 4),
                     'txt_descr_item' => $detalle['Descripcion'] ?? 'Producto sin descripción',
                     // 'cod_prod_sunat' => $detalle['CodigoSunat'] ?? '00000000', //Ni idea de que es
-                    'cod_item' => $detalle['CodigoProducto'] ?? '00000', //Ni idea de que es
-                    'val_unit_item' => round(($detalle['MontoTotal'] - $detalle['MontoIGV'])/$detalle['Cantidad'], 4) ?? 0,
-                    'importe_total_item' => $detalle['MontoTotal'] ?? 0
+                    //'cod_item' => $detalle['CodigoProducto'] ?? '00000', //Ni idea de que es
+                    'val_unit_item'       => round(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1)), 4),
+                    'importe_total_item'  => round(abs($detalle['MontoTotal'] ?? 0), 4),
                 ];
             }
 
@@ -198,7 +198,7 @@ class VentaController extends Controller
                     break;
 
                 default:
-                    return response()->json(['error' => 'Tipo de comprobante no válido.'], 400);
+                    $identificador = 'NN'; //NO ENCONTRADO;
             }
 
             if($tipoDocumentoVenta->CodigoSUNAT == '07' || $tipoDocumentoVenta->CodigoSUNAT == '08'){
@@ -248,13 +248,13 @@ class VentaController extends Controller
                 'txt_correo_adquiriente' => $cliente->Correo ?? null,
             
                 // Venta
-                'mnt_tot_gravadas'=> $ventaData['TotalGravado'] ?? 0.00,
-                'mnt_tot_inafectas'=> $ventaData['TotalInafecto'] ?? 0.00,
-                'mnt_tot_exoneradas'=> $ventaData['TotalExonerado'] ?? 0.00,
-                'mnt_tot_gratuitas'=> $ventaData['TotalGratis'] ?? 0.00,
-                'mnt_tot_desc_global'=> $ventaData['TotalDescuento'], 
-                'mnt_tot_igv'=> $ventaData['IGVTotal'] ?? 0.00,
-                'mnt_tot' => $ventaData['MontoTotal'] ?? 0.00,
+                'mnt_tot_gravadas'     => round(abs($ventaData['TotalGravado'] ?? 0), 4),
+                'mnt_tot_inafectas'    => round(abs($ventaData['TotalInafecto'] ?? 0), 4),
+                'mnt_tot_exoneradas'   => round(abs($ventaData['TotalExonerado'] ?? 0), 4),
+                'mnt_tot_gratuitas'    => round(abs($ventaData['TotalGratis'] ?? 0), 4),
+                'mnt_tot_desc_global'  => round(abs($ventaData['TotalDescuento'] ?? 0), 4),
+                'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
+                'mnt_tot'              => round(abs($ventaData['MontoTotal'] ?? 0), 4),
                 'mnt_tot_base_imponible' => 0.00,
                 'mnt_tot_percepcion' => 0.00,
                 'mnt_tot_a_percibir' => 0.00,
@@ -313,7 +313,13 @@ class VentaController extends Controller
     
         } catch (\Exception $e) {
             // Manejo de errores
-            return response()->json(['error' => 'Error al generar el JSON de facturación electrónica.', 'bd' => $e->getMessage()], 500);
+            return [
+                'success' => false,
+                'Mensaje' => 'Error Interno',
+                'JSON' => json_encode('Error JSON'),
+                'Estado' => 'N',
+                'error' => $e->getMessage()
+            ];
         }
     }
 
@@ -514,7 +520,7 @@ class VentaController extends Controller
                 ->where('pdv.CodigoDocumentoVenta', $venta)
                 // ->where('pdv.Vigente', 1)
                 // ->where('p.Vigente', 1)
-                ->select('p.Codigo', 'mp.Nombre', 'p.Monto', 'p.Fecha', 'mp.CodigoSUNAT', 'p.Vigente')
+                ->select('p.Codigo', 'mp.Nombre', 'pdv.Monto', 'p.Fecha', 'mp.CodigoSUNAT', 'p.Vigente')
                 ->get();
 
             return response()->json($pago, 200);
@@ -531,14 +537,14 @@ class VentaController extends Controller
         $pagoData = $request->input('pago');
         $ventaData = $request->input('venta');
 
-        if (!$ventaData) {
-            return response()->json(['error' => 'No se ha encontrado la venta.'], 400);
-        }
+        // if (!$ventaData) {
+        //     return response()->json(['error' => 'No se ha encontrado la venta.'], 400);
+        // }
 
-        if ($pagoData['CodigoMedioPago'] == 1) {
-            $pagoData['Fecha'] = $fecha;
-            $pagoData['CodigoCuentaBancaria'] = null;
-        }
+        // if ($pagoData['CodigoMedioPago'] == 1) {
+        //     $pagoData['Fecha'] = $fecha;
+        //     $pagoData['CodigoCuentaBancaria'] = null;
+        // }
 
         $pagoValidator = Validator::make($pagoData, (new RegistrarPagoRequest())->rules());
         $pagoValidator->validate();
@@ -575,7 +581,6 @@ class VentaController extends Controller
             $pagoData['CodigoBilleteraDigital'] = null;
         }
 
-
         DB::beginTransaction();
 
         try {
@@ -583,15 +588,18 @@ class VentaController extends Controller
             $pago = Pago::create($pagoData);
             $codigoPago = $pago->Codigo;
 
-            PagoDocumentoVenta::create([
-                'CodigoPago' => $codigoPago,
-                'CodigoDocumentoVenta' => $ventaData,
-                'Monto' => $pagoData['Monto'],
-            ]);
+            if($ventaData && $ventaData > 0){
 
-            DB::table('documentoventa')
-                ->where('Codigo', $ventaData)
-                ->increment('MontoPagado', $pagoData['Monto']);
+                PagoDocumentoVenta::create([
+                    'CodigoPago' => $codigoPago,
+                    'CodigoDocumentoVenta' => $ventaData,
+                    'Monto' => $pagoData['Monto'],
+                ]);
+
+                DB::table('documentoventa')
+                    ->where('Codigo', $ventaData)
+                    ->increment('MontoPagado', $pagoData['Monto']);
+            }
 
             DB::commit();
             return response()->json(['message' => 'Pago registrada correctamente.'], 201);
@@ -736,7 +744,7 @@ class VentaController extends Controller
             // Generar insert de la tabla del envio de la factura electronica
 
             $dataEnvio['Tipo'] = 'C';
-            $dataEnvio['JSON'] = json_encode($data['JSON']);
+            $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
             $dataEnvio['URL'] = env('PSE_API_URL');
             $dataEnvio['Fecha'] = $ventaData['Fecha'];
             $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
@@ -915,7 +923,7 @@ class VentaController extends Controller
             // Generar insert de la tabla del envio de la factura electronica
 
             $dataEnvio['Tipo'] = 'F';
-            $dataEnvio['JSON'] = json_encode($data['JSON']);
+            $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
             $dataEnvio['URL'] = env('PSE_API_URL');
             $dataEnvio['Fecha'] = $ventaData['Fecha'];
             $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
@@ -936,6 +944,7 @@ class VentaController extends Controller
                 'facturacion' => [
                     'success' => $data['success'],
                     'Mensaje' => $data['Mensaje'],
+                    'error' => $data['error'] ?? 'Sin error',
                 ],
                 'envio' => $registroEnvio,
             ], 201);
@@ -998,7 +1007,7 @@ class VentaController extends Controller
                 ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
                 ->leftJoin('personas as medico', 'medico.Codigo', '=', 'dv.CodigoMedico')
                 ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
-                ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
+                ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
                 ->where('dv.Codigo', $CodVenta)
                 ->first();
 
@@ -1670,7 +1679,7 @@ class VentaController extends Controller
                 // Generar insert de la tabla del envio de la factura electronica
 
                 $dataEnvio['Tipo'] = 'F';
-                $dataEnvio['JSON'] = json_encode($data['JSON']);
+                $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
                 $dataEnvio['URL'] = env('PSE_API_URL');
                 $dataEnvio['Fecha'] = $canjeData['Fecha'];
                 $dataEnvio['CodigoTrabajador'] = $canjeData['CodigoTrabajador'];
@@ -1886,7 +1895,7 @@ class VentaController extends Controller
                 ->leftJoin('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
                 ->leftJoin('personas as medico', 'medico.Codigo', '=', 'dv.CodigoMedico')
                 ->leftJoin('tipo_documentos as tdPaciente', 'tdPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
-                ->leftJoin('contratoProducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
+                ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'dv.CodigoContratoProducto')
                 ->where('dv.Codigo', $CodVenta)
                 ->limit(1)
                 ->first();
