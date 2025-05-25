@@ -73,12 +73,15 @@ class ReportesController extends Controller
         }
     }
 
-    public function empleados(){
+    public function empleados($sede){
         try{
             $trabajadores = DB::table('trabajadors as t')
             ->join('personas as p', 't.Codigo', '=', 'p.Codigo')
+            ->join('asignacion_sedes as ass', 't.Codigo', '=', 'ass.CodigoTrabajador')
             ->where('t.Tipo', 'A')
+            ->where('ass.CodigoSede', $sede)
             ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+            ->distinct()
             ->get();        
             return response()->json($trabajadores, 200);
         }catch(\Exception $e){
@@ -86,12 +89,15 @@ class ReportesController extends Controller
         }
     }
 
-    public function medicos(){
+    public function medicos($sede){
         try{
             $trabajadores = DB::table('trabajadors as t')
             ->join('personas as p', 't.Codigo', '=', 'p.Codigo')
+            ->join('asignacion_sedes as ass', 't.Codigo', '=', 'ass.CodigoTrabajador')
             ->where('t.Tipo', 'M')
+            ->where('ass.CodigoSede', $sede)
             ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+            ->distinct()
             ->get();        
             return response()->json($trabajadores, 200);
         }catch(\Exception $e){
