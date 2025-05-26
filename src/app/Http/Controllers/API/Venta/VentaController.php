@@ -738,41 +738,52 @@ class VentaController extends Controller
 
             DB::commit();
 
-            // Generar JSON para facturación electrónica con los datos que ya tenemos
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Ocurrió un error al registrar la Venta.',
+                'db' => $e->getMessage()
+            ], 500);
+        }
+
+    // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
+        try {
             $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
 
-            // Generar insert de la tabla del envio de la factura electronica
-
-            $dataEnvio['Tipo'] = 'C';
-            $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
-            $dataEnvio['URL'] = env('PSE_API_URL');
-            $dataEnvio['Fecha'] = $ventaData['Fecha'];
-            $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $data['Estado']; 
-            $dataEnvio['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
-            $dataEnvio['Mensaje'] = $data['Mensaje'];
-            $dataEnvio['CodigoSede'] = $ventaData['CodigoSede'];
-            // 'success' => $resultado,
-            // 'Mensaje' => $mensaje,
-            // 'JSON' => $facturacionElectronica,
-            // 'Estado' => 'A',
+            $dataEnvio = [
+                'Tipo' => 'C',
+                'JSON' => is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'],
+                'URL' => env('PSE_API_URL'),
+                'Fecha' => $ventaData['Fecha'],
+                'CodigoTrabajador' => $ventaData['CodigoTrabajador'],
+                'Estado' => $data['Estado'],
+                'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                'Mensaje' => $data['Mensaje'],
+                'CodigoSede' => $ventaData['CodigoSede']
+            ];
 
             $registroEnvio = $this->registrarEnvio($dataEnvio);
 
-
-            return response()->json([
-                'message' => 'Venta registrada correctamente.',
-                'facturacion' => [
-                    'success' => $data['success'],
-                    'Mensaje' => $data['Mensaje'],
-                ],
-                'envio' => $registroEnvio,
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Ocurrió un error al registrar Nota de Crédito', 'db' => $e->getMessage()], 500);
+        } catch (\Exception $fe) {
+            // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
+            $data = [
+                'success' => false,
+                'Mensaje' => 'Error en la facturación electrónica.',
+                'error' => $fe->getMessage()
+            ];
+            $registroEnvio = null;
         }
+
+        return response()->json([
+            'message' => 'Venta registrada correctamente.',
+            'facturacion' => [
+                'success' => $data['success'],
+                'Mensaje' => $data['Mensaje'],
+                'error' => $data['error'] ?? 'Sin error',
+            ],
+            'envio' => $registroEnvio,
+        ], 201);
+
     }
 
 
@@ -869,90 +880,112 @@ class VentaController extends Controller
         }
 
 
-        DB::beginTransaction();
-        try {
+    DB::beginTransaction();
 
-            $ventaCreada = Venta::create($ventaData);
+    try {
+        $ventaCreada = Venta::create($ventaData);
 
-            $ventaData['TotalDescuento'] = 0;
+        $ventaData['TotalDescuento'] = 0;
 
-            foreach ($detallesVentaData as $detalle) {
-                $detalle['CodigoVenta'] = $ventaCreada->Codigo;
-                if (!isset($detalle['Descuento'])) {
-                    $detalle['Descuento'] = 0;
-                }
-                // $detalle['MontoTotal'] = $detalle['MontoTotal'] + ($detalle['Descuento'] * $detalle['Cantidad']);
-                $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
-                DetalleVenta::create($detalle);
+        foreach ($detallesVentaData as $detalle) {
+            $detalle['CodigoVenta'] = $ventaCreada->Codigo;
+            if (!isset($detalle['Descuento'])) {
+                $detalle['Descuento'] = 0;
             }
+            $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
+            DetalleVenta::create($detalle);
+        }
 
-            if ($pagoData) {
-                $pagoCreado = Pago::create($pagoData);
-                PagoDocumentoVenta::create([
-                    'CodigoPago' => $pagoCreado->Codigo,
-                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
-                    'Monto' => $pagoData['Monto']
-                ]);
+        if ($pagoData) {
+            $pagoCreado = Pago::create($pagoData);
+            PagoDocumentoVenta::create([
+                'CodigoPago' => $pagoCreado->Codigo,
+                'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                'Monto' => $pagoData['Monto']
+            ]);
+        }
+
+        if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto']) {
+            DB::table('contratoproducto')
+                ->where('Codigo', $ventaData['CodigoContratoProducto'])
+                ->increment('TotalPagado', $pagoData['Monto']);
+        }
+
+        if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
+            $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
+            Detraccion::create($detraccion);
+        }
+
+        if (!empty($cantidadesPorTemporal)) {
+            foreach ($cantidadesPorTemporal as $temporal => $cantidadReducir) {
+                DB::table('preciotemporal')
+                    ->where('Codigo', $temporal)
+                    ->where('Stock', '>=', $cantidadReducir)
+                    ->decrement('Stock', $cantidadReducir);
             }
+        }
 
-            if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto']) {
-                DB::table('contratoproducto')
-                    ->where('Codigo', $ventaData['CodigoContratoProducto'])
-                    ->increment('TotalPagado', $pagoData['Monto']);
-            }
-
-            if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
-                $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
-                Detraccion::create($detraccion);
-            }
-
-            if (!empty($cantidadesPorTemporal)) {
-                foreach ($cantidadesPorTemporal as $temporal => $cantidadReducir) {
-                    DB::table('preciotemporal')
-                        ->where('Codigo', $temporal)
-                        ->where('Stock', '>=', $cantidadReducir) // Evita stocks negativos
-                        ->decrement('Stock', $cantidadReducir);
-                }
-            }
-
-            DB::commit();
-
-            // Generar JSON para facturación electrónica con los datos que ya tenemos
-            $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
-
-            // Generar insert de la tabla del envio de la factura electronica
-
-            $dataEnvio['Tipo'] = 'F';
-            $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
-            $dataEnvio['URL'] = env('PSE_API_URL');
-            $dataEnvio['Fecha'] = $ventaData['Fecha'];
-            $dataEnvio['CodigoTrabajador'] = $ventaData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $data['Estado']; 
-            $dataEnvio['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
-            $dataEnvio['Mensaje'] = $data['Mensaje'];
-            $dataEnvio['CodigoSede'] = $ventaData['CodigoSede'];
-            // 'success' => $resultado,
-            // 'Mensaje' => $mensaje,
-            // 'JSON' => $facturacionElectronica,
-            // 'Estado' => 'A',
-
-            $registroEnvio = $this->registrarEnvio($dataEnvio);
-
-
-            return response()->json([
-                'message' => 'Venta registrada correctamente.',
-                'facturacion' => [
-                    'success' => $data['success'],
-                    'Mensaje' => $data['Mensaje'],
-                    'error' => $data['error'] ?? 'Sin error',
-                ],
-                'envio' => $registroEnvio,
-            ], 201);
+        DB::commit(); // ✅ Solo si todo lo anterior fue exitoso
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Ocurrió un error al registrar la Venta.', 'db' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Ocurrió un error al registrar la Venta.',
+                'db' => $e->getMessage()
+            ], 500);
         }
+
+        // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
+        
+        $notaVenta = DB::table('tipodocumentoventa')
+            ->where('Codigo', $ventaData['CodigoTipoDocumentoVenta'])
+            ->selectRaw('CodigoSUNAT IS NOT NULL AS Existe')
+            ->value('Existe');
+
+        if($notaVenta != 0){
+            try {
+                $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
+
+                $dataEnvio = [
+                    'Tipo' => 'F',
+                    'JSON' => is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'],
+                    'URL' => env('PSE_API_URL'),
+                    'Fecha' => $ventaData['Fecha'],
+                    'CodigoTrabajador' => $ventaData['CodigoTrabajador'],
+                    'Estado' => $data['Estado'],
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                    'Mensaje' => $data['Mensaje'],
+                    'CodigoSede' => $ventaData['CodigoSede']
+                ];
+
+                $registroEnvio = $this->registrarEnvio($dataEnvio);
+
+            } catch (\Exception $fe) {
+                // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
+                $data = [
+                    'success' => false,
+                    'Mensaje' => 'Error en la facturación electrónica.',
+                    'error' => $fe->getMessage()
+                ];
+                $registroEnvio = null;
+            }
+        }else{
+
+            return response()->json([
+                'message' => 'Venta registrada correctamente.',
+            ], 201);
+
+        }
+
+        return response()->json([
+            'message' => 'Venta registrada correctamente.',
+            'facturacion' => [
+                'success' => $data['success'],
+                'Mensaje' => $data['Mensaje'],
+                'error' => $data['error'] ?? 'Sin error',
+            ],
+            'envio' => $registroEnvio,
+        ], 201);
     }
 
     public function consultarDocumentoVenta(Request $request)
@@ -1669,48 +1702,60 @@ class VentaController extends Controller
                 //     ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
                 DB::commit();
 
-                $detalleVentaArray = collect($detalleVenta)->map(function ($item) {
-                    return (array) $item;
-                })->toArray();
-
-                // Generar JSON para facturación electrónica con los datos que ya tenemos
-                $data = $this->detallesFacturacionElectronica($nuevoDocumentoVenta, $detalleVentaArray, $nuevoDocumentoVenta->Codigo);
-
-                // Generar insert de la tabla del envio de la factura electronica
-
-                $dataEnvio['Tipo'] = 'F';
-                $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
-                $dataEnvio['URL'] = env('PSE_API_URL');
-                $dataEnvio['Fecha'] = $canjeData['Fecha'];
-                $dataEnvio['CodigoTrabajador'] = $canjeData['CodigoTrabajador'];
-                $dataEnvio['Estado'] = $data['Estado']; 
-                $dataEnvio['CodigoDocumentoVenta'] = $nuevoDocumentoVenta->Codigo;
-                $dataEnvio['Mensaje'] = $data['Mensaje'];
-                $dataEnvio['CodigoSede'] = $venta->CodigoSede;
-                // 'success' => $resultado,
-                // 'Mensaje' => $mensaje,
-                // 'JSON' => $facturacionElectronica,
-                // 'Estado' => 'A',
-
-                $registroEnvio = $this->registrarEnvio($dataEnvio);
-
-
-                return response()->json([
-                    'message' => 'Canje registrado correctamente.',
-                    'facturacion' => [
-                        'success' => $data['success'],
-                        'Mensaje' => $data['Mensaje'],
-                    ],
-                    'envio' => $registroEnvio,
-                ], 201);
-
             } else {
                 DB::rollBack();
                 return response()->json(['message' => 'No se encontró el documento de venta a canjear.'], 404);
             }
+
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage(), 'message' => 'Ocurrió un error al canjear documento de venta'], 500);
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Ocurrió un error al registrar la Venta.',
+                'db' => $e->getMessage()
+            ], 500);
         }
+
+        try{
+
+            $detalleVentaArray = collect($detalleVenta)->map(function ($item) {
+                return (array) $item;
+            })->toArray();
+
+            // Generar JSON para facturación electrónica con los datos que ya tenemos
+            
+            $data = $this->detallesFacturacionElectronica($nuevoDocumentoVenta, $detalleVentaArray, $nuevoDocumentoVenta->Codigo);
+            // Generar insert de la tabla del envio de la factura electronica
+            $dataEnvio['Tipo'] = 'F';
+            $dataEnvio['JSON'] = is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'];
+            $dataEnvio['URL'] = env('PSE_API_URL');
+            $dataEnvio['Fecha'] = $canjeData['Fecha'];
+            $dataEnvio['CodigoTrabajador'] = $canjeData['CodigoTrabajador'];
+            $dataEnvio['Estado'] = $data['Estado']; 
+            $dataEnvio['CodigoDocumentoVenta'] = $nuevoDocumentoVenta->Codigo;
+            $dataEnvio['Mensaje'] = $data['Mensaje'];
+            $dataEnvio['CodigoSede'] = $venta->CodigoSede;
+            // 'success' => $resultado,
+            // 'Mensaje' => $mensaje,
+            // 'JSON' => $facturacionElectronica,
+            // 'Estado' => 'A',
+
+            $registroEnvio = $this->registrarEnvio($dataEnvio);
+
+        }catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Ocurrió un error al registrar la Venta.', 'db' => $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'message' => 'Canje registrado correctamente.',
+            'facturacion' => [
+                'success' => $data['success'],
+                'Mensaje' => $data['Mensaje'],
+                'error' => $data['error'] ?? 'Sin error',
+            ],
+            'envio' => $registroEnvio,
+        ], 201);
+
     }
 
 
