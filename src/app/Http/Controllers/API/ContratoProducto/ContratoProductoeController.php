@@ -271,21 +271,28 @@ class ContratoProductoeController extends Controller
 
     public function visualizarContrato($contrato){
 
-            $contratoProducto = ContratoProducto::find($contrato);
+            // $contratoProducto = ContratoProducto::find($contrato);
 
-            // $contratoProducto = DB::table('contratoproducto as cp')
-            // ->select(
-            //     DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
-            //     DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
-            //     'cp.CodigoMedico as CodigoMedico',
-            //     'cp.Codigo'
-            //     // DB::raw("CONCAT(pMed.Nombres, ': ', pMed.Apellidos) AS Medico")
-            // )
-            // // ->join('personas as pMed', 'pMed.Codigo', '=', 'cp.CodigoMedico')
-            // ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
-            // ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
-            // ->where('cp.Codigo', $contrato)
-            // ->first();
+        $contratoProducto = DB::table('contratoproducto as cp')
+            ->select(
+                'cp.Codigo',
+                'cp.CodigoAutorizador',
+                'cp.CodigoMedico',
+                'cp.CodigoPaciente',
+                'cp.CodigoPaciente02',
+                DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
+                DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
+                DB::raw("CONCAT(pPac2.Nombres, ' ', pPac2.Apellidos) AS nombreSegundo"),
+                DB::raw("CONCAT(td2.Nombre, ': ', pPac2.NumeroDocumento) AS numDocumentoSegundo"),
+                'cp.Total'
+            )
+            ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
+            ->leftJoin('personas as pPac2', 'pPac2.Codigo', '=', 'cp.CodigoPaciente02')
+            ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
+            ->leftJoin('tipo_documentos as td2', 'td2.Codigo', '=', 'pPac2.CodigoTipoDocumento')
+            ->where('cp.Codigo', $contrato)
+            ->first();
+
 
         $detalleContrato = DB::table('detallecontrato as dc')
             ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad', 'dc.Descuento')
