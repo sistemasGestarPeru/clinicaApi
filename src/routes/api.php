@@ -383,6 +383,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('producto/listarProducto', [ProductoController::class, 'listarProducto']);
     Route::post('producto/listarProductoCombo', [ProductoController::class, 'listarProductoCombo']);
     Route::get('producto/preciosTemporales/{sede}/{producto}', [ProductoController::class, 'preciosTemporales']);
+    Route::get('producto/existePrecioTemporal/{sede}/{producto}', [ProductoController::class, 'existePrecioTemporal']);
     Route::get('producto/comboIGV/{producto}', [ProductoController::class, 'comboIGV']);
     Route::get('producto/listarCombos', [ProductoController::class, 'listarCombos']);
     Route::get('producto/listarTemporales/{codigo}', [ProductoController::class, 'listarTemporales']);

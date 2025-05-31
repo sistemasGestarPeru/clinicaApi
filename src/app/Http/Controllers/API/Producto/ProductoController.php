@@ -176,7 +176,7 @@ class ProductoController extends Controller
             $temporal = PrecioTemporal::findOrFail($producto['Codigo']);
             // Actualizar el producto siempre y cuando la cantidad actual sea igual al stock
 
-            if($temporal->Vigente == 0){
+            if ($temporal->Vigente == 0) {
                 return response()->json(['error' => 'No se puede actualizar un precio temporal con estado inactivo.'], 400);
             }
 
@@ -186,8 +186,6 @@ class ProductoController extends Controller
             } else {
                 return response()->json(['error' => 'No se puede actualizar el precio temporal porque la cantidad actual no coincide con el stock.'], 400);
             }
-
-            
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -198,6 +196,21 @@ class ProductoController extends Controller
         try {
             $producto = PrecioTemporal::where('Codigo', $Codigo)->first();
             return response()->json($producto, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function existePrecioTemporal($sede, $producto) {
+        try{
+            $existe = DB::table('preciotemporal')
+            ->where('Vigente', 1)
+            ->where('CodigoSede', $sede)
+            ->where('CodigoProducto', $producto)
+            ->where('Stock', '>', 0)
+            ->exists();
+
+        return response()->json(['existe' => $existe], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -220,7 +233,7 @@ class ProductoController extends Controller
     }
 
     //COMBO PRODUCTOS
-    
+
 
 
     public function comboIGV($codigo)
@@ -234,7 +247,6 @@ class ProductoController extends Controller
                 ->value('MontoIGV'); // Obtiene el resultado directamente
 
             return response()->json($montoIGV, 200);
-
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -250,7 +262,7 @@ class ProductoController extends Controller
 
             $codProducto = Producto::create($combo)->Codigo;
 
-            
+
             foreach ($productos as $producto) {
                 $producto['CodigoCombo'] = $codProducto;
                 ComboProducto::create($producto);
@@ -288,11 +300,11 @@ class ProductoController extends Controller
             // Insertar o actualizar los productos nuevos
             foreach ($productos as $producto) {
                 $producto['CodigoCombo'] = $combo['Codigo'];
-                
+
                 if (isset($productosActuales[$producto['CodigoProducto']])) {
                     // Producto ya existe, verificamos si cambió algún dato
                     $productoExistente = $productosActuales[$producto['CodigoProducto']];
-                    
+
                     if (
                         $productoExistente->Cantidad != $producto['Cantidad'] ||
                         $productoExistente->Precio != $producto['Precio'] ||
@@ -321,14 +333,14 @@ class ProductoController extends Controller
 
     public function consultarComboProducto($codigo)
     {
-        
+
         try {
             // Consultar información del producto
             $producto = DB::table('producto')
                 ->select('Codigo', 'Nombre', 'Descripcion', 'CodigoCategoria')
                 ->where('Codigo', $codigo)
                 ->first(); // Para obtener un solo resultado
-        
+
             // Consultar productos dentro del combo
             $productosEnCombo = DB::table('productocombo as pc')
                 ->join('producto as p', 'p.Codigo', '=', 'pc.CodigoProducto')
@@ -347,12 +359,12 @@ class ProductoController extends Controller
                 ->where('pc.CodigoCombo', $codigo)
                 ->orderBy('p.Nombre', 'ASC')
                 ->get(); // Para obtener múltiples resultados
-        
+
             $existe = DB::table('documentoventa as dv')
-            ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
-            ->where('dv.Vigente', 1)
-            ->where('ddv.CodigoProducto', $codigo)
-            ->exists(); // Devuelve true si hay al menos un registro
+                ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                ->where('dv.Vigente', 1)
+                ->where('ddv.CodigoProducto', $codigo)
+                ->exists(); // Devuelve true si hay al menos un registro
 
             // Retornar en JSON
             return response()->json([
@@ -363,34 +375,35 @@ class ProductoController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-        
     }
 
-    public function listarCombos(){
-        try{
+    public function listarCombos()
+    {
+        try {
             $productos = Producto::where('Tipo', 'C')->get();
             return response()->json($productos, 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function precioCombo($sede, $combo){
+    public function precioCombo($sede, $combo)
+    {
 
-        try{
+        try {
 
             $precioCombo = DB::table('productocombo')
-            ->where('CodigoCombo', $combo)
-            ->sum(DB::raw('Precio * Cantidad'));
+                ->where('CodigoCombo', $combo)
+                ->sum(DB::raw('Precio * Cantidad'));
 
             return response()->json($precioCombo, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function tipoProductoCombo($producto){
+    public function tipoProductoCombo($producto)
+    {
         try {
             $resultado = DB::table('productocombo as pc')
                 ->join('sedeproducto as sd', 'sd.CodigoProducto', '=', 'pc.CodigoProducto')
@@ -409,9 +422,8 @@ class ProductoController extends Controller
                     END AS TipoResultado
                 ")
                 ->first(); // Obtiene una sola fila con ambos valores
-    
+
             return response()->json($resultado, 200);
-    
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
