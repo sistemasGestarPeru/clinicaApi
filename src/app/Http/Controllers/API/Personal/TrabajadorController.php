@@ -91,6 +91,13 @@ class TrabajadorController extends Controller
 
             $asignacionVigente = $asignacion->FechaFin == null || $asignacion->FechaFin > $fecha;
 
+            if($estadoActual == 0){
+                return response()->json(['error' => 'No se puede actualizar una asignación Inactiva.'], 400);
+            }
+            if(!$asignacionVigente){
+                return response()->json(['error' => 'No se puede actualizar una asignación Finalizada.'], 400);
+            }
+            
             if($estadoActual == 1 && $asignacionVigente){
                 $asignacion->update($asignacionData);
             }
@@ -133,6 +140,10 @@ class TrabajadorController extends Controller
                     ->where('t.Codigo', $trabajador)
                     ->where('s.Vigente', 1)
                     ->where('ase.Vigente', 1)
+                    ->where(function($query) use ($fecha) {
+                        $query->whereNull('ase.FechaFin')
+                            ->orWhere('ase.FechaFin', '>=', $fecha);
+                    })
                     ->where('e.Codigo', $contratoData['CodigoEmpresa'])
                     ->select('ase.Codigo', 'ase.FechaInicio', 'ase.FechaFin')
                     ->get();
@@ -224,6 +235,7 @@ class TrabajadorController extends Controller
                                 ELSE 0 
                             END as EstadoAsignacion")
                 )
+                ->orderBy('EstadoAsignacion', 'desc')
                 ->addBinding([$fecha], 'select') // Bind de la fecha
                 ->get();
 
