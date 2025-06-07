@@ -91,17 +91,17 @@ class TrabajadorController extends Controller
 
             $asignacionVigente = $asignacion->FechaFin == null || $asignacion->FechaFin > $fecha;
 
-            if($estadoActual == 0){
+            if ($estadoActual == 0) {
                 return response()->json(['error' => 'No se puede actualizar una asignación Inactiva.'], 400);
             }
-            if(!$asignacionVigente){
+            if (!$asignacionVigente) {
                 return response()->json(['error' => 'No se puede actualizar una asignación Finalizada.'], 400);
             }
-            
-            if($estadoActual == 1 && $asignacionVigente){
+
+            if ($estadoActual == 1 && $asignacionVigente) {
                 $asignacion->update($asignacionData);
             }
-            
+
             return response()->json(['msg' => 'Asignación actualizada correctamente'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al actualizar la Asignación', 'bd' => $e->getMessage()], 400);
@@ -111,7 +111,7 @@ class TrabajadorController extends Controller
     public function actualizarContrato(Request $request)
     {
         $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
-        
+
         $contratoData = $request->input('contrato');
         $trabajador = $request->input('trabajador');
 
@@ -123,15 +123,15 @@ class TrabajadorController extends Controller
             // Verificar si el contrato está vigente antes de actualizarlo
             $contratoVigente = $contrato->FechaFin == null || $contrato->FechaFin > $fecha;
 
-            if($estadoActual == 0){
+            if ($estadoActual == 0) {
                 return response()->json(['error' => 'No se puede actualizar un contrato Inactivo.'], 400);
             }
 
-            if(!$contratoVigente){
+            if (!$contratoVigente) {
                 return response()->json(['error' => 'No se puede actualizar un contrato Finalizado.'], 400);
             }
 
-            if($estadoActual == 1 && $contratoVigente){
+            if ($estadoActual == 1 && $contratoVigente) {
 
                 $resultados = DB::table('trabajadors as t')
                     ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
@@ -140,7 +140,7 @@ class TrabajadorController extends Controller
                     ->where('t.Codigo', $trabajador)
                     ->where('s.Vigente', 1)
                     ->where('ase.Vigente', 1)
-                    ->where(function($query) use ($fecha) {
+                    ->where(function ($query) use ($fecha) {
                         $query->whereNull('ase.FechaFin')
                             ->orWhere('ase.FechaFin', '>=', $fecha);
                     })
@@ -151,7 +151,8 @@ class TrabajadorController extends Controller
                 // validar que las fechas $contratoData['FechaInicio'] y $contratoData['FechaFin'] no se superpongan con las fechas de las asignaciones existentes
                 foreach ($resultados as $resultado) {
                     if (($contratoData['FechaInicio'] >= $resultado->FechaInicio && $contratoData['FechaInicio'] <= $resultado->FechaFin) ||
-                        ($contratoData['FechaFin'] >= $resultado->FechaInicio && $contratoData['FechaFin'] <= $resultado->FechaFin)) {
+                        ($contratoData['FechaFin'] >= $resultado->FechaInicio && $contratoData['FechaFin'] <= $resultado->FechaFin)
+                    ) {
                         return response()->json(['error' => 'Las fechas del contrato se superponen con las fechas de la asignación existente.'], 400);
                     }
                 }
@@ -159,7 +160,7 @@ class TrabajadorController extends Controller
                 $contrato->update($contratoData);
             }
 
-            if($contratoData['Vigente'] == 0){
+            if ($contratoData['Vigente'] == 0) {
                 $resultados = DB::table('trabajadors as t')
                     ->join('asignacion_sedes as ase', 'ase.CodigoTrabajador', '=', 't.Codigo')
                     ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
@@ -231,7 +232,7 @@ class TrabajadorController extends Controller
                     'ase.FechaFin',
                     'ase.Vigente',
                     DB::raw("CASE 
-                                WHEN ase.FechaFin IS NULL OR ase.FechaFin > ? THEN 1 
+                                WHEN ase.FechaFin IS NULL OR ase.FechaFin >= ? THEN 1 
                                 ELSE 0 
                             END as EstadoAsignacion")
                 )
@@ -252,26 +253,26 @@ class TrabajadorController extends Controller
         $fecha = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
         try {
             $results = DB::table('contrato_laborals as cl')
-            ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
-            ->select(
-                'cl.Codigo',
-                'e.Nombre',
-                'cl.CodigoEmpresa',
-                'cl.FechaInicio',
-                'cl.FechaFin',
-                'cl.Vigente',
-                DB::raw("CASE 
-                            WHEN cl.FechaFin IS NULL OR cl.FechaFin > ? THEN 1
+                ->join('empresas as e', 'e.Codigo', '=', 'cl.CodigoEmpresa')
+                ->select(
+                    'cl.Codigo',
+                    'e.Nombre',
+                    'cl.CodigoEmpresa',
+                    'cl.FechaInicio',
+                    'cl.FechaFin',
+                    'cl.Vigente',
+                    DB::raw("CASE 
+                            WHEN cl.FechaFin IS NULL OR cl.FechaFin >= ? THEN 1
                             ELSE 0 
                          END AS VigenciaContrato")
-            )
-            ->where('cl.CodigoTrabajador', $codTrab)
-            // ->where('cl.Vigente', 1)
-            ->where('e.Vigente', 1)
-            ->orderBy('VigenciaContrato', 'desc')
-            ->addBinding([$fecha], 'select') // Bind de la fecha
-            ->get();
-    
+                )
+                ->where('cl.CodigoTrabajador', $codTrab)
+                // ->where('cl.Vigente', 1)
+                ->where('e.Vigente', 1)
+                ->orderBy('VigenciaContrato', 'desc')
+                ->addBinding([$fecha], 'select') // Bind de la fecha
+                ->get();
+
             return response()->json($results, 200);
         } catch (\Exception $e) {
             return response()->json('Error al obtener datos', 400);
@@ -454,7 +455,7 @@ class TrabajadorController extends Controller
                 return response()->json(['error' => 'Trabajador no encontrado.'], 404);
             }
 
-            $personaRegistrado->update($personaData);            
+            $personaRegistrado->update($personaData);
             $trabajadorRegistrado->update($trabajadorData);
 
             // Si trabajadorData tiene Vigente = 0 entonces damos de baja a todos sus usuarios, contratos y asignaciones vigentes = 1
@@ -508,7 +509,7 @@ class TrabajadorController extends Controller
                 )
                 ->where('p.NumeroDocumento', 'like', $numDocumento . '%')
                 ->where('p.Nombres', 'like', $nombre . '%')
-                ->where('t.Tipo', 'like', '%'. $tipo. '%')
+                ->where('t.Tipo', 'like', $tipo . '%')
                 // ->where('p.Vigente', '=', 1)
                 ->orderBy('p.Nombres', 'asc')
                 ->get();
@@ -522,7 +523,7 @@ class TrabajadorController extends Controller
     public function listarTrabajadores()
     {
         try {
-                $trabajadores = DB::table('trabajadors as t')
+            $trabajadores = DB::table('trabajadors as t')
                 ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
                 ->whereNotExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -582,7 +583,7 @@ class TrabajadorController extends Controller
                         'Vigente'
                     )
                     ->where('Codigo', $persona->Codigo)
-                    
+
                     ->first();
 
                 if ($persona && $trabajador) {
@@ -638,7 +639,7 @@ class TrabajadorController extends Controller
                 'Tipo'
             )
             ->where('Codigo', '=', $Codigo)
-            
+
             ->first();
 
         if ($persona && $trabajador) {
