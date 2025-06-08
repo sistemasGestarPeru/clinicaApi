@@ -1281,7 +1281,8 @@ class VentaController extends Controller
                 CASE 
                     WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NULL) THEN 'V'
                     WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NOT NULL) THEN 'C'
-                    WHEN dv.CodigoMotivoNotaCredito IS NOT NULL THEN 'N'
+		            WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NOT NULL) THEN 'N'
+                    WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NULL) THEN 'D' 
                 END AS TipoVenta,
                 CASE 
                     WHEN tdv.CodigoSUNAT IS NOT NULL THEN true
