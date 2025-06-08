@@ -192,6 +192,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::get('combos/listarTipoDocIdentidad', [ControladorGeneralController::class, 'listarTipoDocIdentidad']);
     Route::get('combos/listarTiposDocVenta/{sede}/{tipo}', [ControladorGeneralController::class, 'listarTiposDocVenta']);
+    Route::get('combos/listarTiposDocVentaDevolucion/{sede}/{cod}', [ControladorGeneralController::class, 'listarTiposDocVentaDevolucion']);
     Route::get('combos/empresas', [ControladorGeneralController::class, 'listarEmpresas']);
     Route::get('combos/sedes/{codigoEmpresa}', [ControladorGeneralController::class, 'listarSedesEmpresas']);
     Route::get('combos/sedesDisponibles/{codigoEmpresa}/{codigoTrabajador}', [ControladorGeneralController::class, 'cboSedesDisponibles']); //Cambiar si se usa de manera general

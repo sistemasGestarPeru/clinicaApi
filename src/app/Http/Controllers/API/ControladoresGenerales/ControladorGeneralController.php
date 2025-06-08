@@ -48,21 +48,21 @@ class ControladorGeneralController extends Controller
         //
     }
 
-    public function listarApp($codigoTrabajador){
-        try{
+    public function listarApp($codigoTrabajador)
+    {
+        try {
             $resultado = DB::table('usuario_perfil as up')
-            ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
-            ->join('aplicacion as a', 'r.CodigoAplicacion', '=', 'a.Codigo')
-            ->where('up.CodigoPersona', $codigoTrabajador)
-            ->where('a.Vigente', 1)
-            ->distinct()
-            ->select('a.Nombre', 'a.URL')
-            ->get();
-        
+                ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
+                ->join('aplicacion as a', 'r.CodigoAplicacion', '=', 'a.Codigo')
+                ->where('up.CodigoPersona', $codigoTrabajador)
+                ->where('a.Vigente', 1)
+                ->distinct()
+                ->select('a.Nombre', 'a.URL')
+                ->get();
 
-            return response()->json($resultado,200);
 
-        }catch(\Exception $e){
+            return response()->json($resultado, 200);
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -82,20 +82,19 @@ class ControladorGeneralController extends Controller
         }
     }
 
-    public function listarTipoDocIdentidad(){
-        
-        try{
+    public function listarTipoDocIdentidad()
+    {
+
+        try {
             $documentos = DB::table('tipo_documentos')
-            ->where('Vigente', 1)
-            ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
-            ->get();
-    
+                ->where('Vigente', 1)
+                ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
+                ->get();
+
             return response()->json($documentos, 200);
-            
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
-
     }
 
     //Listar Combo Empresas
@@ -130,25 +129,25 @@ class ControladorGeneralController extends Controller
     public function cboSedesDisponibles($codigoEmpresa, $codigoTrabajador)
     {
         date_default_timezone_set('America/Lima');
-        $fechaActual = date('Y-m-d'); 
+        $fechaActual = date('Y-m-d');
         try {
             $sedes = DB::table('sedesrec as s')
-            ->select('s.Codigo as id', 's.Nombre as nombre')
-            ->leftJoin('asignacion_sedes as ass', function ($join) use ($codigoTrabajador, $fechaActual) {
-                $join->on('s.Codigo', '=', 'ass.CodigoSede')
-                     ->where('ass.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
+                ->select('s.Codigo as id', 's.Nombre as nombre')
+                ->leftJoin('asignacion_sedes as ass', function ($join) use ($codigoTrabajador, $fechaActual) {
+                    $join->on('s.Codigo', '=', 'ass.CodigoSede')
+                        ->where('ass.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
                                                           FROM asignacion_sedes
                                                           WHERE CodigoSede = s.Codigo
                                                           AND CodigoTrabajador = {$codigoTrabajador}
                                                           AND Vigente = 1)"))
-                     ->where(function ($query) use ($fechaActual) {
-                         $query->where('ass.FechaFin', '>', $fechaActual)
-                               ->orWhereNull('ass.FechaFin');
-                     });
-            })
-            ->where('s.CodigoEmpresa', $codigoEmpresa)
-            ->whereNull('ass.Codigo')
-            ->get();
+                        ->where(function ($query) use ($fechaActual) {
+                            $query->where('ass.FechaFin', '>', $fechaActual)
+                                ->orWhereNull('ass.FechaFin');
+                        });
+                })
+                ->where('s.CodigoEmpresa', $codigoEmpresa)
+                ->whereNull('ass.Codigo')
+                ->get();
 
             return response()->json($sedes, 200);
         } catch (\Exception $e) {
@@ -157,34 +156,34 @@ class ControladorGeneralController extends Controller
     }
 
     public function cboEmpresasDisponibles($codigoTrabajador)
-{
-    date_default_timezone_set('America/Lima');
-    $fechaActual = date('Y-m-d'); 
+    {
+        date_default_timezone_set('America/Lima');
+        $fechaActual = date('Y-m-d');
 
-    try {
-        $empresas = DB::table('empresas as e')
-        ->select('e.Codigo as id', 'e.Nombre as nombre')
-        ->leftJoin('contrato_laborals as cl', function ($join) use ($fechaActual, $codigoTrabajador) {
-            $join->on('e.Codigo', '=', 'cl.CodigoEmpresa')
-                 ->where('cl.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
+        try {
+            $empresas = DB::table('empresas as e')
+                ->select('e.Codigo as id', 'e.Nombre as nombre')
+                ->leftJoin('contrato_laborals as cl', function ($join) use ($fechaActual, $codigoTrabajador) {
+                    $join->on('e.Codigo', '=', 'cl.CodigoEmpresa')
+                        ->where('cl.Codigo', '=', DB::raw("(SELECT MAX(Codigo)
                                                       FROM contrato_laborals
                                                       WHERE CodigoEmpresa = e.Codigo
                                                       AND CodigoTrabajador = {$codigoTrabajador}
                                                       AND Vigente = 1)"))
-                 ->where(function ($query) use ($fechaActual) {
-                     $query->where('cl.FechaFin', '>', $fechaActual)
-                           ->orWhereNull('cl.FechaFin');
-                 });
-        })
-        ->where('e.Vigente', 1)
-        ->whereNull('cl.Codigo')
-        ->get();
+                        ->where(function ($query) use ($fechaActual) {
+                            $query->where('cl.FechaFin', '>', $fechaActual)
+                                ->orWhereNull('cl.FechaFin');
+                        });
+                })
+                ->where('e.Vigente', 1)
+                ->whereNull('cl.Codigo')
+                ->get();
 
-        return response()->json($empresas);
-    } catch (\Exception $e) {
-        return response()->json('Error en la consulta: ' . $e->getMessage());
+            return response()->json($empresas);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
     }
-}
 
     public function listarDepartamentos($sede)
     {
@@ -205,14 +204,14 @@ class ControladorGeneralController extends Controller
 
     public function listarTiposDocVenta($sede, $tipo)
     {
-        
-        if(!$tipo){
+
+        if (!$tipo) {
             $tipo = 'V';
         }
 
         try {
 
-                $docVentas = DB::table('localdocumentoventa as ldv')
+            $docVentas = DB::table('localdocumentoventa as ldv')
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
                 ->select('tdv.Codigo', 'tdv.Nombre', 'tdv.CodigoSUNAT')
                 ->where('ldv.CodigoSede', $sede)
@@ -223,14 +222,48 @@ class ControladorGeneralController extends Controller
                 })
                 ->distinct()
                 ->get();
-            
+
             return response()->json($docVentas);
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarSistemaPension(){
+    public function listarTiposDocVentaDevolucion($sede, $cod)
+    {
+
+        try {
+
+            $codigoSunat = DB::table('tipodocumentoventa')
+                ->where('Codigo', $cod)
+                ->value('CodigoSUNAT');
+
+            $docVentas = DB::table('localdocumentoventa as ldv')
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'ldv.CodigoTipoDocumentoVenta')
+                ->where('ldv.CodigoSede', $sede)
+                ->where('tdv.Vigente', 1)
+                ->where('ldv.Vigente', 1)
+                ->where('tdv.Tipo', 'D')
+                ->where(function ($query) use ($codigoSunat) {
+                    if (is_null($codigoSunat)) {
+                        $query->whereNull('tdv.CodigoSUNAT');
+                    } else {
+                        $query->where('tdv.CodigoSUNAT', $codigoSunat);
+                    }
+                })
+                ->select('tdv.Codigo', 'tdv.Nombre', 'tdv.CodigoSUNAT')
+                ->distinct()
+                ->get();
+
+
+            return response()->json($docVentas);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarSistemaPension()
+    {
         try {
             $sistemaPension = DB::table('sistemapensiones as sp')
                 ->where('sp.Vigente', 1)
@@ -260,17 +293,18 @@ class ControladorGeneralController extends Controller
         }
     }
 
-    public function listarBilleterasDigitalesEmpresa($empresa){
-        try{
+    public function listarBilleterasDigitalesEmpresa($empresa)
+    {
+        try {
             $result = DB::table('billeteradigital as bd')
-            ->join('entidadbilleteradigital as ebd', 'ebd.Codigo', '=', 'bd.Codigo')
-            ->where('bd.CodigoEmpresa', $empresa)
-            ->where('bd.Vigente', 1)
-            ->where('ebd.Vigente', 1)
-            ->select('bd.Codigo', DB::raw("CONCAT(ebd.Nombre, ' - ', bd.Numero) AS Nombre"))
-            ->get();
+                ->join('entidadbilleteradigital as ebd', 'ebd.Codigo', '=', 'bd.Codigo')
+                ->where('bd.CodigoEmpresa', $empresa)
+                ->where('bd.Vigente', 1)
+                ->where('ebd.Vigente', 1)
+                ->select('bd.Codigo', DB::raw("CONCAT(ebd.Nombre, ' - ', bd.Numero) AS Nombre"))
+                ->get();
             return response()->json($result);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -328,7 +362,8 @@ class ControladorGeneralController extends Controller
     }
 
 
-    public function listarMotivoPagoServicio(){
+    public function listarMotivoPagoServicio()
+    {
         try {
 
             $resultado = DB::table('motivopagoservicio')
@@ -340,76 +375,75 @@ class ControladorGeneralController extends Controller
         } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
-
     }
 
-    public function personalAutorizado($sede){
+    public function personalAutorizado($sede)
+    {
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d');
-        try{
+        try {
             $trabajadores = DB::table('trabajadors as t')
-            ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
-            ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
-            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            ->where('t.AutorizaDescuento', 1)
-            ->where('t.Vigente', 1)
-            ->where('p.Vigente', 1)
-            ->where('t.tipo', 'A')
-            ->where('ass.Vigente', 1)
-            ->where('ass.CodigoSede', $sede)
-            ->where(function($query) use ($fecha) {
-                $query->whereNull('ass.FechaFin')
-                      ->orWhere('ass.FechaFin', '>=', $fecha);
-            })
-            ->get();
-        
-        return response()->json($trabajadores);
-        
-        }catch(\Exception $e){
-            return response()->json('Error en la consulta: ' . $e->getMessage());
-        }
+                ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
+                ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
+                ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+                ->where('t.AutorizaDescuento', 1)
+                ->where('t.Vigente', 1)
+                ->where('p.Vigente', 1)
+                ->where('t.tipo', 'A')
+                ->where('ass.Vigente', 1)
+                ->where('ass.CodigoSede', $sede)
+                ->where(function ($query) use ($fecha) {
+                    $query->whereNull('ass.FechaFin')
+                        ->orWhere('ass.FechaFin', '>=', $fecha);
+                })
+                ->get();
 
-    }
-
-    public function personal($sede){
-        date_default_timezone_set('America/Lima');
-        $fecha = date('Y-m-d');
-        try{
-            $trabajadores = DB::table('trabajadors as t')
-            ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
-            ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
-            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            ->where('t.Vigente', 1)
-            ->where('p.Vigente', 1)
-            ->where('ass.Vigente', 1)
-            ->where('ass.CodigoSede', $sede)
-            ->where('ass.FechaFin', '>=', $fecha)
-            ->get();
             return response()->json($trabajadores);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
-
     }
 
-    public function listarTipoMoneda(){
-        try{
+    public function personal($sede)
+    {
+        date_default_timezone_set('America/Lima');
+        $fecha = date('Y-m-d');
+        try {
+            $trabajadores = DB::table('trabajadors as t')
+                ->select('t.Codigo', 'p.Nombres', 'p.Apellidos')
+                ->join('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
+                ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+                ->where('t.Vigente', 1)
+                ->where('p.Vigente', 1)
+                ->where('ass.Vigente', 1)
+                ->where('ass.CodigoSede', $sede)
+                ->where('ass.FechaFin', '>=', $fecha)
+                ->get();
+            return response()->json($trabajadores);
+        } catch (\Exception $e) {
+            return response()->json('Error en la consulta: ' . $e->getMessage());
+        }
+    }
+
+    public function listarTipoMoneda()
+    {
+        try {
             $resp = DB::table('tipomoneda')
-            ->select('Codigo', 'Nombre', 'Siglas')
-            ->where('Vigente', 1)
-            ->get();
+                ->select('Codigo', 'Nombre', 'Siglas')
+                ->where('Vigente', 1)
+                ->get();
 
             return response()->json($resp);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarMedicos($sede){ //Para Contrato y Ventas
+    public function listarMedicos($sede)
+    { //Para Contrato y Ventas
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d');
-        try{
+        try {
 
             $resultado = DB::table('trabajadors as t')
                 ->join('asignacion_sedes as ags', 'ags.CodigoTrabajador', '=', 't.Codigo')
@@ -427,13 +461,14 @@ class ControladorGeneralController extends Controller
                 ->get();
 
             return response()->json($resultado);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarPacientes($sede){
-        try{
+    public function listarPacientes($sede)
+    {
+        try {
             $resultado = DB::table('personas as p')
                 ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
                 ->select('p.Codigo', 'p.Nombres', 'p.Apellidos')
@@ -442,66 +477,69 @@ class ControladorGeneralController extends Controller
                 ->where('s.Codigo', $sede)
                 ->get();
             return response()->json($resultado);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarMotivoNotaCredito(){
-        try{
+    public function listarMotivoNotaCredito()
+    {
+        try {
             $resultado = DB::table('motivonotacredito')
                 ->select('Codigo', 'Nombre', 'CodigoSUNAT')
                 ->where('Vigente', 1)
                 ->get();
             return response()->json($resultado);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarMotivoAnulacionContrato(){
-        try{
+    public function listarMotivoAnulacionContrato()
+    {
+        try {
             $motivos = DB::table('motivoanulacioncontrato')
-            ->where('Vigente', 1)
-            ->select('Codigo', 'Nombre', 'Descripcion')
-            ->get();
+                ->where('Vigente', 1)
+                ->select('Codigo', 'Nombre', 'Descripcion')
+                ->get();
             return response()->json($motivos);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarDonantes(){
-        try{
+    public function listarDonantes()
+    {
+        try {
             $personas = DB::table('personas')
-            ->select(
-                'Codigo',
-                DB::raw("CONCAT(Nombres, ' ', Apellidos) as Nombres")
-            )
-            ->where('Vigente', 1)
-            ->get();
+                ->select(
+                    'Codigo',
+                    DB::raw("CONCAT(Nombres, ' ', Apellidos) as Nombres")
+                )
+                ->where('Vigente', 1)
+                ->get();
 
             return response()->json($personas);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
-        }   
+        }
     }
 
 
-    public function listarCategoriaProducto(){
-        try{
+    public function listarCategoriaProducto()
+    {
+        try {
             $categoria = DB::table('categoriaproducto')
-            ->select(
-                'Codigo',
-                'Nombre'
-            )
-            ->where('Vigente', 1)
-            ->get();
+                ->select(
+                    'Codigo',
+                    'Nombre'
+                )
+                ->where('Vigente', 1)
+                ->get();
 
             return response()->json($categoria);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json('Error en la consulta: ' . $e->getMessage());
-        }   
+        }
     }
-
 }

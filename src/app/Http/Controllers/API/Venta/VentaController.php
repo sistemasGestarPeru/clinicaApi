@@ -67,16 +67,17 @@ class VentaController extends Controller
         //
     }
 
-    public function registrarEnvio(array $data){
+    public function registrarEnvio(array $data)
+    {
         // $fechaActual = date('Y-m-d');
 
         // $data['Fecha'] = $fechaActual;
-        try{
+        try {
             EnvioFacturacion::create($data);
             return [
                 'message' => 'Envio de la factura electronica registrado correctamente.'
             ];
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return [
                 'message' => 'Error al registrar el envio de la factura electronica.',
                 'error' => $e->getMessage()
@@ -106,7 +107,7 @@ class VentaController extends Controller
                     'e.TokenPSE as TokenPSE'
                 ])
                 ->first();
-            
+
             if (!$datosEmisor) {
                 return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
             }
@@ -116,7 +117,7 @@ class VentaController extends Controller
                 ->where('tdv.Codigo', $ventaData['CodigoTipoDocumentoVenta'])
                 ->select('tdv.CodigoSUNAT')
                 ->first();
-    
+
             // Obtener datos del cliente
             if ($ventaData['CodigoPersona'] != null) {
                 $cliente = DB::table('personas as p')
@@ -129,8 +130,7 @@ class VentaController extends Controller
                         'p.Direccion'
                     )
                     ->first();
-            } 
-            elseif ($ventaData['CodigoClienteEmpresa'] != null) {
+            } elseif ($ventaData['CodigoClienteEmpresa'] != null) {
                 $cliente = DB::table('clienteempresa')
                     ->where('Codigo', $ventaData['CodigoClienteEmpresa'])
                     ->select(
@@ -148,23 +148,23 @@ class VentaController extends Controller
             $fechaHora = Carbon::parse($ventaData['Fecha']);
             $fechaEmision = $fechaHora->format('Y-m-d');
             $horaEmision = $fechaHora->format('H:i:s');
-    
+
             // Procesar detalles
             $detallesFormateados = [];
-            
+
             foreach ($detallesVenta as $detalle) {
 
                 $datosProductoSede = DB::table('sedeproducto as sp')
-                ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
-                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
-                ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
-                ->where('p.Codigo', $detalle['CodigoProducto'])
-                ->where('sp.CodigoSede', $ventaData['CodigoSede'])
-                ->select([
-                    'um.CodigoSUNAT as unidadMedida',
-                    'tg.CodigoSUNAT as tipoGravado'
-                ])
-                ->first();
+                    ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+                    ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
+                    ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
+                    ->where('p.Codigo', $detalle['CodigoProducto'])
+                    ->where('sp.CodigoSede', $ventaData['CodigoSede'])
+                    ->select([
+                        'um.CodigoSUNAT as unidadMedida',
+                        'tg.CodigoSUNAT as tipoGravado'
+                    ])
+                    ->first();
 
                 $detallesFormateados[] = [
                     'num_lin_item' => $detalle['Numero'],
@@ -201,108 +201,109 @@ class VentaController extends Controller
                     $identificador = 'NN'; //NO ENCONTRADO;
             }
 
-            if($tipoDocumentoVenta->CodigoSUNAT == '07' || $tipoDocumentoVenta->CodigoSUNAT == '08'){
+            if ($tipoDocumentoVenta->CodigoSUNAT == '07' || $tipoDocumentoVenta->CodigoSUNAT == '08') {
                 $debito_credito_nota = DB::table('documentoventa as nc')
-                ->join('documentoventa as dr', 'nc.CodigoDocumentoReferencia', '=', 'dr.Codigo')
-                ->join('motivonotacredito as mnc', 'nc.CodigoMotivoNotaCredito', '=', 'mnc.Codigo')
-                ->join('tipodocumentoventa as tdv', 'dr.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
-                ->where('nc.CodigoDocumentoReferencia', $ventaData['CodigoDocumentoReferencia'])
-                ->select([
-                    'tdv.CodigoSUNAT as DocumentoCodigo',
-                    'dr.Serie',
-                    'dr.Numero',
-                    'dr.Fecha',
-                    'mnc.CodigoSUNAT as MotivoCodigo',
-                    'mnc.Nombre as Motivo',
-                ])
-                ->first();
+                    ->join('documentoventa as dr', 'nc.CodigoDocumentoReferencia', '=', 'dr.Codigo')
+                    ->join('motivonotacredito as mnc', 'nc.CodigoMotivoNotaCredito', '=', 'mnc.Codigo')
+                    ->join('tipodocumentoventa as tdv', 'dr.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                    ->where('nc.CodigoDocumentoReferencia', $ventaData['CodigoDocumentoReferencia'])
+                    ->select([
+                        'tdv.CodigoSUNAT as DocumentoCodigo',
+                        'dr.Serie',
+                        'dr.Numero',
+                        'dr.Fecha',
+                        'mnc.CodigoSUNAT as MotivoCodigo',
+                        'mnc.Nombre as Motivo',
+                    ])
+                    ->first();
             }
 
             // Construir el JSON final
-            $facturacionElectronica = array_merge([
-                // Datos generales...
-                'identificador' => $identificador,
-                'fec_emis' => $fechaEmision,
-                'hora_emis' => $horaEmision,
-                'txt_serie' => $ventaData['Serie'] ?? '',
-                'txt_correlativo' => $ventaData['Numero'] ?? '',
-                'cod_tip_cpe' =>  $tipoDocumentoVenta->CodigoSUNAT,
-                'cod_mnd'=> 'PEN',
-                'cod_tip_escenario'=> '03',
-                'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
-                'num_ruc_emis'=> $datosEmisor->num_ruc_emis,
-                'nom_rzn_soc_emis' => $datosEmisor->nom_rzn_soc_emis,
-                'cod_tip_nif_emis' => $datosEmisor->cod_tip_nif_emis,
-                'cod_loc_emis' => 1, //vALIDAR LUEGO
-                'cod_ubi_emis' => $datosEmisor->cod_ubi_emis,
-                'txt_dmcl_fisc_emis' => $datosEmisor->txt_dmcl_fisc_emis,
-                'txt_prov_emis' => $datosEmisor->txt_prov_emis,
-                'txt_dpto_emis' => $datosEmisor->txt_dpto_emis,
-                'txt_distr_emis' => $datosEmisor->txt_distr_emis,
-            
-                // Cliente
-                'num_iden_recp' => $cliente->NumeroDocumento ?? null,
-                'cod_tip_nif_recp' => $cliente->CodigoSUNAT ?? null,
-                'nom_rzn_soc_recp' => $cliente->Nombres ?? null,
-                'txt_dmcl_fisc_recep'=> $cliente->Direccion ?? null,
-                'txt_correo_adquiriente' => $cliente->Correo ?? null,
-            
-                // Venta
-                'mnt_tot_gravadas'     => round(abs($ventaData['TotalGravado'] ?? 0), 4),
-                'mnt_tot_inafectas'    => round(abs($ventaData['TotalInafecto'] ?? 0), 4),
-                'mnt_tot_exoneradas'   => round(abs($ventaData['TotalExonerado'] ?? 0), 4),
-                'mnt_tot_gratuitas'    => round(abs($ventaData['TotalGratis'] ?? 0), 4),
-                'mnt_tot_desc_global'  => round(abs($ventaData['TotalDescuento'] ?? 0), 4),
-                'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
-                'mnt_tot'              => round(abs($ventaData['MontoTotal'] ?? 0), 4),
-                'mnt_tot_base_imponible' => 0.00,
-                'mnt_tot_percepcion' => 0.00,
-                'mnt_tot_a_percibir' => 0.00,
-                'porcentaje_dscto'=> '',
-                'cod_operacion' => '0101',
-                'mnt_anticipo'=> 0.00,
-                'mnt_otros_cargos'=> 0.00,
-                'tipo_percepcion'=> '',
-                'porcentaje_percepcion'=> '',
-                'tipo_cambio'=> 0.00,
-                'txt_observ'=> '',
-            
-                'detalles' => $detallesFormateados
-            ], 
-            in_array($tipoDocumentoVenta->CodigoSUNAT, ['07', '08']) ? [ // Si es NC o ND
-                'cod_tip_nc_nd_ref' => $debito_credito_nota->DocumentoCodigo, // Código del tipo de documento de referencia
-                'txt_serie_ref' => $debito_credito_nota->Serie, // Serie del comprobante de referencia
-                'txt_correlativo_cpe_ref' => $debito_credito_nota->Numero, // Correlativo del comprobante de referencia
-                'fec_emis_ref' => $debito_credito_nota->Fecha, // Fecha de emisión del comprobante de referencia
-                'cod_cpe_ref' => $debito_credito_nota->MotivoCodigo, // Código SUNAT del comprobante de referencia
-                'txt_sustento' => $debito_credito_nota->Motivo // Sustento de la nota
-            ] : []);
-            
+            $facturacionElectronica = array_merge(
+                [
+                    // Datos generales...
+                    'identificador' => $identificador,
+                    'fec_emis' => $fechaEmision,
+                    'hora_emis' => $horaEmision,
+                    'txt_serie' => $ventaData['Serie'] ?? '',
+                    'txt_correlativo' => $ventaData['Numero'] ?? '',
+                    'cod_tip_cpe' =>  $tipoDocumentoVenta->CodigoSUNAT,
+                    'cod_mnd' => 'PEN',
+                    'cod_tip_escenario' => '03',
+                    'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
+                    'num_ruc_emis' => $datosEmisor->num_ruc_emis,
+                    'nom_rzn_soc_emis' => $datosEmisor->nom_rzn_soc_emis,
+                    'cod_tip_nif_emis' => $datosEmisor->cod_tip_nif_emis,
+                    'cod_loc_emis' => 1, //vALIDAR LUEGO
+                    'cod_ubi_emis' => $datosEmisor->cod_ubi_emis,
+                    'txt_dmcl_fisc_emis' => $datosEmisor->txt_dmcl_fisc_emis,
+                    'txt_prov_emis' => $datosEmisor->txt_prov_emis,
+                    'txt_dpto_emis' => $datosEmisor->txt_dpto_emis,
+                    'txt_distr_emis' => $datosEmisor->txt_distr_emis,
+
+                    // Cliente
+                    'num_iden_recp' => $cliente->NumeroDocumento ?? null,
+                    'cod_tip_nif_recp' => $cliente->CodigoSUNAT ?? null,
+                    'nom_rzn_soc_recp' => $cliente->Nombres ?? null,
+                    'txt_dmcl_fisc_recep' => $cliente->Direccion ?? null,
+                    'txt_correo_adquiriente' => $cliente->Correo ?? null,
+
+                    // Venta
+                    'mnt_tot_gravadas'     => round(abs($ventaData['TotalGravado'] ?? 0), 4),
+                    'mnt_tot_inafectas'    => round(abs($ventaData['TotalInafecto'] ?? 0), 4),
+                    'mnt_tot_exoneradas'   => round(abs($ventaData['TotalExonerado'] ?? 0), 4),
+                    'mnt_tot_gratuitas'    => round(abs($ventaData['TotalGratis'] ?? 0), 4),
+                    'mnt_tot_desc_global'  => round(abs($ventaData['TotalDescuento'] ?? 0), 4),
+                    'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
+                    'mnt_tot'              => round(abs($ventaData['MontoTotal'] ?? 0), 4),
+                    'mnt_tot_base_imponible' => 0.00,
+                    'mnt_tot_percepcion' => 0.00,
+                    'mnt_tot_a_percibir' => 0.00,
+                    'porcentaje_dscto' => '',
+                    'cod_operacion' => '0101',
+                    'mnt_anticipo' => 0.00,
+                    'mnt_otros_cargos' => 0.00,
+                    'tipo_percepcion' => '',
+                    'porcentaje_percepcion' => '',
+                    'tipo_cambio' => 0.00,
+                    'txt_observ' => '',
+
+                    'detalles' => $detallesFormateados
+                ],
+                in_array($tipoDocumentoVenta->CodigoSUNAT, ['07', '08']) ? [ // Si es NC o ND
+                    'cod_tip_nc_nd_ref' => $debito_credito_nota->DocumentoCodigo, // Código del tipo de documento de referencia
+                    'txt_serie_ref' => $debito_credito_nota->Serie, // Serie del comprobante de referencia
+                    'txt_correlativo_cpe_ref' => $debito_credito_nota->Numero, // Correlativo del comprobante de referencia
+                    'fec_emis_ref' => $debito_credito_nota->Fecha, // Fecha de emisión del comprobante de referencia
+                    'cod_cpe_ref' => $debito_credito_nota->MotivoCodigo, // Código SUNAT del comprobante de referencia
+                    'txt_sustento' => $debito_credito_nota->Motivo // Sustento de la nota
+                ] : []
+            );
+
             // Enviar el JSON a la API de facturación electrónica
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'Authorization' => $datosEmisor->TokenPSE
             ])->post(env('PSE_API_URL'), $facturacionElectronica);
-            
+
 
             if ($response->successful()) {
                 $data = $response->json();
                 $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
                 $resultado = $data['Resultado'] ?? false;
-                
+
                 return [
                     'success' => $resultado,
                     'Mensaje' => $mensaje,
                     'JSON' => $facturacionElectronica,
                     'Estado' => $resultado ? 'A' : 'R',
                 ];
-
             } else {
                 $status = $response->status();
                 $mensajeError = $status === 401
                     ? '401 - No autorizado'
                     : '500 - Error interno del servidor';
-            
+
                 return [
                     'success' => false,
                     'Mensaje' => $mensajeError,
@@ -310,7 +311,6 @@ class VentaController extends Controller
                     'Estado' => 'N',
                 ];
             }
-    
         } catch (\Exception $e) {
             // Manejo de errores
             return [
@@ -324,9 +324,10 @@ class VentaController extends Controller
     }
 
 
-    public function anularFacturacionElectronica($codigoVenta, $anulacionData, $codigoAnulacion){
+    public function anularFacturacionElectronica($codigoVenta, $anulacionData, $codigoAnulacion)
+    {
 
-        try{
+        try {
 
             $nombreMotivo = DB::table('anulacion as a')
                 ->join('motivoanulacion as ma', 'a.CodigoMotivo', '=', 'ma.Codigo')
@@ -336,31 +337,31 @@ class VentaController extends Controller
             //Obtener datos de la venta
 
             $datosVenta = DB::table('documentoventa as dv')
-            ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
-            ->where('dv.Codigo', $codigoVenta)
-            ->select([
-                'dv.Codigo',
-                'dv.Fecha',
-                'dv.Serie',
-                'dv.Numero',
-                'tdv.CodigoSUNAT',
-                'dv.CodigoSede'
-            ])
-            ->first();
+                ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
+                ->where('dv.Codigo', $codigoVenta)
+                ->select([
+                    'dv.Codigo',
+                    'dv.Fecha',
+                    'dv.Serie',
+                    'dv.Numero',
+                    'tdv.CodigoSUNAT',
+                    'dv.CodigoSede'
+                ])
+                ->first();
 
             // Obtener datos del emisor 
             $datosEmisor = DB::table('sedesrec as s')
-            ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
-            ->where('s.Codigo', $datosVenta->CodigoSede)
-            ->select([
-                'e.RUC as num_ruc_emis',
-                'e.IDPSE as cod_cliente_emis',
-                'e.TokenPSE as TokenPSE'
-            ])
-            ->first();
+                ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
+                ->where('s.Codigo', $datosVenta->CodigoSede)
+                ->select([
+                    'e.RUC as num_ruc_emis',
+                    'e.IDPSE as cod_cliente_emis',
+                    'e.TokenPSE as TokenPSE'
+                ])
+                ->first();
 
             if (!$datosEmisor) {
-            return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
+                return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
             }
             // Construir el JSON final
 
@@ -384,15 +385,15 @@ class VentaController extends Controller
             $anulacionJSON = [
                 'identificador' => 'CB', //Para todo incluyendo Bolete Factura etc (creo)
                 'fec_emis' => $datosVenta->Fecha,
-                'fec_gener_baja' => $anulacionData['Fecha'], 
-                'cod_tip_escenario' => '03', 
+                'fec_gener_baja' => $anulacionData['Fecha'],
+                'cod_tip_escenario' => '03',
                 'txt_serie' => $datosVenta->Serie,
                 'cod_iden_cb' => 'C', // Ni idea
                 'cod_cliente_emis' => $datosEmisor->cod_cliente_emis,
                 'num_ruc_emis' => $datosEmisor->num_ruc_emis,
                 'txt_correlativo' => $datosVenta->Numero,
                 'cod_tip_cpe' => $datosVenta->CodigoSUNAT,
-                'txt_descr_mtvo_baja' =>  $nombreMotivo 
+                'txt_descr_mtvo_baja' =>  $nombreMotivo
             ];
 
 
@@ -407,14 +408,13 @@ class VentaController extends Controller
                 $data = $response->json();
                 $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
                 $resultado = $data['Resultado'] ?? false;
-                
+
                 return [
                     'success' => $resultado,
                     'Mensaje' => $mensaje,
                     'JSON' => $anulacionJSON,
                     'Estado' => $resultado ? 'A' : 'R',
                 ];
-
             } else {
 
                 $status = $response->status();
@@ -428,13 +428,10 @@ class VentaController extends Controller
                     'JSON' => $anulacionJSON,
                     'Estado' => 'N',
                 ];
-
             }
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return  ['error' => 'Error al generar el JSON de anulación electrónica.', 'bd' => $e->getMessage()];
         }
-
     }
 
 
@@ -588,7 +585,7 @@ class VentaController extends Controller
             $pago = Pago::create($pagoData);
             $codigoPago = $pago->Codigo;
 
-            if($ventaData && $ventaData > 0){
+            if ($ventaData && $ventaData > 0) {
 
                 PagoDocumentoVenta::create([
                     'CodigoPago' => $codigoPago,
@@ -630,6 +627,10 @@ class VentaController extends Controller
         }
         if (isset($ventaData['CodigoPersona']) && $ventaData['CodigoPersona'] == 0) {
             $ventaData['CodigoPersona'] = null;
+        }
+
+        if (isset($ventaData['CodigoMedico']) && $ventaData['CodigoMedico'] == 0) {
+            $ventaData['CodigoMedico'] = null;
         }
 
         //validar Detalles de Venta
@@ -737,7 +738,6 @@ class VentaController extends Controller
             }
 
             DB::commit();
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -746,7 +746,7 @@ class VentaController extends Controller
             ], 500);
         }
 
-    // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
+        // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
         try {
             $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
 
@@ -763,7 +763,6 @@ class VentaController extends Controller
             ];
 
             $registroEnvio = $this->registrarEnvio($dataEnvio);
-
         } catch (\Exception $fe) {
             // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
             $data = [
@@ -775,7 +774,7 @@ class VentaController extends Controller
         }
 
         return response()->json([
-            'message' => 'Venta registrada correctamente.',
+            'message' => 'Nota de Crédito registrada correctamente.',
             'facturacion' => [
                 'success' => $data['success'],
                 'Mensaje' => $data['Mensaje'],
@@ -783,7 +782,6 @@ class VentaController extends Controller
             ],
             'envio' => $registroEnvio,
         ], 201);
-
     }
 
 
@@ -880,52 +878,52 @@ class VentaController extends Controller
         }
 
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        $ventaCreada = Venta::create($ventaData);
+        try {
+            $ventaCreada = Venta::create($ventaData);
 
-        $ventaData['TotalDescuento'] = 0;
+            $ventaData['TotalDescuento'] = 0;
 
-        foreach ($detallesVentaData as $detalle) {
-            $detalle['CodigoVenta'] = $ventaCreada->Codigo;
-            if (!isset($detalle['Descuento'])) {
-                $detalle['Descuento'] = 0;
+            foreach ($detallesVentaData as $detalle) {
+                $detalle['CodigoVenta'] = $ventaCreada->Codigo;
+                if (!isset($detalle['Descuento'])) {
+                    $detalle['Descuento'] = 0;
+                }
+                $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
+                DetalleVenta::create($detalle);
             }
-            $ventaData['TotalDescuento'] += $detalle['Descuento'] * $detalle['Cantidad'];
-            DetalleVenta::create($detalle);
-        }
 
-        if ($pagoData) {
-            $pagoCreado = Pago::create($pagoData);
-            PagoDocumentoVenta::create([
-                'CodigoPago' => $pagoCreado->Codigo,
-                'CodigoDocumentoVenta' => $ventaCreada->Codigo,
-                'Monto' => $pagoData['Monto']
-            ]);
-        }
-
-        if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto']) {
-            DB::table('contratoproducto')
-                ->where('Codigo', $ventaData['CodigoContratoProducto'])
-                ->increment('TotalPagado', $pagoData['Monto']);
-        }
-
-        if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
-            $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
-            Detraccion::create($detraccion);
-        }
-
-        if (!empty($cantidadesPorTemporal)) {
-            foreach ($cantidadesPorTemporal as $temporal => $cantidadReducir) {
-                DB::table('preciotemporal')
-                    ->where('Codigo', $temporal)
-                    ->where('Stock', '>=', $cantidadReducir)
-                    ->decrement('Stock', $cantidadReducir);
+            if ($pagoData) {
+                $pagoCreado = Pago::create($pagoData);
+                PagoDocumentoVenta::create([
+                    'CodigoPago' => $pagoCreado->Codigo,
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                    'Monto' => $pagoData['Monto']
+                ]);
             }
-        }
 
-        DB::commit(); // ✅ Solo si todo lo anterior fue exitoso
+            if (isset($ventaData['CodigoContratoProducto']) && $ventaData['CodigoContratoProducto']) {
+                DB::table('contratoproducto')
+                    ->where('Codigo', $ventaData['CodigoContratoProducto'])
+                    ->increment('TotalPagado', $pagoData['Monto']);
+            }
+
+            if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
+                $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
+                Detraccion::create($detraccion);
+            }
+
+            if (!empty($cantidadesPorTemporal)) {
+                foreach ($cantidadesPorTemporal as $temporal => $cantidadReducir) {
+                    DB::table('preciotemporal')
+                        ->where('Codigo', $temporal)
+                        ->where('Stock', '>=', $cantidadReducir)
+                        ->decrement('Stock', $cantidadReducir);
+                }
+            }
+
+            DB::commit(); // ✅ Solo si todo lo anterior fue exitoso
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -936,13 +934,13 @@ class VentaController extends Controller
         }
 
         // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
-        
+
         $notaVenta = DB::table('tipodocumentoventa')
             ->where('Codigo', $ventaData['CodigoTipoDocumentoVenta'])
             ->selectRaw('CodigoSUNAT IS NOT NULL AS Existe')
             ->value('Existe');
 
-        if($notaVenta != 0){
+        if ($notaVenta != 0) {
             try {
                 $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
 
@@ -959,7 +957,6 @@ class VentaController extends Controller
                 ];
 
                 $registroEnvio = $this->registrarEnvio($dataEnvio);
-
             } catch (\Exception $fe) {
                 // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
                 $data = [
@@ -969,12 +966,11 @@ class VentaController extends Controller
                 ];
                 $registroEnvio = null;
             }
-        }else{
+        } else {
 
             return response()->json([
                 'message' => 'Venta registrada correctamente.',
             ], 201);
-
         }
 
         return response()->json([
@@ -1525,8 +1521,8 @@ class VentaController extends Controller
             //Obtener la sede de la venta
 
             $sede_venta = DB::table('documentoventa')
-            ->where('Codigo', $codigoVenta)
-            ->value('CodigoSede');
+                ->where('Codigo', $codigoVenta)
+                ->value('CodigoSede');
 
             // Generar JSON para anulacion electrónica con los datos que ya tenemos
             $dataFactura = $this->anularFacturacionElectronica($codigoVenta, $anulacionData, $anulacionCreada->Codigo);
@@ -1551,7 +1547,6 @@ class VentaController extends Controller
                 ],
                 'envio' => $respEnvio,
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al anular la venta.', 'bd' => $e->getMessage()], 500);
@@ -1596,6 +1591,14 @@ class VentaController extends Controller
             }
 
             return response()->json($serie);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function devolucionNotaCredito()
+    {
+        try {
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -1701,12 +1704,10 @@ class VentaController extends Controller
                 //     ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
                 //     ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
                 DB::commit();
-
             } else {
                 DB::rollBack();
                 return response()->json(['message' => 'No se encontró el documento de venta a canjear.'], 404);
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1715,14 +1716,14 @@ class VentaController extends Controller
             ], 500);
         }
 
-        try{
+        try {
 
             $detalleVentaArray = collect($detalleVenta)->map(function ($item) {
                 return (array) $item;
             })->toArray();
 
             // Generar JSON para facturación electrónica con los datos que ya tenemos
-            
+
             $data = $this->detallesFacturacionElectronica($nuevoDocumentoVenta, $detalleVentaArray, $nuevoDocumentoVenta->Codigo);
             // Generar insert de la tabla del envio de la factura electronica
             $dataEnvio['Tipo'] = 'F';
@@ -1730,7 +1731,7 @@ class VentaController extends Controller
             $dataEnvio['URL'] = env('PSE_API_URL');
             $dataEnvio['Fecha'] = $canjeData['Fecha'];
             $dataEnvio['CodigoTrabajador'] = $canjeData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $data['Estado']; 
+            $dataEnvio['Estado'] = $data['Estado'];
             $dataEnvio['CodigoDocumentoVenta'] = $nuevoDocumentoVenta->Codigo;
             $dataEnvio['Mensaje'] = $data['Mensaje'];
             $dataEnvio['CodigoSede'] = $venta->CodigoSede;
@@ -1740,8 +1741,7 @@ class VentaController extends Controller
             // 'Estado' => 'A',
 
             $registroEnvio = $this->registrarEnvio($dataEnvio);
-
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al registrar la Venta.', 'db' => $e->getMessage()], 500);
         }
@@ -1755,7 +1755,6 @@ class VentaController extends Controller
             ],
             'envio' => $registroEnvio,
         ], 201);
-
     }
 
 
