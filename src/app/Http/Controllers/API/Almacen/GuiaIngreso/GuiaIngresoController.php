@@ -55,9 +55,9 @@ class GuiaIngresoController extends Controller
         $filtros = $request->all();
         try {
             $guiaIngreso = DB::table('guiaingreso')
-            ->select(
-                'Codigo',
-                DB::raw("
+                ->select(
+                    'Codigo',
+                    DB::raw("
                     CASE 
                         WHEN TipoDocumento = 'G' THEN 'Guia de remisión'
                         WHEN TipoDocumento = 'N' THEN 'Nota de salida'
@@ -66,12 +66,12 @@ class GuiaIngresoController extends Controller
                         ELSE 'Desconocido'
                     END AS TipoDocumento
                 "),
-                DB::raw("CONCAT(Serie, ' ', Numero) AS Documento"),
-                'Fecha',
-                'Vigente'
-            )
-            ->where('CodigoSede', $filtros['CodigoSede'])
-            ->get();
+                    DB::raw("CONCAT(Serie, ' - ', Numero) AS Documento"),
+                    'Fecha',
+                    'Vigente'
+                )
+                ->where('CodigoSede', $filtros['CodigoSede'])
+                ->get();
 
             return response()->json($guiaIngreso, 200);
         } catch (\Exception $e) {
@@ -180,8 +180,9 @@ class GuiaIngresoController extends Controller
         }
     }
 
-    public function consultarGuia($codigo){
-        try{
+    public function consultarGuia($codigo)
+    {
+        try {
 
             $guiaIngreso = DB::table('guiaingreso')
                 ->select('Codigo', 'TipoDocumento', 'Serie', 'Numero', 'Fecha', 'Vigente')
@@ -198,16 +199,16 @@ class GuiaIngresoController extends Controller
                 'guiaIngreso' => $guiaIngreso,
                 'detalleGuia' => $detalleGuia,
             ], 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al consultar la guia de ingreso', 'bd' => $e->getMessage()], 500);
         }
     }
 
 
-    public function actualizarGuiaIngreso(Request $request){
+    public function actualizarGuiaIngreso(Request $request)
+    {
         DB::beginTransaction();
-        try{
+        try {
 
             // 1. Validar si la guía de ingreso existe
             $guiaIngreso = DB::table('guiaingreso')
@@ -223,7 +224,7 @@ class GuiaIngresoController extends Controller
                 return response()->json(['error' => 'No se puede actualizar una Guía de Ingreso en estado Inactivo.'], 400);
             }
 
-        // -------------------------------- 
+            // -------------------------------- 
             // 1. Buscar si hay algún lote activo vinculado a los detalles de esta guía
             $tieneLotesActivos = DB::table('lote as l')
                 ->join('detalleguiaingreso as dgi', 'l.CodigoDetalleIngreso', '=', 'dgi.Codigo')
@@ -238,16 +239,15 @@ class GuiaIngresoController extends Controller
                 ], 400);
             }
             // 3. Dar de baja a la guía
-            if($request->Vigente == 0){
-                
+            if ($request->Vigente == 0) {
+
                 DB::table('guiaingreso')
-                ->where('Codigo', $request->Codigo)
-                ->update(['Vigente' => 0]);
+                    ->where('Codigo', $request->Codigo)
+                    ->update(['Vigente' => 0]);
             }
             DB::commit();
             return response()->json(['mensaje' => 'Guía de ingreso anulada correctamente.']);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al actualizar la guia de ingreso', 'bd' => $e->getMessage()], 500);
         }

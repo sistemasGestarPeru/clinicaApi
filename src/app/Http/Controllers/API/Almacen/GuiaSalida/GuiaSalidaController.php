@@ -72,7 +72,24 @@ class GuiaSalidaController extends Controller
         $filtros = $request->all();
         try {
 
-            $guiaSalida = GuiaSalida::where('CodigoSede', $filtros['CodigoSede'])->get();
+            $guiaSalida = DB::table('guiaSalida')
+                ->select(
+                    'Codigo',
+                    DB::raw("
+                    CASE 
+                        WHEN TipoDocumento = 'G' THEN 'Guia de remisión'
+                        WHEN TipoDocumento = 'N' THEN 'Nota de salida'
+                        WHEN TipoDocumento = 'T' THEN 'Transformación'
+                        ELSE 'Desconocido'
+                    END AS TipoDocumento
+                "),
+                    DB::raw("CONCAT(Serie, ' - ', Numero) AS Documento"),
+                    'Fecha',
+                    'Vigente'
+                )
+                ->where('CodigoSede', $filtros['CodigoSede'])
+                ->get();
+
 
             return response()->json($guiaSalida, 200);
         } catch (\Exception $e) {
@@ -85,65 +102,65 @@ class GuiaSalidaController extends Controller
         // $filtros = $request->all();
         try {
             $ventas = DB::table('documentoventa as dv')
-            ->select([
-                'dv.Codigo',
-                'dv.Serie',
-                'td.Siglas',
-                DB::raw("LPAD(dv.Numero, 4, '0') as Numero"),
-                DB::raw("DATE(dv.Fecha) as Fecha"),
-                DB::raw("CASE 
+                ->select([
+                    'dv.Codigo',
+                    'dv.Serie',
+                    'td.Siglas',
+                    DB::raw("LPAD(dv.Numero, 4, '0') as Numero"),
+                    DB::raw("DATE(dv.Fecha) as Fecha"),
+                    DB::raw("CASE 
                             WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
                             ELSE ce.RazonSocial
                         END AS Cliente")
-            ])
-            ->join('tipodocumentoventa as td', 'dv.CodigoTipoDocumentoVenta', '=', 'td.Codigo')
-            ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
-            ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
-            ->where('dv.Vigente', 1)
-            ->where('dv.CodigoSede', $sede)
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->fromSub(function ($sub) {
-                        $sub->select([
+                ])
+                ->join('tipodocumentoventa as td', 'dv.CodigoTipoDocumentoVenta', '=', 'td.Codigo')
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+                ->where('dv.Vigente', 1)
+                ->where('dv.CodigoSede', $sede)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->fromSub(function ($sub) {
+                            $sub->select([
                                 'P.Codigo as CodigoProducto',
                                 'DDV.Cantidad',
                                 'DDV.CodigoVenta',
                             ])
-                            ->from('detalledocumentoventa as DDV')
-                            ->join('producto as P', 'P.Codigo', '=', 'DDV.CodigoProducto')
-                            ->where('P.Tipo', 'B')
-                            ->unionAll(
-                                DB::table('detalledocumentoventa as DDV')
-                                    ->select([
-                                        'P.Codigo as CodigoProducto',
-                                        DB::raw('DDV.Cantidad * PC.Cantidad as Cantidad'),
-                                        'DDV.CodigoVenta',
-                                    ])
-                                    ->join('producto as Co', 'Co.Codigo', '=', 'DDV.CodigoProducto')
-                                    ->join('productocombo as PC', 'PC.CodigoCombo', '=', 'Co.Codigo')
-                                    ->join('producto as P', 'P.Codigo', '=', 'PC.CodigoProducto')
-                                    ->where('Co.Tipo', 'C')
-                                    ->where('P.Tipo', 'B')
-                            );
-                    }, 'PrVe')
-                    ->leftJoinSub(function ($subEnt) {
-                        $subEnt->select([
+                                ->from('detalledocumentoventa as DDV')
+                                ->join('producto as P', 'P.Codigo', '=', 'DDV.CodigoProducto')
+                                ->where('P.Tipo', 'B')
+                                ->unionAll(
+                                    DB::table('detalledocumentoventa as DDV')
+                                        ->select([
+                                            'P.Codigo as CodigoProducto',
+                                            DB::raw('DDV.Cantidad * PC.Cantidad as Cantidad'),
+                                            'DDV.CodigoVenta',
+                                        ])
+                                        ->join('producto as Co', 'Co.Codigo', '=', 'DDV.CodigoProducto')
+                                        ->join('productocombo as PC', 'PC.CodigoCombo', '=', 'Co.Codigo')
+                                        ->join('producto as P', 'P.Codigo', '=', 'PC.CodigoProducto')
+                                        ->where('Co.Tipo', 'C')
+                                        ->where('P.Tipo', 'B')
+                                );
+                        }, 'PrVe')
+                        ->leftJoinSub(function ($subEnt) {
+                            $subEnt->select([
                                 'gs.CodigoVenta',
                                 'dgs.CodigoProducto',
                                 DB::raw('SUM(dgs.Cantidad) as Cantidad')
                             ])
-                            ->from('guiasalida as gs')
-                            ->join('detalleguiasalida as dgs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
-                            ->groupBy('gs.CodigoVenta', 'dgs.CodigoProducto');
-                    }, 'Ent', function ($join) {
-                        $join->on('Ent.CodigoProducto', '=', 'PrVe.CodigoProducto')
-                            ->on('Ent.CodigoVenta', '=', 'PrVe.CodigoVenta');
-                    })
-                    ->whereRaw('PrVe.CodigoVenta = dv.Codigo')
-                    ->whereRaw('PrVe.Cantidad > COALESCE(Ent.Cantidad, 0)');
-            })
-            ->get();
-        
+                                ->from('guiasalida as gs')
+                                ->join('detalleguiasalida as dgs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
+                                ->groupBy('gs.CodigoVenta', 'dgs.CodigoProducto');
+                        }, 'Ent', function ($join) {
+                            $join->on('Ent.CodigoProducto', '=', 'PrVe.CodigoProducto')
+                                ->on('Ent.CodigoVenta', '=', 'PrVe.CodigoVenta');
+                        })
+                        ->whereRaw('PrVe.CodigoVenta = dv.Codigo')
+                        ->whereRaw('PrVe.Cantidad > COALESCE(Ent.Cantidad, 0)');
+                })
+                ->get();
+
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió un error al listar las Compras', 'bd' => $e->getMessage()], 500);
