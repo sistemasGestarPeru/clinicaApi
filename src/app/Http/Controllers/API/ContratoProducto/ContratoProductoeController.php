@@ -12,6 +12,7 @@ use App\Models\Recaudacion\DetalleContrato;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class ContratoProductoeController extends Controller
 {
@@ -62,26 +63,45 @@ class ContratoProductoeController extends Controller
 
         try {
             $producto = DB::table('sedeproducto as sp')
-            ->select(
-                'p.Codigo',
-                'p.Nombre',
-                'sp.Precio as Monto',
-                'p.Tipo',
-                'tg.Tipo as TipoGravado',
-                'sp.Stock'
-            )
-            ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
-            ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
-            ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
-            ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
-            ->where('p.Vigente', 1) // Filtro por Vigente en producto
-            ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
-            ->where('p.Tipo', '!=', 'C') 
-            ->where('p.Nombre', 'LIKE', "{$nombreProducto}%") // Filtro por Nombre
-            ->get();
+                ->select(
+                    'p.Codigo',
+                    'p.Nombre',
+                    'sp.Precio as Monto',
+                    'p.Tipo',
+                    'tg.Tipo as TipoGravado',
+                    'sp.Stock'
+                )
+                ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+                ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
+                ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
+                ->where('p.Vigente', 1) // Filtro por Vigente en producto
+                ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
+                ->where('p.Tipo', '!=', 'C')
+                ->where('p.Nombre', 'LIKE', "{$nombreProducto}%") // Filtro por Nombre
+                ->get();
+
+            // Log de éxito
+            Log::info('Productos encontrados correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'buscarProducto',
+                'nombreProducto' => $nombreProducto,
+                'Cantidad' => count($producto),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+
+            ]);
 
             return response()->json($producto);
         } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al buscar producto', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'buscarProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Error al buscar producto',
                 'error' => $e->getMessage()
@@ -158,12 +178,30 @@ class ContratoProductoeController extends Controller
             // Confirmar la transacción
             DB::commit();
 
+            // Log de éxito
+            Log::info('Contrato registrado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'registrarContratoProducto',
+                'NumContrato' => $Contrato->NumContrato,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Contrato registrado correctamente'
             ], 200);
         } catch (\Exception $e) {
             // Hacer rollback en caso de error
             DB::rollBack();
+
+            // Log de error
+            Log::error('Error al registrar contrato producto', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'registrarContratoProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json([
                 'message' => 'Error al registrar contrato producto',
@@ -178,35 +216,52 @@ class ContratoProductoeController extends Controller
         $codigoSede = $request->input('codigoSede');
         $nombre = $request->input('nombre');
         $documento = $request->input('documento');
-       // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
+        // ->where(DB::raw("DATE(cp.Fecha)"), $fecha)
 
         try {
             $contratos = DB::table('contratoproducto as cp')
-            ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
-            ->where('cp.CodigoSede', $codigoSede) // Filtrar por CódigoSede
-            ->when(!empty($nombre), function ($query) use ($nombre) {
-                return $query->where(function ($q) use ($nombre) {
-                    $q->where('p.Nombres', 'LIKE', "$nombre%")
-                        ->orWhere('p.Apellidos', 'LIKE', "$nombre%");
-                });
-            })
-            ->when(!empty($documento), function ($query) use ($documento) {
-                return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
-            })
+                ->join('personas as p', 'p.Codigo', '=', 'cp.CodigoPaciente')
+                ->where('cp.CodigoSede', $codigoSede) // Filtrar por CódigoSede
+                ->when(!empty($nombre), function ($query) use ($nombre) {
+                    return $query->where(function ($q) use ($nombre) {
+                        $q->where('p.Nombres', 'LIKE', "$nombre%")
+                            ->orWhere('p.Apellidos', 'LIKE', "$nombre%");
+                    });
+                })
+                ->when(!empty($documento), function ($query) use ($documento) {
+                    return $query->where('p.NumeroDocumento', 'LIKE', "$documento%");
+                })
 
-            ->orderByDesc('cp.Codigo')
-            ->select(
-                'cp.Codigo as Codigo',
-                DB::raw("DATE(cp.Fecha) as Fecha"),
-                'cp.Total as Total',
-                'cp.TotalPagado as TotalPagado',
-                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombrePaciente"),
-                'cp.Vigente as Vigente'
-            )
-            ->get();
+                ->orderByDesc('cp.Codigo')
+                ->select(
+                    'cp.Codigo as Codigo',
+                    DB::raw("DATE(cp.Fecha) as Fecha"),
+                    'cp.Total as Total',
+                    'cp.TotalPagado as TotalPagado',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombrePaciente"),
+                    'cp.Vigente as Vigente'
+                )
+                ->get();
+
+            // Log de éxito
+            Log::info('Contratos encontrados correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'buscarContratoProducto',
+                'Cantidad' => count($contratos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($contratos);
         } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al buscar contrato producto', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'buscarContratoProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Error al buscar contrato producto',
                 'error' => $e->getMessage()
@@ -214,11 +269,11 @@ class ContratoProductoeController extends Controller
         }
     }
 
-    public function anularContrato(Request $request) 
+    public function anularContrato(Request $request)
     {
         $codigo = $request->input('codigoContrato');
         $anularContrato = $request->input('anularContrato');
-    
+
         DB::beginTransaction();
         try {
             // Verificar si hay documentos de venta asociados
@@ -226,34 +281,51 @@ class ContratoProductoeController extends Controller
                 ->where('dv.CodigoContratoProducto', $codigo)
                 ->where('dv.Vigente', 1)
                 ->exists();
-    
+
             // Sumar los montos totales de los documentos de venta
             $sumaMontoTotal = DB::table('documentoventa as dv')
                 ->where('dv.CodigoContratoProducto', $codigo)
                 ->sum('dv.MontoTotal');
-    
+
             // Permitir anulación si no hay documentos o si la suma de montos es 0
             if (!$existeDocumentoVenta || $sumaMontoTotal == 0.0) {
                 DB::table('contratoproducto')
                     ->where('Codigo', $codigo)
                     ->update(['Vigente' => 0]);
-    
+
                 DB::table('compromisocontrato')
                     ->where('CodigoContrato', $codigo)
                     ->where('Vigente', 1)
                     ->update(['Vigente' => 0]);
-                
+
                 $anularContrato['Codigo'] = $codigo;
                 AnulacionContrato::create($anularContrato);
 
                 DB::commit();
-    
+
+                // Log de éxito
+                Log::info('Contrato anulado correctamente', [
+                    'Controlador' => 'ContratoProductoeController',
+                    'Metodo' => 'anularContrato',
+                    'CodigoContrato' => $codigo,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json([
                     'message' => 'Contrato anulado correctamente',
                     'id' => 1
                 ], 200);
             } else {
                 DB::rollBack();
+
+                // Log de error
+                Log::warning('No se puede anular contrato con documentos de venta pendientes', [
+                    'Controlador' => 'ContratoProductoeController',
+                    'Metodo' => 'anularContrato',
+                    'CodigoContrato' => $codigo,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json([
                     'message' => 'No se puede anular contrato porque tiene documentos de venta con montos pendientes.',
                     'id' => 2
@@ -261,6 +333,18 @@ class ContratoProductoeController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log de error
+            Log::error('Error al anular contrato', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'anularContrato',
+                'CodigoContrato' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Error al anular contrato',
                 'error' => $e->getMessage()
@@ -269,47 +353,74 @@ class ContratoProductoeController extends Controller
     }
 
 
-    public function visualizarContrato($contrato){
+    public function visualizarContrato($contrato)
+    {
 
-            // $contratoProducto = ContratoProducto::find($contrato);
+        // $contratoProducto = ContratoProducto::find($contrato);
 
-        $contratoProducto = DB::table('contratoproducto as cp')
-            ->select(
-                'cp.Codigo',
-                'cp.CodigoAutorizador',
-                'cp.CodigoMedico',
-                'cp.CodigoPaciente',
-                'cp.CodigoPaciente02',
-                DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
-                DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
-                DB::raw("CONCAT(pPac2.Nombres, ' ', pPac2.Apellidos) AS nombreSegundo"),
-                DB::raw("CONCAT(td2.Nombre, ': ', pPac2.NumeroDocumento) AS numDocumentoSegundo"),
-                'cp.Total'
-            )
-            ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
-            ->leftJoin('personas as pPac2', 'pPac2.Codigo', '=', 'cp.CodigoPaciente02')
-            ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
-            ->leftJoin('tipo_documentos as td2', 'td2.Codigo', '=', 'pPac2.CodigoTipoDocumento')
-            ->where('cp.Codigo', $contrato)
-            ->first();
+        try {
+            $contratoProducto = DB::table('contratoproducto as cp')
+                ->select(
+                    'cp.Codigo',
+                    'cp.CodigoAutorizador',
+                    'cp.CodigoMedico',
+                    'cp.CodigoPaciente',
+                    'cp.CodigoPaciente02',
+                    DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
+                    DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
+                    DB::raw("CONCAT(pPac2.Nombres, ' ', pPac2.Apellidos) AS nombreSegundo"),
+                    DB::raw("CONCAT(td2.Nombre, ': ', pPac2.NumeroDocumento) AS numDocumentoSegundo"),
+                    'cp.Total'
+                )
+                ->join('personas as pPac', 'pPac.Codigo', '=', 'cp.CodigoPaciente')
+                ->leftJoin('personas as pPac2', 'pPac2.Codigo', '=', 'cp.CodigoPaciente02')
+                ->join('tipo_documentos as td', 'td.Codigo', '=', 'pPac.CodigoTipoDocumento')
+                ->leftJoin('tipo_documentos as td2', 'td2.Codigo', '=', 'pPac2.CodigoTipoDocumento')
+                ->where('cp.Codigo', $contrato)
+                ->first();
 
 
-        $detalleContrato = DB::table('detallecontrato as dc')
-            ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad', 'dc.Descuento')
-            ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-            ->where('dc.CodigoContrato', $contrato)
-            ->get();
+            $detalleContrato = DB::table('detallecontrato as dc')
+                ->select('dc.CodigoProducto as Codigo', 'dc.Descripcion as Nombre', 'dc.MontoTotal as SubTotal', 'dc.Cantidad', 'dc.Descuento')
+                ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
+                ->where('dc.CodigoContrato', $contrato)
+                ->get();
 
-        return response()->json([
-            'contratoProducto' => $contratoProducto,
-            'detalleContrato' => $detalleContrato,
-        ]);
+            // Log de éxito
+            Log::info('Contrato visualizado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'visualizarContrato',
+                'CodigoContrato' => $contrato,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json([
+                'contratoProducto' => $contratoProducto,
+                'detalleContrato' => $detalleContrato,
+            ]);
+        } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al visualizar contrato', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'visualizarContrato',
+                'CodigoContrato' => $contrato,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json([
+                'message' => 'Error al buscar contrato',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
-    public function historialContratoVenta($codigo){
+    public function historialContratoVenta($codigo)
+    {
 
-        try{
+        try {
             $ventas = DB::table('documentoventa as dv')
                 ->selectRaw("
                     dv.Codigo AS Venta,
@@ -352,9 +463,26 @@ class ContratoProductoeController extends Controller
                 ->orderBy('dv.Codigo', 'ASC')
                 ->get();
 
+            // Log de éxito
+            Log::info('Historial de ventas consultado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'historialContratoVenta',
+                'CodigoContrato' => $codigo,
+                'CantidadVentas' => count($ventas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($ventas);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al buscar historial de ventas', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'historialContratoVenta',
+                'CodigoContrato' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Error al buscar historial de ventas',
                 'error' => $e->getMessage()
@@ -363,8 +491,9 @@ class ContratoProductoeController extends Controller
     }
 
 
-    public function contratoPDF($contrato){
-        try{
+    public function contratoPDF($contrato)
+    {
+        try {
             $contratoData = DB::table('contratoproducto as c')
                 ->join('sedesrec as s', 's.Codigo', '=', 'c.CodigoSede')
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
@@ -408,13 +537,32 @@ class ContratoProductoeController extends Controller
                 ->where('CodigoContrato', $contrato)
                 ->get();
 
-                return  response()->json([
-                    'contrato' => $contratoData,
-                    'detalle' => $detalleContrato,
-                    'compromisos' => $compromisos
-                ]);
+            // Log de éxito
+            Log::info('Contrato PDF generado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'contratoPDF',
+                'CodigoContrato' => $contrato,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
-        }catch(\Exception $e){
+            return  response()->json([
+                'contrato' => $contratoData,
+                'detalle' => $detalleContrato,
+                'compromisos' => $compromisos
+            ]);
+        } catch (\Exception $e) {
+
+            // Log de error
+            Log::error('Error al generar PDF del contrato', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'contratoPDF',
+                'CodigoContrato' => $contrato,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Error al generar PDF',
                 'error' => $e->getMessage()
@@ -422,8 +570,9 @@ class ContratoProductoeController extends Controller
         }
     }
 
-    public function listarDetallesPagados($contrato){
-        try{
+    public function listarDetallesPagados($contrato)
+    {
+        try {
 
             $detalles = DB::table('documentoventa as dv')
                 ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
@@ -440,9 +589,24 @@ class ContratoProductoeController extends Controller
                 ->groupBy('dc.Codigo', 'p.Nombre', 'p.Codigo')
                 ->get();
 
+            // Log de éxito
+            Log::info('Detalles pagados listados correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'listarDetallesPagados',
+                'CantidadDetalles' => count($detalles),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($detalles, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al listar detalles pagados', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'listarDetallesPagados',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Error al listar detalles pagados',
                 'error' => $e->getMessage()
@@ -512,12 +676,12 @@ class ContratoProductoeController extends Controller
                 // Crear el detalle del contrato
                 $detalleContratoCreado = DetalleContrato::create($detalle);
 
-                if(isset($detalle['detallePagado']) && isset($detalle['detallePagado']) != null){
+                if (isset($detalle['detallePagado']) && isset($detalle['detallePagado']) != null) {
 
                     $detalleContratoId = $detalle['detallePagado']['detalleContrato'] ?? null;
                     $sumaMontoDetalles += $detalle['detallePagado']['montoPagado'] ?? 0;
-                     // Primero obtener los códigos
-                        $documentosIds = DB::table('documentoventa as dv')
+                    // Primero obtener los códigos
+                    $documentosIds = DB::table('documentoventa as dv')
                         ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                         ->where('dv.CodigoContratoProducto', $contratoOriginal)
                         ->where('dv.Vigente', 1)
@@ -526,25 +690,24 @@ class ContratoProductoeController extends Controller
                         ->toArray();
 
                     // Luego actualizar
-                     if (!empty($documentosIds)) {
-                         DB::table('documentoventa')
-                             ->whereIn('Codigo', $documentosIds)
-                             ->update(['CodigoContratoProducto' => $Contrato->Codigo]);
+                    if (!empty($documentosIds)) {
+                        DB::table('documentoventa')
+                            ->whereIn('Codigo', $documentosIds)
+                            ->update(['CodigoContratoProducto' => $Contrato->Codigo]);
 
-                         DB::table('detalledocumentoventa')
-                             ->whereIn('CodigoVenta', $documentosIds)
-                             ->where('CodigoDetalleContrato', $detalleContratoId)
-                             ->update(['CodigoDetalleContrato' => $detalleContratoCreado->Codigo]);
-                     }
+                        DB::table('detalledocumentoventa')
+                            ->whereIn('CodigoVenta', $documentosIds)
+                            ->where('CodigoDetalleContrato', $detalleContratoId)
+                            ->update(['CodigoDetalleContrato' => $detalleContratoCreado->Codigo]);
+                    }
                 }
-
             }
 
             // Actualizar el monto total del contrato
-            if($sumaMontoDetalles > 0){
+            if ($sumaMontoDetalles > 0) {
                 DB::table('contratoproducto')
-                ->where('Codigo', $Contrato->Codigo)
-                ->update(['TotalPagado' => $sumaMontoDetalles]);
+                    ->where('Codigo', $Contrato->Codigo)
+                    ->update(['TotalPagado' => $sumaMontoDetalles]);
             }
 
             if (!empty($request->input('compromisoContrato')) && count($compromisoContrato) > 0) {
@@ -557,6 +720,13 @@ class ContratoProductoeController extends Controller
             // Verificar si el contrato original existe
             $contratoOriginal = ContratoProducto::find($contratoOriginal);
             if (!$contratoOriginal) {
+                // Log especial para el caso de no encontrar el contrato original
+                Log::warning('Contrato original no encontrado', [
+                    'Controlador' => 'ContratoProductoeController',
+                    'Metodo' => 'cambioContratoProducto',
+                    'CodigoContratoOriginal' => $contratoOriginal,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'message' => 'Contrato original no encontrado'
                 ], 404);
@@ -567,12 +737,31 @@ class ContratoProductoeController extends Controller
             // Confirmar la transacción
             DB::commit();
 
+            // Log de éxito
+            Log::info('Cambio de contrato registrado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'cambioContratoProducto',
+                'NumContrato' => $Contrato->NumContrato,
+                'CodigoContratoOriginal' => $contratoOriginal,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Cambio de contrato registrado correctamente.'
             ], 200);
         } catch (\Exception $e) {
             // Hacer rollback en caso de error
             DB::rollBack();
+
+            // Log de error
+            Log::error('Error al cambiar el contrato producto', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'cambioContratoProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json([
                 'message' => 'Error al cambiar el contrato.',

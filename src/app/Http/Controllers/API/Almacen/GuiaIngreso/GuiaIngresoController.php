@@ -8,6 +8,7 @@ use App\Models\Almacen\GuiaIngreso\GuiaIngreso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 class GuiaIngresoController extends Controller
 {
     /**
@@ -74,10 +75,12 @@ class GuiaIngresoController extends Controller
                 ->get();
 
 
-             // Log de éxito
+            // Log de éxito
             Log::info('Usuarios listados correctamente', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarGuiaIngreso',
                 'cantidad' => count($guiaIngreso),
-                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
             ]);
 
             return response()->json($guiaIngreso, 200);
@@ -85,6 +88,8 @@ class GuiaIngresoController extends Controller
 
             // Log del error general
             Log::error('Ocurrió un error al listar las guias de ingreso', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarGuiaIngreso',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -129,16 +134,20 @@ class GuiaIngresoController extends Controller
                 })
                 ->get();
 
-                Log::info('Listado de Compras', [
-                    'cantidad' => count($compras),
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
-                ]);
+            Log::info('Listado de Compras', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarComprasActivas',
+                'cantidad' => count($compras),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
 
             return response()->json($compras, 200);
         } catch (\Exception $e) {
 
             Log::error('Ocurrió un error al listar las Compras', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarComprasActivas',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -179,6 +188,8 @@ class GuiaIngresoController extends Controller
 
             // Log de éxito
             Log::info('Detalle compra', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarDetalleCompra',
                 'cantidad' => count($detalleCompra),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -189,6 +200,8 @@ class GuiaIngresoController extends Controller
 
             // Log del error
             Log::error('Ocurrió un error al listar los detalles de la compra', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'listarDetalleCompra',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -218,6 +231,8 @@ class GuiaIngresoController extends Controller
             DB::commit();
             // Log de éxito
             Log::info('Guia de Ingreso registrada correctamente', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'registrarGuiaIngreso',
                 'Codigo' => $guiaIngreso->Codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -226,6 +241,8 @@ class GuiaIngresoController extends Controller
             DB::rollBack();
             // Log del error
             Log::error('Ocurrió un error al registrar la Guia de Ingreso', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'registrarGuiaIngreso',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -246,6 +263,8 @@ class GuiaIngresoController extends Controller
             if (!$guiaIngreso) {
 
                 Log::warning('La guía de ingreso no existe.', [
+                    'Controlador' => 'GuiaIngresoController',
+                    'Metodo' => 'consultarGuia',
                     'Codigo' => $codigo
                 ]);
 
@@ -260,6 +279,8 @@ class GuiaIngresoController extends Controller
 
             // Log de éxito
             Log::info('Guía de ingreso consultada correctamente', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'consultarGuia',
                 'Codigo' => $codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -272,6 +293,8 @@ class GuiaIngresoController extends Controller
 
             // Log del error
             Log::error('Ocurrió un error al consultar la guía de ingreso', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'consultarGuia',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -293,6 +316,8 @@ class GuiaIngresoController extends Controller
 
             if (!$guiaIngreso) {
                 Log::warning('La guía de ingreso no existe.', [
+                    'Controlador' => 'GuiaIngresoController',
+                    'Metodo' => 'actualizarGuiaIngreso',
                     'Codigo' => $request->Codigo
                 ]);
                 return response()->json(['error' => 'La guía de ingreso no existe.'], 404);
@@ -301,6 +326,8 @@ class GuiaIngresoController extends Controller
             // 2. Validar si la guía de ingreso está vigente
             if ($guiaIngreso->Vigente == 0) {
                 Log::warning('No se puede actualizar una Guía de Ingreso en estado Inactivo.', [
+                    'Controlador' => 'GuiaIngresoController',
+                    'Metodo' => 'actualizarGuiaIngreso',
                     'Codigo' => $request->Codigo
                 ]);
                 return response()->json(['error' => 'No se puede actualizar una Guía de Ingreso en estado Inactivo.'], 400);
@@ -317,6 +344,8 @@ class GuiaIngresoController extends Controller
             // 2. Validar si tiene lotes activos
             if ($tieneLotesActivos) {
                 Log::warning('No se puede dar de baja a esta guía de ingreso porque tiene lotes activos.', [
+                    'Controlador' => 'GuiaIngresoController',
+                    'Metodo' => 'actualizarGuiaIngreso',
                     'Codigo' => $request->Codigo
                 ]);
                 return response()->json([
@@ -333,6 +362,8 @@ class GuiaIngresoController extends Controller
 
             // Log de éxito
             Log::info('Guía de ingreso anulada correctamente.', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'actualizarGuiaIngreso',
                 'Codigo' => ($request->Codigo),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -343,6 +374,8 @@ class GuiaIngresoController extends Controller
             DB::rollBack();
             // Log del error
             Log::error('Ocurrió un error al actualizar la guía de ingreso', [
+                'Controlador' => 'GuiaIngresoController',
+                'Metodo' => 'actualizarGuiaIngreso',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()

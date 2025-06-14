@@ -62,9 +62,11 @@ class GuiaSalidaController extends Controller
                 ->where('CodigoSede', $sede)
                 ->where('Stock', '>', 0)
                 ->get();
-            
-                // Log de éxito
+
+            // Log de éxito
             Log::info('Lotes listados correctamente', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'lotesDisponibles',
                 'cantidad' => count($lotes),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -73,6 +75,8 @@ class GuiaSalidaController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error inesperado al listar Lotes', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'lotesDisponibles',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -107,6 +111,8 @@ class GuiaSalidaController extends Controller
 
             // Log de éxito
             Log::info('Guias de salida listadas correctamente', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarGuiaSalida',
                 'cantidad' => count($guiaSalida),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -116,6 +122,8 @@ class GuiaSalidaController extends Controller
 
             // Log del error general
             Log::error('Error inesperado al listar Guias de Salida', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarGuiaSalida',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -190,6 +198,8 @@ class GuiaSalidaController extends Controller
 
             // Log de éxito
             Log::info('Ventas activas listadas correctamente', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarVentasActivas',
                 'cantidad' => count($ventas),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -197,6 +207,8 @@ class GuiaSalidaController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error inesperado al listar Ventas Activas', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarVentasActivas',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -242,17 +254,20 @@ class GuiaSalidaController extends Controller
             $resultados = DB::select($sql, [$venta, $venta, $venta]);
             // Log de éxito
             Log::info('Detalle de venta listado correctamente', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarDetalleVenta',
                 'cantidad' => count($resultados),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
 
             return response()->json($resultados, 200);
-
         } catch (\Exception $e) {
 
             // Log del error general
             Log::error('Error inesperado al listar el detalle de la venta', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarDetalleVenta',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -316,6 +331,8 @@ class GuiaSalidaController extends Controller
             DB::commit();
             // Log de éxito
             Log::info('Guia de salida registrada correctamente', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'registrarGuiaSalida',
                 'codigo_guia' => $guiaSalida->Codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -324,6 +341,8 @@ class GuiaSalidaController extends Controller
             DB::rollBack();
             // Log del error general
             Log::error('Error inesperado al registrar Guia de Salida', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'registrarGuiaSalida',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()

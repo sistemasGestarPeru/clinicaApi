@@ -41,7 +41,7 @@ class CajaController extends Controller
 
         $cajaData['FechaInicio'] = $fecha;
         $cajaData['Estado'] = 'A';
-        
+
         try {
             DB::beginTransaction();
             $totalEfectivo = DB::table('caja')
@@ -51,14 +51,16 @@ class CajaController extends Controller
                 ->orderByDesc('Codigo')
                 ->limit(1)
                 ->value('TotalEfectivo'); // Devuelve el valor directamente o NULL
-        
+
             $totalEfectivo = $totalEfectivo ?? 0; // Si es NULL, asignar 0
-        
+
             $caja = Caja::create($cajaData);
-            
+
             if (!$caja) {
                 // Log del error específico
                 Log::warning('Error al registrar la caja', [
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'store',
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
                 return response()->json([
@@ -79,6 +81,8 @@ class CajaController extends Controller
             if (!$ingreso) {
                 // Log del error específico
                 Log::warning('Error al registrar el ingreso de dinero por Apertura', [
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'store',
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
                 return response()->json([
@@ -91,6 +95,8 @@ class CajaController extends Controller
 
             // Log de éxito
             Log::info('Caja registrada correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'store',
                 'Codigo' => $caja->Codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -99,16 +105,17 @@ class CajaController extends Controller
                 'CodigoCaja' =>  $caja->Codigo,
                 'resp' => true
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
             // Log del error general
             Log::error('Error al registrar la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'store',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
-		        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
             return response()->json([
@@ -142,7 +149,8 @@ class CajaController extends Controller
         //
     }
 
-    public function datosCajaExcel($caja){
+    public function datosCajaExcel($caja)
+    {
         try {
             // Consulta para obtener datos de la caja
             $cajaData = DB::table('caja as c')
@@ -156,7 +164,7 @@ class CajaController extends Controller
                 )
                 ->where('c.Codigo', $caja)
                 ->first();
-    
+
             // Consulta unida para obtener los movimientos de la caja
             $unionQuery = DB::select("
                 SELECT 
@@ -244,12 +252,14 @@ class CajaController extends Controller
                 (SELECT @saldo := 0) AS init
                 ORDER BY FECHA;
             ");
-    
+
             // Devolver los resultados
 
             if (!$cajaData) {
                 // Log del error específico
                 Log::warning('Caja no encontrada', [
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'datosCajaExcel',
                     'Codigo' => $caja,
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
@@ -259,6 +269,8 @@ class CajaController extends Controller
             if (!$unionQuery) {
                 // Log del error específico
                 Log::warning('No se encontraron movimientos para la caja', [
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'datosCajaExcel',
                     'Codigo' => $caja,
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
@@ -268,18 +280,21 @@ class CajaController extends Controller
 
             // Log de éxito
             Log::info('Datos de la Caja obtenidos correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'datosCajaExcel',
                 'Codigo' => $caja,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
-        
+
             return response()->json([
                 'caja' => $cajaData,
                 'movimientos' => $unionQuery
             ], 200);
-    
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error al consultar los datos de la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'datosCajaExcel',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -290,17 +305,18 @@ class CajaController extends Controller
         }
     }
 
-    public function consultarDatosCaja($caja){
-        try{
+    public function consultarDatosCaja($caja)
+    {
+        try {
 
             $datos = DB::table('caja')
-            ->select(
-                DB::raw("DATE_FORMAT(FechaInicio, '%d/%m/%Y') AS Fecha"),
-                DB::raw("TIME(FechaInicio) AS Hora")
-            )
-            ->where('Codigo', $caja)
-            ->where('Estado', 'A')
-            ->first();
+                ->select(
+                    DB::raw("DATE_FORMAT(FechaInicio, '%d/%m/%Y') AS Fecha"),
+                    DB::raw("TIME(FechaInicio) AS Hora")
+                )
+                ->where('Codigo', $caja)
+                ->where('Estado', 'A')
+                ->first();
 
             $apertura = DB::table('ingresodinero')
                 ->where('CodigoCaja', $caja)
@@ -309,14 +325,14 @@ class CajaController extends Controller
                 ->selectRaw('COALESCE(SUM(Monto), 0) as Apertura')
                 ->limit(1)
                 ->value('Apertura');
-            
+
             // INGRESOS + APERTURA
             $ingresos = DB::table('ingresodinero')
                 ->where('CodigoCaja', $caja)
                 ->where('Vigente', 1)
                 ->selectRaw('COALESCE(SUM(Monto), 0) as Ingresos')
                 ->value('Ingresos');
-            
+
             // EGRESOS SIN SALIDA DE DINERO INTERNO
             $egresos = DB::table('egreso as e')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
@@ -329,7 +345,7 @@ class CajaController extends Controller
                 })
                 ->selectRaw('COALESCE(SUM(e.Monto), 0) AS Egreso')
                 ->value('Egreso');
-            
+
             // RECAUDACIÓN (PAGOS)
             $recaudacion = DB::table('pago as pag')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'pag.CodigoMedioPago')
@@ -338,7 +354,7 @@ class CajaController extends Controller
                 ->where('mp.CodigoSUNAT', '008')
                 ->selectRaw('COALESCE(SUM(pag.Monto),0) as Recaudacion')
                 ->value('Recaudacion');
-            
+
             // SALIDAS (SALIDAS DE DINERO INTERNAS)
             $salida = DB::table('salidadinero as sdd')
                 ->join('egreso as e', 'e.Codigo', '=', 'sdd.Codigo')
@@ -348,7 +364,7 @@ class CajaController extends Controller
                 ->where('mp.CodigoSUNAT', '008')
                 ->selectRaw('COALESCE(SUM(e.Monto), 0) AS Salida')
                 ->value('Salida');
-            
+
             // RESULTADOS
             $resultado = [
                 'Datos' => $datos,
@@ -361,16 +377,19 @@ class CajaController extends Controller
 
             // Log de éxito
             Log::info('Datos de la caja consultados correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'consultarDatosCaja',
                 'CodigoCaja' => $caja,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
-            
+
             return response()->json($resultado);
-        
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
 
             // Log del error general
             Log::error('Error al consultar los datos de la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'consultarDatosCaja',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -395,6 +414,8 @@ class CajaController extends Controller
 
             // Log de éxito
             Log::info('Caja Cerrada correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'cerrarCaja',
                 'Codigo' => $request->CodigoCaja,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -406,6 +427,8 @@ class CajaController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error al cerrar la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'cerrarCaja',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -431,22 +454,24 @@ class CajaController extends Controller
 
         DB::beginTransaction();
 
-        if(isset($IngresoDineroData['CodigoEmisor'])  && $IngresoDineroData['CodigoEmisor'] == 0 ){
+        if (isset($IngresoDineroData['CodigoEmisor'])  && $IngresoDineroData['CodigoEmisor'] == 0) {
             $IngresoDineroData['CodigoEmisor'] = null;
         }
 
         try {
-            
+
             IngresoDinero::create($IngresoDineroData);
-            
+
             DB::table('salidadinero')
                 ->where('Codigo', $egreso)
                 ->update([
-                'Confirmado' => 1
+                    'Confirmado' => 1
                 ]);
             DB::commit();
             // Log de éxito
             Log::info('Ingreso registrado correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'registrarIngreso',
                 'CodigoEgreso' => $egreso,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -455,6 +480,8 @@ class CajaController extends Controller
             DB::rollBack();
             // Log del error general
             Log::error('Error al registrar el ingreso', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'registrarIngreso',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -465,11 +492,12 @@ class CajaController extends Controller
         }
     }
 
-    public function registrarSalida(Request $request){
+    public function registrarSalida(Request $request)
+    {
         $egreso = $request->input('Egreso');
         $salidaDinero = $request->input('SalidaDinero');
         DB::beginTransaction();
-        try{
+        try {
 
             //Validar Egreso
             $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
@@ -478,7 +506,7 @@ class CajaController extends Controller
             if (!isset($salidaDinero['CodigoCuentaBancaria']) || !$salidaDinero['CodigoCuentaBancaria']) {
                 $salidaDinero['CodigoCuentaBancaria'] = null;
             }
-            
+
             if (!isset($salidaDinero['CodigoReceptor']) || !$salidaDinero['CodigoReceptor']) {
                 $salidaDinero['CodigoReceptor'] = null;
             }
@@ -492,19 +520,20 @@ class CajaController extends Controller
             DB::commit();
             // Log de éxito
             Log::info('Salida registrada correctamente', [
-                'CodigoEgreso' => $nuevoEgreso->Codigo,
+                'Controlador' => 'CajaController',
+                'Metodo' => 'registrarSalida',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['message' => 'Salida registrada correctamente'], 201);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
             // Log del error general
             Log::error('Error al registrar la salida', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'registrarSalida',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
-                'CodigoEgreso' => isset($nuevoEgreso) ? $nuevoEgreso->Codigo : null,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['message' => 'Error al registrar la salida', 'error' => $e->getMessage()], 400);
@@ -523,21 +552,21 @@ class CajaController extends Controller
                 ->orderByDesc('Codigo')
                 ->select('Codigo')
                 ->first();
-            
+
             if (!$caja) {
                 // Log del error específico
                 Log::warning('Caja no encontrada', [
-                    'CodigoTrabajador' => $codigoTrabajador,
-                    'CodigoSede' => $codigoSede,
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'consultarEstadoCaja',
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
                 return response()->json(['message' => 'Caja no encontrada'], 404);
             }
             // Log de éxito
             Log::info('Estado de la caja consultado correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'consultarEstadoCaja',
                 'CodigoCaja' => $caja->Codigo,
-                'CodigoTrabajador' => $codigoTrabajador,
-                'CodigoSede' => $codigoSede,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['caja' => $caja], 200);
@@ -545,11 +574,11 @@ class CajaController extends Controller
 
             // Log del error general
             Log::error('Error al consultar el estado de la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'consultarEstadoCaja',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
-                'CodigoTrabajador' => $codigoTrabajador,
-                'CodigoSede' => $codigoSede,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 500);
@@ -579,8 +608,8 @@ class CajaController extends Controller
             if (!$result || $result->CodigoCaja == -1) {
                 // Log del error específico
                 Log::warning('Caja no encontrada o cerrada', [
-                    'CodigoTrabajador' => $codigoTrabajador,
-                    'CodigoSede' => $codigoSede,
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'estadoCajaLogin',
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
                 return response()->json([
@@ -593,9 +622,9 @@ class CajaController extends Controller
 
             // Log de éxito
             Log::info('Estado de la caja consultado correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'estadoCajaLogin',
                 'CodigoCaja' => $result->CodigoCaja,
-                'CodigoTrabajador' => $codigoTrabajador,
-                'CodigoSede' => $codigoSede,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
@@ -603,16 +632,15 @@ class CajaController extends Controller
                 'CodigoCaja' => $result->CodigoCaja,
                 'resp' => true
             ], 200);
-
         } catch (\Exception $e) {
 
             // Log del error general
             Log::error('Error al consultar el estado de la caja', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'estadoCajaLogin',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
-                'CodigoTrabajador' => $codigoTrabajador,
-                'CodigoSede' => $codigoSede,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
@@ -623,40 +651,44 @@ class CajaController extends Controller
         }
     }
 
-    public function listarTrabajadoresSalidaDinero($sede){
+    public function listarTrabajadoresSalidaDinero($sede)
+    {
         date_default_timezone_set('America/Lima');
         $fecha = date('Y-m-d');
 
-        try{
-        $trabajadores = DB::table('trabajadors as t')
-            ->leftJoin('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
-            ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-            ->where('t.Tipo', 'A')
-            ->where('t.Vigente', 1)
-            ->where('p.Vigente', 1)
-            ->where('ass.Vigente', 1)
-            ->where('ass.CodigoSede', $sede)
-            ->where(function($query) use ($fecha) {
-                $query->whereNull('ass.FechaFin')
-                      ->orWhere('ass.FechaFin', '>=', $fecha);
-            })
-            ->select(
-                't.Codigo as Codigo',
-                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombre")
-            )
-            ->get();
+        try {
+            $trabajadores = DB::table('trabajadors as t')
+                ->leftJoin('asignacion_sedes as ass', 'ass.CodigoTrabajador', '=', 't.Codigo')
+                ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
+                ->where('t.Tipo', 'A')
+                ->where('t.Vigente', 1)
+                ->where('p.Vigente', 1)
+                ->where('ass.Vigente', 1)
+                ->where('ass.CodigoSede', $sede)
+                ->where(function ($query) use ($fecha) {
+                    $query->whereNull('ass.FechaFin')
+                        ->orWhere('ass.FechaFin', '>=', $fecha);
+                })
+                ->select(
+                    't.Codigo as Codigo',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombre")
+                )
+                ->get();
 
             // Log de éxito
             Log::info('Salida Dinero Trabajadores listados correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarTrabajadoresSalidaDinero',
                 'cantidad' => count($trabajadores),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
             return response()->json($trabajadores);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log del error general
             Log::error('Error al listar los trabajadores', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarTrabajadoresSalidaDinero',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -667,11 +699,12 @@ class CajaController extends Controller
         }
     }
 
-    public function listarIngresosPendientes(Request $request){
+    public function listarIngresosPendientes(Request $request)
+    {
         $codigoSede = $request->input('codigoSede');
         $codigoReceptor = $request->input('codigoReceptor');
 
-        try{
+        try {
             $results = DB::table('salidadinero AS sd')
                 ->join('egreso AS e', 'e.Codigo', '=', 'sd.Codigo')
                 ->join('caja AS c', 'c.Codigo', '=', 'e.CodigoCaja')
@@ -687,39 +720,38 @@ class CajaController extends Controller
                     'e.Monto',
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS Emisor")
                 )
-            ->get();
+                ->get();
             // Log de éxito
             Log::info('Ingresos pendientes listados correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarIngresosPendientes',
                 'cantidad' => count($results),
-                'codigoSede' => $codigoSede,
-                'codigoReceptor' => $codigoReceptor,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json($results, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log del error general
             Log::error('Error al listar los ingresos pendientes', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarIngresosPendientes',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
-                'codigoSede' => $codigoSede,
-                'codigoReceptor' => $codigoReceptor,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
         }
-        
     }
 
 
-    public function reporteCajaIngresosEgresos(Request $request){
+    public function reporteCajaIngresosEgresos(Request $request)
+    {
 
         $trabajador = request()->input('trabajador'); // Opcional
         $fecha = request()->input('fecha'); // Opcional
         $caja = request()->input('CodigoCaja'); // Opcional
-        
-        try{
+
+        try {
 
             $query1 = DB::table('pago as p')
                 ->selectRaw("
@@ -771,7 +803,7 @@ class CajaController extends Controller
                     return $query->where('c.Codigo', $caja);
                 });
 
-                $Egresos = DB::table('egreso as e')
+            $Egresos = DB::table('egreso as e')
                 ->selectRaw("
                     CASE
                         WHEN ps.Codigo IS NOT NULL THEN 'PAGO DE SERVICIOS'
@@ -810,12 +842,14 @@ class CajaController extends Controller
 
 
 
-                $Ingresos = $query1
+            $Ingresos = $query1
                 ->unionAll($query2)
                 ->orderBy('FechaPago', 'desc') // Ordena por FechaPago en orden descendente
                 ->get();
             // Log de éxito
             Log::info('Ingresos y Egresos listados correctamente', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarIngresosEgresos',
                 'cantidad_ingresos' => count($Ingresos),
                 'cantidad_egresos' => count($Egresos),
                 'trabajador' => $trabajador,
@@ -824,10 +858,11 @@ class CajaController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log del error general
             Log::error('Error al listar los ingresos y egresos', [
+                'Controlador' => 'CajaController',
+                'Metodo' => 'listarIngresosEgresos',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -837,6 +872,4 @@ class CajaController extends Controller
             return response()->json(['message' => 'Error al listar los ingresos y egresos', 'error' => $e->getMessage()], 400);
         }
     }
-
-    
 }

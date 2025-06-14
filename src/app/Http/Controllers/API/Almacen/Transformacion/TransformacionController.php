@@ -12,6 +12,7 @@ use App\Models\Almacen\Lote\MovimientoLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 class TransformacionController extends Controller
 {
     /**
@@ -65,12 +66,14 @@ class TransformacionController extends Controller
                 ->where('sp.Vigente', 1)
                 ->where('sp.CodigoSede', $sede)
                 ->get();
-                
-                // Log de éxito
-                Log::info('Usuarios listados correctamente', [
-                    'cantidad' => count($productos),
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
-                ]);
+
+            // Log de éxito
+            Log::info('Usuarios listados correctamente', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'listarProductosDisponibles',
+                'cantidad' => count($productos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($productos, 200);
         } catch (\Exception $e) {
@@ -78,6 +81,8 @@ class TransformacionController extends Controller
 
             // Log del error general
             Log::error('Error inesperado al listar Productos', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'listarProductosDisponibles',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -95,21 +100,21 @@ class TransformacionController extends Controller
         $fecha = date('Y-m-d');
         $transformacion = $request->input('transformacion');
         $lote = $request->input('lote');
-        
+
         DB::beginTransaction();
         try {
             /***************************** TRANSFORMACION SALIDA **************************/
 
             //Consultar el stock en la sede (ORIGEN)
             $productoOrigen = DB::table('sedeproducto')
-            ->where('CodigoProducto', $transformacion['ProductoOrigen'])
-            ->where('CodigoSede', $transformacion['CodigoSede'])
-            ->first();
+                ->where('CodigoProducto', $transformacion['ProductoOrigen'])
+                ->where('CodigoSede', $transformacion['CodigoSede'])
+                ->first();
 
             //Para calcular el nuevo stock del lote
             $stockSedeOrigen = $productoOrigen->Stock ?? 0;
             $costoSedeOrigen = $productoOrigen->CostoCompraPromedio ?? 0;
-            
+
             DB::table('lote')->where('Codigo', $lote['Codigo'])->decrement('Stock', $transformacion['CantidadOrigen']);
             $nuevoStockOrigen = $stockSedeOrigen - $transformacion['CantidadOrigen'];
 
@@ -119,7 +124,7 @@ class TransformacionController extends Controller
             $guiaSalida['TipoDocumento'] = 'T';
             $guiaSalida['Serie'] = 'S123'; // CAMBIAR
             $guiaSalida['Numero'] = 123; // CAMBIAR
-            $guiaSalida['Fecha'] = $fecha; 
+            $guiaSalida['Fecha'] = $fecha;
             $guiaSalida['Motivo'] = 'T';
 
             $guiaSalidaCreada = GuiaSalida::create($guiaSalida);
@@ -145,9 +150,9 @@ class TransformacionController extends Controller
 
             //Actualizar el stock de la sede Origen
             DB::table('sedeproducto')
-            ->where('CodigoProducto', $transformacion['ProductoOrigen'])
-            ->where('CodigoSede', $transformacion['CodigoSede'])
-            ->decrement('Stock', $transformacion['CantidadOrigen']);
+                ->where('CodigoProducto', $transformacion['ProductoOrigen'])
+                ->where('CodigoSede', $transformacion['CodigoSede'])
+                ->decrement('Stock', $transformacion['CantidadOrigen']);
 
             /***************************** TRANSFORMACION ENTRADA **************************/
 
@@ -155,7 +160,7 @@ class TransformacionController extends Controller
                 ->where('CodigoProducto', $transformacion['ProductoDestino'])
                 ->where('CodigoSede', $transformacion['CodigoSede'])
                 ->first();
-            
+
             $stockSedeDestino = $productoDestino->Stock ?? 0;
             $costoSedeDestino = $productoDestino->CostoCompraPromedio ?? 0;
             $inversionSedeDestino = $stockSedeDestino * $costoSedeDestino;
@@ -171,7 +176,7 @@ class TransformacionController extends Controller
             $guiaIngreso['TipoDocumento'] = 'T';
             $guiaIngreso['Serie'] = 'S123'; // CAMBIAR
             $guiaIngreso['Numero'] = 123; // CAMBIAR
-            $guiaIngreso['Fecha'] = $fecha; 
+            $guiaIngreso['Fecha'] = $fecha;
             $guiaIngreso['Motivo'] = 'T';
 
             $guiaIngresoCreada = GuiaIngreso::create($guiaIngreso);
@@ -204,21 +209,23 @@ class TransformacionController extends Controller
             $movimientoLoteDestino['CostoPromedio'] = $nuevoCostoDestino;
             $movimientoLoteDestino['Fecha'] = $fecha;
             $movimientoLoteDestino['TipoOperacion'] = 'D';
-            
+
             MovimientoLote::create($movimientoLoteDestino);
 
             //Actualizar el stock de la sede Destino
             DB::table('sedeproducto')
-            ->where('CodigoProducto', $transformacion['ProductoOrigen'])
-            ->where('CodigoSede', $transformacion['CodigoSede'])
-            ->update([
-                'CostoCompraPromedio' => $nuevoCostoDestino,
-                'Stock' => $nuevoStockDestino
-            ]);
+                ->where('CodigoProducto', $transformacion['ProductoOrigen'])
+                ->where('CodigoSede', $transformacion['CodigoSede'])
+                ->update([
+                    'CostoCompraPromedio' => $nuevoCostoDestino,
+                    'Stock' => $nuevoStockDestino
+                ]);
 
             DB::commit();
             // Log de éxito
             Log::info('Transformación registrada correctamente', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'registrarTransformacion',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
                 'transformacion' => $transformacion,
                 'lote' => $lote
@@ -230,6 +237,8 @@ class TransformacionController extends Controller
             DB::rollBack();
             // Log del error
             Log::error('Error al registrar la transformación', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'registrarTransformacion',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),

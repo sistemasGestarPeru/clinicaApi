@@ -11,6 +11,7 @@ use Faker\Provider\ar_EG\Person;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 class PacienteController extends Controller
 {
     /**
@@ -53,45 +54,49 @@ class PacienteController extends Controller
         //
     }
 
-    public function listarPacientes(Request $request){
+    public function listarPacientes(Request $request)
+    {
 
-        try{
+        try {
 
             $pacientes = DB::table('paciente as pa')
-            ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
-            ->select(
-                'pa.Codigo',
-                'pa.FechaRegistro',
-                DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
-                'pa.EstadoCivil',
-                'pa.Peso',
-                'pa.Altura',
-                DB::raw("CONCAT(pa.GrupoSanguineo, ' ',
+                ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
+                ->select(
+                    'pa.Codigo',
+                    'pa.FechaRegistro',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                    'pa.EstadoCivil',
+                    'pa.Peso',
+                    'pa.Altura',
+                    DB::raw("CONCAT(pa.GrupoSanguineo, ' ',
                             CASE 
                                 WHEN pa.RH = 1 THEN '+'
                                 ELSE '-'
                             END
                         ) as GrupoSanguineo"),
-                'pa.FechaNacimiento',
-                DB::raw("CASE 
+                    'pa.FechaNacimiento',
+                    DB::raw("CASE 
                             WHEN pa.Genero = 'F' THEN 'Femenino'
                             WHEN pa.Genero = 'M' THEN 'Masculino'
                             ELSE 'Desconocido'
                          END as Genero")
-            )
-            ->get();
+                )
+                ->get();
 
             // Log de éxito
             Log::info('Paciente listados correctamente', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'listarPacientes',
                 'cantidad' => count($pacientes),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
             return response()->json($pacientes, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log de error
             Log::error('Error al listar pacientes', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'listarPacientes',
                 'error' => $e->getMessage(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -103,16 +108,19 @@ class PacienteController extends Controller
         }
     }
 
-    public function consultarPaciente($codigo){
-        try{
+    public function consultarPaciente($codigo)
+    {
+        try {
 
             $persona = Persona::findOrFail($codigo);
             $embarazosPrevios = [];
             $varon = null;
 
-            if(!$persona){
+            if (!$persona) {
 
                 Log::warning('Paciente no encontrado.', [
+                    'Controlador' => 'PacienteController',
+                    'Metodo' => 'consultarPaciente',
                     'Codigo' => $codigo
                 ]);
                 return response()->json([
@@ -123,8 +131,10 @@ class PacienteController extends Controller
 
             $paciente = Paciente::findOrFail($codigo);
 
-            if(!$paciente){
+            if (!$paciente) {
                 Log::warning('Paciente no encontrado.', [
+                    'Controlador' => 'PacienteController',
+                    'Metodo' => 'consultarPaciente',
                     'Codigo' => $codigo
                 ]);
                 return response()->json([
@@ -133,16 +143,18 @@ class PacienteController extends Controller
                 ], 404);
             }
 
-            if($paciente && $paciente->Genero == 'F'){
+            if ($paciente && $paciente->Genero == 'F') {
                 $embarazosPrevios = EmbarazoPrevio::where('CodigoMujer', $codigo)->get();
             }
 
-            if($paciente && $paciente->Genero == 'M'){
+            if ($paciente && $paciente->Genero == 'M') {
                 $varon = Varon::where('Codigo', $codigo)->first();
             }
 
             // Log de éxito
             Log::info('Paciente consultado correctamente', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'consultarPaciente',
                 'Codigo' => $codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -152,9 +164,11 @@ class PacienteController extends Controller
                 'embarazoPrevio' => $embarazosPrevios,
                 'varon' => $varon
             ], 200);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log de error
             Log::error('Error al consultar paciente', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'consultarPaciente',
                 'Codigo' => $codigo,
                 'error' => $e->getMessage(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
@@ -169,20 +183,22 @@ class PacienteController extends Controller
 
     public function buscarPersona(Request $request)
     {
-        try{
+        try {
 
             //Validar si existe el paciente
 
             $pacienteData = DB::table('paciente as pa')
-            ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
-            ->where('p.CodigoTipoDocumento', $request->tipoDocumento)
-            ->where('p.NumeroDocumento', $request->numeroDocumento)
-            ->select('p.Codigo', 'pa.Genero')
-            ->first();
+                ->join('personas as p', 'pa.Codigo', '=', 'p.Codigo')
+                ->where('p.CodigoTipoDocumento', $request->tipoDocumento)
+                ->where('p.NumeroDocumento', $request->numeroDocumento)
+                ->select('p.Codigo', 'pa.Genero')
+                ->first();
 
-            if($pacienteData){
+            if ($pacienteData) {
                 // Log de éxito
                 Log::info('Paciente Encontrado', [
+                    'Controlador' => 'PacienteController',
+                    'Metodo' => 'buscarPersona',
                     'paciente' => ($pacienteData),
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
@@ -203,21 +219,25 @@ class PacienteController extends Controller
             if ($existePersona) {
                 // Log de éxito
                 Log::info('Persona encontrada', [
+                    'Controlador' => 'PacienteController',
+                    'Metodo' => 'buscarPersona',
                     'numeroDocumento' => $request->numeroDocumento,
                     'tipoDocumento' => $request->tipoDocumento,
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
                 ]);
                 // Obtener datos si existe
                 $persona = DB::table('personas')
-                            ->select('Codigo', 'Nombres', 'Apellidos', 'Direccion', 'Celular', 'Correo', 'NumeroDocumento', 'CodigoTipoDocumento', 'CodigoNacionalidad')
-                            ->where('NumeroDocumento', $request->numeroDocumento)
-                            ->where('CodigoTipoDocumento', $request->tipoDocumento)
-                            ->first();
-            }else{
+                    ->select('Codigo', 'Nombres', 'Apellidos', 'Direccion', 'Celular', 'Correo', 'NumeroDocumento', 'CodigoTipoDocumento', 'CodigoNacionalidad')
+                    ->where('NumeroDocumento', $request->numeroDocumento)
+                    ->where('CodigoTipoDocumento', $request->tipoDocumento)
+                    ->first();
+            } else {
                 $persona = null;
             }
             // Log de éxito
             Log::info('Búsqueda de persona realizada', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'buscarPersona',
                 'numeroDocumento' => $request->numeroDocumento,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -225,10 +245,11 @@ class PacienteController extends Controller
                 'existe' => $existePersona,
                 'data' => $persona
             ], 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             // Log de error
             Log::error('Error al buscar persona', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'buscarPersona',
                 'numeroDocumento' => $request->numeroDocumento,
                 'error' => $e->getMessage(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
@@ -242,12 +263,13 @@ class PacienteController extends Controller
     }
 
 
-    public function registrarPaciente(Request $request){
+    public function registrarPaciente(Request $request)
+    {
 
         date_default_timezone_set('America/Lima');
         $diaActual = date('d');
 
-        $query = $request->input('query'); 
+        $query = $request->input('query');
 
         $paciente = $query['Paciente'];
         $embarazosPrevios = $query['EmbarazosPrevios'] ?? [];
@@ -256,19 +278,19 @@ class PacienteController extends Controller
 
         $codp = 0;
         DB::beginTransaction();
-        try{
+        try {
 
-            if($paciente['Codigo'] == null || $paciente['Codigo'] == 0){
+            if ($paciente['Codigo'] == null || $paciente['Codigo'] == 0) {
                 $codp = Persona::create($persona)->Codigo;
                 $paciente['Codigo'] = $codp;
             }
 
             // Insertar paciente
             Paciente::create($paciente);
-    
+
             // Insertar embarazos previos si es mujer y hay datos
-            if($paciente['Genero'] == 'F' && !empty($embarazosPrevios)){
-                
+            if ($paciente['Genero'] == 'F' && !empty($embarazosPrevios)) {
+
                 foreach ($embarazosPrevios as $embarazo) {
                     $embarazo['Fecha'] = $embarazo['Fecha'] . '-' . $diaActual;
 
@@ -277,7 +299,7 @@ class PacienteController extends Controller
                 }
             }
 
-            if($paciente['Genero'] == 'M' && $varon != null){
+            if ($paciente['Genero'] == 'M' && $varon != null) {
                 // Insertar datos del varon
                 $varon['Codigo'] = $paciente['Codigo'];
                 Varon::create($varon);
@@ -285,17 +307,21 @@ class PacienteController extends Controller
 
             // Log de éxito
             Log::info('Paciente registrado correctamente', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'registrarPaciente',
                 'paciente' => $paciente['Codigo'],
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
-    
+
             DB::commit();
-            
+
             return response()->json(['persona' => $paciente['Codigo'], 'message' => 'Paciente registrado correctamente.']);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollback();
             // Log de error
             Log::error('Error al registrar paciente', [
+                'Controlador' => 'PacienteController',
+                'Metodo' => 'registrarPaciente',
                 'paciente' => $paciente['Codigo'],
                 'error' => $e->getMessage(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
@@ -307,6 +333,4 @@ class PacienteController extends Controller
             ], 500);
         }
     }
-    
-
 }

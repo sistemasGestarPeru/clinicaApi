@@ -59,8 +59,10 @@ class HorarioController extends Controller
                 ->where('CodigoSede', $request->Sede)
                 ->get();
 
-             // Log de éxito
+            // Log de éxito
             Log::info('Horarios listados correctamente', [
+                'Controlador' => 'HorarioController',
+                'Metodo' => 'listarHorarios',
                 'cantidad' => count($horarios),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -70,6 +72,8 @@ class HorarioController extends Controller
 
             // Log del error general
             Log::error('Error al listar los horarios', [
+                'Controlador' => 'HorarioController',
+                'Metodo' => 'listarHorarios',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
@@ -134,6 +138,8 @@ class HorarioController extends Controller
 
             if ($validarHorario) {
                 Log::warning('Intento de registrar horario que se cruza con otro existente', [
+                    'Controlador' => 'HorarioController',
+                    'Metodo' => 'registrarHorario',
                     'CodigoMedico' => $request->CodigoMedico,
                     'Fecha' => $request->Fecha,
                     'HoraInicio' => $request->HoraInicio,
@@ -145,6 +151,8 @@ class HorarioController extends Controller
 
             Horario::create($request->all());
             Log::info('Horario registrado correctamente', [
+                'Controlador' => 'HorarioController',
+                'Metodo' => 'registrarHorario',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json([
@@ -152,6 +160,8 @@ class HorarioController extends Controller
             ], 201);
         } catch (\Exception $e) {
             Log::error('Error al registrar el horario', [
+                'Controlador' => 'HorarioController',
+                'Metodo' => 'registrarHorario',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),

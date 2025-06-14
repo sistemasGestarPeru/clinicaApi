@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Consultas;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConsultasTrabajadorController extends Controller
 {
@@ -75,8 +76,25 @@ class ConsultasTrabajadorController extends Controller
                 ->select('e.Codigo as id', 'e.Nombre as nombre')
                 ->get();
 
+            // Log de éxito
+            Log::info('Empresas de trabajador consultadas correctamente', [
+                'Controlador' => 'ConsultasTrabajadorController',
+                'Metodo' => 'ConsultaEmpresasTrab',
+                'codigoPersona' => $codigoPersona,
+                'cantidad' => count($empresas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($empresas);
         } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al consultar empresas de trabajador', [
+                'Controlador' => 'ConsultasTrabajadorController',
+                'Metodo' => 'ConsultaEmpresasTrab',
+                'codigoPersona' => $codigoPersona,
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error al obtener datos: ' . $e, 400);
         }
     }
@@ -112,8 +130,27 @@ class ConsultasTrabajadorController extends Controller
                 ->select('s.Codigo as id', 's.Nombre as nombre')
                 ->get();
 
+            // Log de éxito
+            Log::info('Sedes de trabajador consultadas correctamente', [
+                'Controlador' => 'ConsultasTrabajadorController',
+                'Metodo' => 'ConsultaSedesTrab',
+                'codigoPersona' => $codigoPersona,
+                'codigoEmpresa' => $codigoEmpresa,
+                'cantidad' => count($sedes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($sedes);
         } catch (\Exception $e) {
+            // Log de error
+            Log::error('Error al consultar sedes de trabajador', [
+                'Controlador' => 'ConsultasTrabajadorController',
+                'Metodo' => 'ConsultaSedesTrab',
+                'codigoPersona' => $codigoPersona,
+                'codigoEmpresa' => $codigoEmpresa,
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error al obtener datos', 400);
         }
     }

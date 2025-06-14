@@ -75,6 +75,8 @@ class LoteController extends Controller
 
             // Log de éxito
             Log::info('Lotes listados correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarLotes',
                 'cantidad' => count($lotes),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -83,6 +85,8 @@ class LoteController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Ocurrió un error al listar Lotes', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarLotes',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -123,6 +127,8 @@ class LoteController extends Controller
 
             // Log de éxito
             Log::info('Guías de Ingreso listadas correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarGuiasIngreso',
                 'cantidad' => count($resultados),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -132,6 +138,8 @@ class LoteController extends Controller
 
             // Log del error general
             Log::error('Ocurrió un error al listar Guías de Ingreso', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarGuiasIngreso',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -167,6 +175,8 @@ class LoteController extends Controller
 
             // Log de éxito
             Log::info('Detalle de Guía listados correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarDetalleGuia',
                 'cantidad' => count($resultados),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -175,6 +185,8 @@ class LoteController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Ocurrió un error al listar Detalle de Guía', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'listarDetalleGuia',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -215,6 +227,8 @@ class LoteController extends Controller
 
             if (!$resultados) {
                 Log::warning('No se encontraron resultados', [
+                    'Controlador' => 'LoteController',
+                    'Metodo' => 'detallexGuia',
                     'Codigo' => $codigo
                 ]);
 
@@ -223,6 +237,8 @@ class LoteController extends Controller
 
             // Log de éxito
             Log::info('Detalle de Guía consultado correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'detallexGuia',
                 'Codigo' => $codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -232,6 +248,8 @@ class LoteController extends Controller
 
             // Log del error general
             Log::error('Ocurrió un error al consultar Detalle de Guía', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'detallexGuia',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -302,6 +320,8 @@ class LoteController extends Controller
 
             DB::commit();
             Log::info('Lote registrado correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'registrarLote',
                 'Codigo' => $loteCreado->Codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -309,6 +329,8 @@ class LoteController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Ocurrió un error al registrar Lote', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'registrarLote',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -340,12 +362,16 @@ class LoteController extends Controller
             if (!$lote) {
                 // Log del error específico
                 Log::warning('Lote no encontrado', [
+                    'Controlador' => 'LoteController',
+                    'Metodo' => 'consultarLote',
                     'Codigo' => $codigo
                 ]);
                 return response()->json(['error' => 'Lote no encontrado.'], 404);
             }
             // Log de éxito
             Log::info('Lote consultado correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'consultarLote',
                 'Codigo' => $codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -353,6 +379,8 @@ class LoteController extends Controller
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Ocurrió un error al consultar Lote', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'consultarLote',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -371,6 +399,8 @@ class LoteController extends Controller
             if (!$loteEncontrado) {
                 // Log del error específico
                 Log::warning('Lote no encontrado', [
+                    'Controlador' => 'LoteController',
+                    'Metodo' => 'actualizarLote',
                     'Codigo' => $request->Codigo
                 ]);
                 return response()->json(['error' => 'Lote no encontrado.'], 404);
@@ -379,6 +409,8 @@ class LoteController extends Controller
             if ($loteEncontrado->Vigente == 0) {
                 // Log del error específico
                 Log::warning('Intento de actualización de Lote inactivo', [
+                    'Controlador' => 'LoteController',
+                    'Metodo' => 'actualizarLote',
                     'Codigo' => $request->Codigo
                 ]);
                 return response()->json(['error' => 'No se puede actualizar un Lote en estado Inactivo.'], 404);
@@ -388,11 +420,13 @@ class LoteController extends Controller
             //     return response()->json(['error' => 'No se puede dar de baja un Lote con Stock diferente a la Cantidad.'], 404);
             // }
 
-            if($request->Vigente == 0){
+            if ($request->Vigente == 0) {
                 //validar que no se ha generado egresos de productos de este lote
                 if (($loteEncontrado->Cantidad != $loteEncontrado->Stock)) {
                     // Log del error específico
                     Log::warning('Intento de anulación de Lote con Stock diferente a la Cantidad', [
+                        'Controlador' => 'LoteController',
+                        'Metodo' => 'actualizarLote',
                         'Codigo' => $request->Codigo,
                         'Cantidad' => $loteEncontrado->Cantidad,
                         'Stock' => $loteEncontrado->Stock
@@ -407,15 +441,17 @@ class LoteController extends Controller
                     ->limit(1)
                     ->first();
                 //Verificar si el que ingresa es el ultimo lote activo
-                if($request->Codigo != $ultimoLote->Codigo) {
+                if ($request->Codigo != $ultimoLote->Codigo) {
                     // Log del error específico
                     Log::warning('Intento de anulación de Lote no es el último activo', [
+                        'Controlador' => 'LoteController',
+                        'Metodo' => 'actualizarLote',
                         'Codigo' => $request->Codigo,
                         'UltimoLote' => $ultimoLote->Codigo
                     ]);
                     return response()->json([
                         'error' => 'No se puede anular este lote. Primero debe eliminar el lote de Serie: ' . $ultimoLote->Serie
-                    ], 404);                
+                    ], 404);
                 }
                 //Actualizar el movimiento Lote (Vigente = 0)
 
@@ -442,7 +478,7 @@ class LoteController extends Controller
                     ->orderByDesc('ml.Codigo')
                     ->limit(1)
                     ->first();
-            
+
 
                 // Actualizar el stock de la sede
 
@@ -454,22 +490,21 @@ class LoteController extends Controller
                             'Stock' => DB::raw('Stock - ' . $ultimoLote->Cantidad)
                         ]);
                 } else {
-                    
+
 
                     DB::table('sedeproducto')
-                    ->where('CodigoProducto', $ultimoLote->CodigoProducto)
-                    ->update([
-                        'CostoCompraPromedio' => 0,
-                        'Stock' => 0
-                    ]);
+                        ->where('CodigoProducto', $ultimoLote->CodigoProducto)
+                        ->update([
+                            'CostoCompraPromedio' => 0,
+                            'Stock' => 0
+                        ]);
 
 
                     // return response()->json([
                     //     'error' => 'No se encontró un movimiento de lote activo para actualizar el producto.'
                     // ], 404);
                 }
-
-            }else{
+            } else {
                 $loteEncontrado->update(
                     [
                         'FechaCaducidad' => $request->Fecha,
@@ -480,6 +515,8 @@ class LoteController extends Controller
 
             DB::commit();
             Log::info('Lote actualizado correctamente', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'actualizarLote',
                 'Codigo' => $loteEncontrado->Codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
@@ -488,6 +525,8 @@ class LoteController extends Controller
             DB::rollBack();
             // Log del error general
             Log::error('Ocurrió un error al actualizar Lote', [
+                'Controlador' => 'LoteController',
+                'Metodo' => 'actualizarLote',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()

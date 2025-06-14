@@ -14,6 +14,7 @@ use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CompraController extends Controller
 {
@@ -82,6 +83,14 @@ class CompraController extends Controller
                 return response()->json(['message' => 'No se encontró la venta'], 404);
             }
 
+            // Log de éxito
+            Log::info('Compra consultada correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'consultarCompra',
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'compra' => $compra,
                 'detalleCompra' => $detaleCompra,
@@ -90,6 +99,13 @@ class CompraController extends Controller
                 'razonSocial' => $razonSocial
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Error al consultar la compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'consultarCompra',
+                'codigo' => $codigo,
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al consultar la venta'], 500);
         }
     }
@@ -108,8 +124,23 @@ class CompraController extends Controller
                 ->select('Codigo', 'RazonSocial', 'RUC')
                 ->get();
 
+            // Log de éxito
+            Log::info('Compras listadas correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarProveedor',
+                'cantidad' => count($proveedores),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($proveedores, 200);
         } catch (\Exception $e) {
+
+            Log::error('Error al listar los proveedores', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarProveedor',
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al listar los proveedores'], 500);
         }
     }
@@ -136,9 +167,21 @@ class CompraController extends Controller
                 ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
                 ->get();
 
-
+            // Log de éxito
+            Log::info('Productos listados correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarProducto',
+                'cantidad' => count($productos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar los productos', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarProducto',
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al listar los productos', $e], 500);
         }
     }
@@ -172,9 +215,22 @@ class CompraController extends Controller
                 ->orderBy('c.Codigo', 'desc')
                 ->get();
 
+            // Log de éxito
+            Log::info('Compras listadas correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarCompras',
+                'cantidad' => count($compra),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($compra, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar las compras', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarCompras',
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => 'Error al listar las compras', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -202,8 +258,23 @@ class CompraController extends Controller
                 ->where('pp.TipoMoneda', $Moneda)
                 ->whereNull('pp.CodigoCuota')
                 ->get();
+
+            // Log de éxito
+            Log::info('Pagos adelantados listados correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarPagosAdelantados',
+                'cantidad' => count($result),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($result, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar los pagos adelantados', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'listarPagosAdelantados',
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al listar los pagos adelantados'], 500);
         }
     }
@@ -301,9 +372,21 @@ class CompraController extends Controller
             }
 
             DB::commit();
+            // Log de éxito
+            Log::info('Compra registrada correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'registrarCompra',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Compra registrada correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al registrar la compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'registrarCompra',
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al registrar la compra', 'error' => $e], 500);
         }
     }
@@ -326,6 +409,13 @@ class CompraController extends Controller
                 ->exists();
 
             if ($existePagoActivo) {
+                // Log del error específico
+                Log::warning('No se puede actualizar la compra porque tiene pagos activos', [
+                    'Controlador' => 'CompraController',
+                    'Metodo' => 'actualizarCompra',
+                    'CodigoCompra' => $compra['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json(['error' => 'No se puede actualizar la compra porque tiene pagos activos.'], 400);
             }
 
@@ -339,6 +429,16 @@ class CompraController extends Controller
                 ->exists();
 
             if ($guiaActiva) {
+                // Log del error específico
+                Log::warning(
+                    'No se puede actualizar la compra porque tiene una guía de ingreso activa',
+                    [
+                        'Controlador' => 'CompraController',
+                        'Metodo' => 'actualizarCompra',
+                        'CodigoCompra' => $compra['Codigo'],
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                    ]
+                );
                 return response()->json(['error' => 'No se puede actualizar la compra porque tiene una guía de ingreso activa.'], 400);
             }
 
@@ -346,6 +446,13 @@ class CompraController extends Controller
 
             $compraEncontrada = Compra::find($compra['Codigo']);
             if (!$compraEncontrada) {
+                // Log del error específico
+                Log::warning('Compra no encontrada para actualizar', [
+                    'Controlador' => 'CompraController',
+                    'Metodo' => 'actualizarCompra',
+                    'CodigoCompra' => $compra['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json(['error' => 'Compra no encontrada'], 404);
             }
 
@@ -356,15 +463,38 @@ class CompraController extends Controller
                     ->where('CodigoCompra', $compra['Codigo'])
                     ->update(['Vigente' => 0]);
             } else {
+                // Log del error específico
+                Log::warning('Compra no puede ser actualizada porque ya no está vigente', [
+                    'Controlador' => 'CompraController',
+                    'Metodo' => 'actualizarCompra',
+                    'CodigoCompra' => $compra['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => __('mensajes.error_act_compra')
                 ], 400);
             }
 
             DB::commit();
+            // Log de éxito
+            Log::info('Compra actualizada correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'actualizarCompra',
+                'CodigoCompra' => $compra['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Compra actualizada correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Log del error general
+            Log::error('Error inesperado al actualizar la compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'actualizarCompra',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => 'Error al actualizar la compra', 'bd' => $e->getMessage()], 500);
         }
     }
