@@ -7,6 +7,7 @@ use App\Models\Almacen\Lote\Lote;
 use App\Models\Almacen\Lote\MovimientoLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LoteController extends Controller
 {
@@ -71,8 +72,21 @@ class LoteController extends Controller
                     'L.Vigente'
                 ])
                 ->get();
+
+            // Log de éxito
+            Log::info('Lotes listados correctamente', [
+                'cantidad' => count($lotes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($lotes, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Ocurrió un error al listar Lotes', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al listar Lotes', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -107,8 +121,22 @@ class LoteController extends Controller
                 })
                 ->get();
 
+            // Log de éxito
+            Log::info('Guías de Ingreso listadas correctamente', [
+                'cantidad' => count($resultados),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Ocurrió un error al listar Guías de Ingreso', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => 'Ocurrió un error al listar Guías de Ingreso.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -137,9 +165,20 @@ class LoteController extends Controller
                 ->select('dgi.Codigo', 'p.Nombre')
                 ->get();
 
+            // Log de éxito
+            Log::info('Detalle de Guía listados correctamente', [
+                'cantidad' => count($resultados),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Ocurrió un error al listar Detalle de Guía', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -173,8 +212,31 @@ class LoteController extends Controller
                     'tg.Porcentaje'
                 )
                 ->first();
+
+            if (!$resultados) {
+                Log::warning('No se encontraron resultados', [
+                    'Codigo' => $codigo
+                ]);
+
+                return response()->json(['error' => 'No se encontraron resultados para el código proporcionado.'], 404);
+            }
+
+            // Log de éxito
+            Log::info('Detalle de Guía consultado correctamente', [
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Ocurrió un error al consultar Detalle de Guía', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => 'Ocurrió un error al listar Detalle de Guía.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -239,9 +301,18 @@ class LoteController extends Controller
             }
 
             DB::commit();
+            Log::info('Lote registrado correctamente', [
+                'Codigo' => $loteCreado->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($lote, 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Ocurrió un error al registrar Lote', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al registrar Lote.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -266,8 +337,26 @@ class LoteController extends Controller
                     'l.Vigente'
                 )
                 ->first(); // O ->get() si esperas múltiples resultados
+            if (!$lote) {
+                // Log del error específico
+                Log::warning('Lote no encontrado', [
+                    'Codigo' => $codigo
+                ]);
+                return response()->json(['error' => 'Lote no encontrado.'], 404);
+            }
+            // Log de éxito
+            Log::info('Lote consultado correctamente', [
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($lote, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Ocurrió un error al consultar Lote', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al consultar Lote.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -280,10 +369,18 @@ class LoteController extends Controller
             $loteEncontrado = Lote::find($request->Codigo);
 
             if (!$loteEncontrado) {
+                // Log del error específico
+                Log::warning('Lote no encontrado', [
+                    'Codigo' => $request->Codigo
+                ]);
                 return response()->json(['error' => 'Lote no encontrado.'], 404);
             }
 
             if ($loteEncontrado->Vigente == 0) {
+                // Log del error específico
+                Log::warning('Intento de actualización de Lote inactivo', [
+                    'Codigo' => $request->Codigo
+                ]);
                 return response()->json(['error' => 'No se puede actualizar un Lote en estado Inactivo.'], 404);
             }
 
@@ -294,6 +391,12 @@ class LoteController extends Controller
             if($request->Vigente == 0){
                 //validar que no se ha generado egresos de productos de este lote
                 if (($loteEncontrado->Cantidad != $loteEncontrado->Stock)) {
+                    // Log del error específico
+                    Log::warning('Intento de anulación de Lote con Stock diferente a la Cantidad', [
+                        'Codigo' => $request->Codigo,
+                        'Cantidad' => $loteEncontrado->Cantidad,
+                        'Stock' => $loteEncontrado->Stock
+                    ]);
                     return response()->json(['error' => 'No se puede anular un Lote con Stock diferente a la Cantidad.'], 404);
                 }
                 //Buscar si es el ultimo lote activo
@@ -305,6 +408,11 @@ class LoteController extends Controller
                     ->first();
                 //Verificar si el que ingresa es el ultimo lote activo
                 if($request->Codigo != $ultimoLote->Codigo) {
+                    // Log del error específico
+                    Log::warning('Intento de anulación de Lote no es el último activo', [
+                        'Codigo' => $request->Codigo,
+                        'UltimoLote' => $ultimoLote->Codigo
+                    ]);
                     return response()->json([
                         'error' => 'No se puede anular este lote. Primero debe eliminar el lote de Serie: ' . $ultimoLote->Serie
                     ], 404);                
@@ -371,9 +479,19 @@ class LoteController extends Controller
             }
 
             DB::commit();
+            Log::info('Lote actualizado correctamente', [
+                'Codigo' => $loteEncontrado->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Se actualizó el lote correctamente.', 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Log del error general
+            Log::error('Ocurrió un error al actualizar Lote', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al actualizar Lote.', 'bd' => $e->getMessage()], 500);
         }
     }

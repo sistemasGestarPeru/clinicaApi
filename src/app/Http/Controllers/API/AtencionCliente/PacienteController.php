@@ -10,7 +10,7 @@ use App\Models\Personal\Persona;
 use Faker\Provider\ar_EG\Person;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 class PacienteController extends Controller
 {
     /**
@@ -81,9 +81,20 @@ class PacienteController extends Controller
             )
             ->get();
 
+            // Log de éxito
+            Log::info('Paciente listados correctamente', [
+                'cantidad' => count($pacientes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($pacientes, 200);
 
         }catch(\Exception $e){
+            // Log de error
+            Log::error('Error al listar pacientes', [
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al listar los pacientes',
@@ -100,6 +111,10 @@ class PacienteController extends Controller
             $varon = null;
 
             if(!$persona){
+
+                Log::warning('Paciente no encontrado.', [
+                    'Codigo' => $codigo
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Paciente no encontrado.'
@@ -109,6 +124,9 @@ class PacienteController extends Controller
             $paciente = Paciente::findOrFail($codigo);
 
             if(!$paciente){
+                Log::warning('Paciente no encontrado.', [
+                    'Codigo' => $codigo
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Paciente no encontrado.'
@@ -123,7 +141,11 @@ class PacienteController extends Controller
                 $varon = Varon::where('Codigo', $codigo)->first();
             }
 
-
+            // Log de éxito
+            Log::info('Paciente consultado correctamente', [
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'persona' => $persona,
                 'paciente' => $paciente,
@@ -131,6 +153,12 @@ class PacienteController extends Controller
                 'varon' => $varon
             ], 200);
         }catch(\Exception $e){
+            // Log de error
+            Log::error('Error al consultar paciente', [
+                'Codigo' => $codigo,
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al consultar el paciente',
@@ -153,6 +181,12 @@ class PacienteController extends Controller
             ->first();
 
             if($pacienteData){
+                // Log de éxito
+                Log::info('Paciente Encontrado', [
+                    'paciente' => ($pacienteData),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 // Si existe, retornar el codigo del paciente 
                 return response()->json([
                     'paciente' => $pacienteData
@@ -167,6 +201,12 @@ class PacienteController extends Controller
                 ->exists();
 
             if ($existePersona) {
+                // Log de éxito
+                Log::info('Persona encontrada', [
+                    'numeroDocumento' => $request->numeroDocumento,
+                    'tipoDocumento' => $request->tipoDocumento,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 // Obtener datos si existe
                 $persona = DB::table('personas')
                             ->select('Codigo', 'Nombres', 'Apellidos', 'Direccion', 'Celular', 'Correo', 'NumeroDocumento', 'CodigoTipoDocumento', 'CodigoNacionalidad')
@@ -176,13 +216,23 @@ class PacienteController extends Controller
             }else{
                 $persona = null;
             }
-
+            // Log de éxito
+            Log::info('Búsqueda de persona realizada', [
+                'numeroDocumento' => $request->numeroDocumento,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'existe' => $existePersona,
                 'data' => $persona
             ], 200);
 
         }catch(\Exception $e){
+            // Log de error
+            Log::error('Error al buscar persona', [
+                'numeroDocumento' => $request->numeroDocumento,
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al buscar la persona',
@@ -232,11 +282,24 @@ class PacienteController extends Controller
                 $varon['Codigo'] = $paciente['Codigo'];
                 Varon::create($varon);
             }
+
+            // Log de éxito
+            Log::info('Paciente registrado correctamente', [
+                'paciente' => $paciente['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
     
             DB::commit();
+            
             return response()->json(['persona' => $paciente['Codigo'], 'message' => 'Paciente registrado correctamente.']);
         }catch(\Exception $e){
             DB::rollback();
+            // Log de error
+            Log::error('Error al registrar paciente', [
+                'paciente' => $paciente['Codigo'],
+                'error' => $e->getMessage(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al registrar el paciente',

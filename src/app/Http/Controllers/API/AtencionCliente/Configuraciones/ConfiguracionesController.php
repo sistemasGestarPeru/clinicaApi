@@ -9,6 +9,7 @@ use App\Models\AtencionCliente\Configuraciones\TexturaCabello;
 use App\Models\AtencionCliente\Configuraciones\TonoPiel;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ConfiguracionesController extends Controller
 {
@@ -58,8 +59,20 @@ class ConfiguracionesController extends Controller
     {
         try {
             $entidad = ColorOjos::all();
+            // Log de éxito
+            Log::info('Listado de Ojos obtenidos correctamente', [
+                'cantidad' => count($entidad),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($entidad, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al listar Color Ojos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+		        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al listar Color Ojos.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -68,11 +81,23 @@ class ConfiguracionesController extends Controller
     {
         try {
             ColorOjos::create($request->all());
+            // Log de éxito
+            Log::info('Color de Ojos registrado correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Color de Ojos registrado correctamente.'], 201);
         } catch (QueryException $e) {
 
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+                // Log del error de clave duplicada
+                Log::warning('Error al registrar Color Ojos: clave duplicada', [
+                    'mensaje' => $e->getMessage(),
+                    'linea' => $e->getLine(),
+                    'archivo' => $e->getFile(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json([
                     'error' => 'El Color de Ojos ya existe.'
                 ], 500);
@@ -80,7 +105,23 @@ class ConfiguracionesController extends Controller
 
             // Capturar otros errores de SQL
 
+            Log::error('Error al registrar Color Ojos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['msg' => 'Error al registrar Color Ojos.', 'bd' => $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al registrar Color Ojos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+		        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['msg' => 'Error al listar Color Ojos.' ,'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -89,8 +130,21 @@ class ConfiguracionesController extends Controller
         try {
             $colorOjos = ColorOjos::findOrFail($request->Codigo);
             $colorOjos->update($request->all());
+            // Log de éxito
+            Log::info('Color de Ojos actualizado correctamente', [
+                'codigo' => $colorOjos->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Color de Ojos actualizado correctamente.'], 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de actualización
+            Log::error('Error al actualizar Color Ojos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $request->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al actualizar Color Ojos.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -99,8 +153,21 @@ class ConfiguracionesController extends Controller
     {
         try {
             $colorOjos = ColorOjos::findOrFail($codigo);
+            // Log de éxito
+            Log::info('Color de Ojos consultado correctamente', [
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($colorOjos, 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de consulta
+            Log::error('Error al consultar Color Ojos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al consultar Color Ojos.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -111,8 +178,20 @@ class ConfiguracionesController extends Controller
     {
         try {
             $entidad = TonoPiel::all();
+            // Log de éxito
+            Log::info('Listado de Tono de Piel obtenidos correctamente', [
+                'cantidad' => count($entidad),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($entidad, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al listar Color Piel', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al listar Color Piel.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -120,19 +199,46 @@ class ConfiguracionesController extends Controller
     {
         try {
             TonoPiel::create($request->all());
+            // Log de éxito
+            Log::info('Color de Piel registrado correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Color de Piel registrado correctamente.'], 201);
         } catch (QueryException $e) {
 
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+                // Log del error de clave duplicada
+                Log::warning('Error al registrar Color Piel: clave duplicada', [
+                    'mensaje' => $e->getMessage(),
+                    'linea' => $e->getLine(),
+                    'archivo' => $e->getFile(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json([
                     'error' => 'El Color de Piel ya existe.'
                 ], 500);
             }
 
             // Capturar otros errores de SQL
-
+            Log::error('Error al registrar Color Piel', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al registrar Color Piel.', 'bd' => $e->getMessage()], 500);
+
+        }catch (\Exception $e) {
+            // Log del error de consulta
+            Log::error('Error al registrar Color Piel', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['msg' => 'Error al consultar Color Ojos.', 'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -140,9 +246,22 @@ class ConfiguracionesController extends Controller
     {
         try {
             $colorOjos = TonoPiel::findOrFail($request->Codigo);
+            // Log de éxito
+            Log::info('Color de Piel actualizado correctamente', [
+                'codigo' => $colorOjos->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             $colorOjos->update($request->all());
             return response()->json(['msg' => 'Color de Piel actualizado correctamente.'], 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de actualización
+            Log::error('Error al actualizar Color Piel', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $request->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al actualizar Color Piel.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -151,8 +270,21 @@ class ConfiguracionesController extends Controller
     {
         try {
             $colorOjos = TonoPiel::findOrFail($codigo);
+            // Log de éxito
+            Log::info('Color de Piel consultado correctamente', [
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($colorOjos, 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de consulta
+            Log::error('Error al consultar Color Piel', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al consultar Color Piel.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -163,8 +295,20 @@ class ConfiguracionesController extends Controller
     {
         try {
             $entidad = TexturaCabello::all();
+            // Log de éxito
+            Log::info('Listado de Textura de Cabello obtenidos correctamente', [
+                'cantidad' => count($entidad),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($entidad, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al listar Textura de Cabello', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al listar Textura de Cabello.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -173,19 +317,45 @@ class ConfiguracionesController extends Controller
     {
         try {
             TexturaCabello::create($request->all());
+            // Log de éxito
+            Log::info('Textura de Cabello registrado correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Textura de Cabello registrado correctamente.'], 201);
         } catch (QueryException $e) {
 
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+                // Log del error de clave duplicada
+                Log::warning('Error al registrar Textura de Cabello: clave duplicada', [
+                    'mensaje' => $e->getMessage(),
+                    'linea' => $e->getLine(),
+                    'archivo' => $e->getFile(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => 'La Textura de Cabello ya existe.'
                 ], 500);
             }
 
             // Capturar otros errores de SQL
-
+            Log::error('Error al registrar Textura de Cabello', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al registrar Textura de Cabello.', 'bd' => $e->getMessage()], 500);
+        
+        } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al registrar Textura de Cabello', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['msg' => 'Error al registrar Textura de Cabello.' ,'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -194,8 +364,21 @@ class ConfiguracionesController extends Controller
         try {
             $colorOjos = TexturaCabello::findOrFail($request->Codigo);
             $colorOjos->update($request->all());
+            // Log de éxito
+            Log::info('Textura de Cabello actualizado correctamente', [
+                'codigo' => $colorOjos->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Textura de Cabello actualizado correctamente.'], 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de actualización
+            Log::error('Error al actualizar Textura de Cabello', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $request->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al actualizar Textura de Cabello.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -204,8 +387,21 @@ class ConfiguracionesController extends Controller
     {
         try {
             $colorOjos = TexturaCabello::findOrFail($codigo);
+            // Log de éxito
+            Log::info('Textura de Cabello consultado correctamente', [
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($colorOjos, 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de consulta
+            Log::error('Error al consultar Textura de Cabello', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al consultar Textura de Cabello.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -216,8 +412,20 @@ class ConfiguracionesController extends Controller
     {
         try {
             $entidad = MedioPublicitario::all();
+            // Log de éxito
+            Log::info('Listado de Medios Publicitarios obtenidos correctamente', [
+                'cantidad' => count($entidad),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($entidad, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al listar Medio Publicitario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al listar Medio Publicitario.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -226,19 +434,44 @@ class ConfiguracionesController extends Controller
     {
         try {
             MedioPublicitario::create($request->all());
+            // Log de éxito
+            Log::info('Medio Publicitario registrado correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Medio Publicitario registrado correctamente.'], 201);
         } catch (QueryException $e) {
 
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+                // Log del error de clave duplicada
+                Log::warning('Error al registrar Medio Publicitario: clave duplicada', [
+                    'mensaje' => $e->getMessage(),
+                    'linea' => $e->getLine(),
+                    'archivo' => $e->getFile(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => 'El Medio Publicitario ya existe.'
                 ], 500);
             }
 
             // Capturar otros errores de SQL
-
+            Log::error('Error al registrar Medio Publicitario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al registrar Medio Publicitario.', 'bd' => $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al registrar Medio Publicitario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['msg' => 'Error al registrar Medio Publicitario.' ,'bd' => $e->getMessage()], 500);
         }
     }
 
@@ -246,9 +479,22 @@ class ConfiguracionesController extends Controller
     {
         try {
             $medioPublicitario = MedioPublicitario::findOrFail($request->Codigo);
+            // Log de éxito
+            Log::info('Medio Publicitario actualizado correctamente', [
+                'codigo' => $medioPublicitario->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             $medioPublicitario->update($request->all());
             return response()->json(['msg' => 'Medio Publicitario actualizado correctamente.'], 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de actualización
+            Log::error('Error al actualizar Medio Publicitario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $request->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al actualizar Medio Publicitario.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -257,8 +503,21 @@ class ConfiguracionesController extends Controller
     {
         try {
             $medioPublicitario = MedioPublicitario::findOrFail($codigo);
+            // Log de éxito
+            Log::info('Medio Publicitario consultado correctamente', [
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($medioPublicitario, 200);
-        } catch (QueryException $e) {
+        } catch (\Exception $e) {
+            // Log del error de consulta
+            Log::error('Error al consultar Medio Publicitario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al consultar Medio Publicitario.', 'bd' => $e->getMessage()], 500);
         }
     }

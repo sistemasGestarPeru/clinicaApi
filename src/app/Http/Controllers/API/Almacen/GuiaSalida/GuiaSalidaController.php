@@ -9,6 +9,7 @@ use App\Models\Almacen\Lote\Lote;
 use App\Models\Almacen\Lote\MovimientoLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class GuiaSalidaController extends Controller
 {
@@ -61,8 +62,22 @@ class GuiaSalidaController extends Controller
                 ->where('CodigoSede', $sede)
                 ->where('Stock', '>', 0)
                 ->get();
+            
+                // Log de éxito
+            Log::info('Lotes listados correctamente', [
+                'cantidad' => count($lotes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($lotes, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error inesperado al listar Lotes', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => 'Ocurrió un error al listar los lotes disponibles', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -90,9 +105,21 @@ class GuiaSalidaController extends Controller
                 ->where('CodigoSede', $filtros['CodigoSede'])
                 ->get();
 
+            // Log de éxito
+            Log::info('Guias de salida listadas correctamente', [
+                'cantidad' => count($guiaSalida),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($guiaSalida, 200);
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Error inesperado al listar Guias de Salida', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al listar las Guias de Salida', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -161,8 +188,19 @@ class GuiaSalidaController extends Controller
                 })
                 ->get();
 
+            // Log de éxito
+            Log::info('Ventas activas listadas correctamente', [
+                'cantidad' => count($ventas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error inesperado al listar Ventas Activas', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al listar las Compras', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -202,10 +240,23 @@ class GuiaSalidaController extends Controller
             ";
 
             $resultados = DB::select($sql, [$venta, $venta, $venta]);
+            // Log de éxito
+            Log::info('Detalle de venta listado correctamente', [
+                'cantidad' => count($resultados),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
 
             return response()->json($resultados, 200);
+
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Error inesperado al listar el detalle de la venta', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al listar el detalle de la venta', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -263,9 +314,20 @@ class GuiaSalidaController extends Controller
             }
 
             DB::commit();
+            // Log de éxito
+            Log::info('Guia de salida registrada correctamente', [
+                'codigo_guia' => $guiaSalida->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['mensaje' => 'Guia de salida registrada'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Log del error general
+            Log::error('Error inesperado al registrar Guia de Salida', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Ocurrió un error al registrar la guia de salida', 'bd' => $e->getMessage()], 500);
         }
     }

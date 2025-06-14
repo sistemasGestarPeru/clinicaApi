@@ -14,6 +14,7 @@ use App\Models\Recaudacion\SalidaDinero;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class CajaController extends Controller
 {
@@ -41,23 +42,25 @@ class CajaController extends Controller
         $cajaData['FechaInicio'] = $fecha;
         $cajaData['Estado'] = 'A';
         
-        
-
         try {
             DB::beginTransaction();
             $totalEfectivo = DB::table('caja')
-            ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
-            ->where('Estado', 'C')
-            ->where('CodigoSede', $cajaData['CodigoSede'])
-            ->orderByDesc('Codigo')
-            ->limit(1)
-            ->value('TotalEfectivo'); // Devuelve el valor directamente o NULL
+                ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
+                ->where('Estado', 'C')
+                ->where('CodigoSede', $cajaData['CodigoSede'])
+                ->orderByDesc('Codigo')
+                ->limit(1)
+                ->value('TotalEfectivo'); // Devuelve el valor directamente o NULL
         
             $totalEfectivo = $totalEfectivo ?? 0; // Si es NULL, asignar 0
         
             $caja = Caja::create($cajaData);
             
             if (!$caja) {
+                // Log del error específico
+                Log::warning('Error al registrar la caja', [
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => 'Error al registrar la caja',
                     'resp' => false
@@ -74,6 +77,10 @@ class CajaController extends Controller
             $ingreso = IngresoDinero::create($IngresoDineroData);
 
             if (!$ingreso) {
+                // Log del error específico
+                Log::warning('Error al registrar el ingreso de dinero por Apertura', [
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => 'Error al registrar el ingreso de dinero por Apertura',
                     'resp' => false
@@ -81,6 +88,13 @@ class CajaController extends Controller
             }
 
             DB::commit();
+
+            // Log de éxito
+            Log::info('Caja registrada correctamente', [
+                'Codigo' => $caja->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'CodigoCaja' =>  $caja->Codigo,
                 'resp' => true
@@ -88,6 +102,15 @@ class CajaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log del error general
+            Log::error('Error al registrar la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+		        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'error' => 'Error al registrar la caja',
                 'resp' => false
@@ -223,12 +246,46 @@ class CajaController extends Controller
             ");
     
             // Devolver los resultados
+
+            if (!$cajaData) {
+                // Log del error específico
+                Log::warning('Caja no encontrada', [
+                    'Codigo' => $caja,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                // return response()->json(['message' => 'Caja no encontrada'], 404);
+            }
+
+            if (!$unionQuery) {
+                // Log del error específico
+                Log::warning('No se encontraron movimientos para la caja', [
+                    'Codigo' => $caja,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                // return response()->json(['message' => 'No se encontraron movimientos para la caja'], 404);
+            }
+
+
+            // Log de éxito
+            Log::info('Datos de la Caja obtenidos correctamente', [
+                'Codigo' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+        
             return response()->json([
                 'caja' => $cajaData,
                 'movimientos' => $unionQuery
             ], 200);
     
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al consultar los datos de la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoCaja' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
     }
@@ -301,10 +358,25 @@ class CajaController extends Controller
                 'Recaudacion' => $recaudacion,
                 'Salidas' => $salida
             ];
+
+            // Log de éxito
+            Log::info('Datos de la caja consultados correctamente', [
+                'CodigoCaja' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             
             return response()->json($resultado);
         
         }catch(\Exception $e){
+
+            // Log del error general
+            Log::error('Error al consultar los datos de la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoCaja' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
         }
     }
@@ -321,11 +393,25 @@ class CajaController extends Controller
             $caja = Caja::where('Codigo', $request->CodigoCaja)->first();
             $caja->update($request->all());
 
+            // Log de éxito
+            Log::info('Caja Cerrada correctamente', [
+                'Codigo' => $request->CodigoCaja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'CodigoCaja' => -1,
                 'resp' => false
             ], 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al cerrar la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoCaja' => $request->CodigoCaja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'error' => 'Error al cerrar la caja'
             ], 400);
@@ -354,14 +440,27 @@ class CajaController extends Controller
             IngresoDinero::create($IngresoDineroData);
             
             DB::table('salidadinero')
-            ->where('Codigo', $egreso)
-            ->update([
+                ->where('Codigo', $egreso)
+                ->update([
                 'Confirmado' => 1
-            ]);
+                ]);
             DB::commit();
+            // Log de éxito
+            Log::info('Ingreso registrado correctamente', [
+                'CodigoEgreso' => $egreso,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Ingreso registrado correctamente', $egreso], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Log del error general
+            Log::error('Error al registrar el ingreso', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoEgreso' => $egreso,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al registrar el ingreso', 'error' => $e->getMessage()], 400);
         }
     }
@@ -391,10 +490,23 @@ class CajaController extends Controller
 
             SalidaDinero::create($salidaDinero);
             DB::commit();
+            // Log de éxito
+            Log::info('Salida registrada correctamente', [
+                'CodigoEgreso' => $nuevoEgreso->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Salida registrada correctamente'], 201);
 
         }catch(\Exception $e){
             DB::rollBack();
+            // Log del error general
+            Log::error('Error al registrar la salida', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoEgreso' => isset($nuevoEgreso) ? $nuevoEgreso->Codigo : null,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al registrar la salida', 'error' => $e->getMessage()], 400);
         }
     }
@@ -411,9 +523,36 @@ class CajaController extends Controller
                 ->orderByDesc('Codigo')
                 ->select('Codigo')
                 ->first();
+            
+            if (!$caja) {
+                // Log del error específico
+                Log::warning('Caja no encontrada', [
+                    'CodigoTrabajador' => $codigoTrabajador,
+                    'CodigoSede' => $codigoSede,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                return response()->json(['message' => 'Caja no encontrada'], 404);
+            }
+            // Log de éxito
+            Log::info('Estado de la caja consultado correctamente', [
+                'CodigoCaja' => $caja->Codigo,
+                'CodigoTrabajador' => $codigoTrabajador,
+                'CodigoSede' => $codigoSede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['caja' => $caja], 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 400);
+
+            // Log del error general
+            Log::error('Error al consultar el estado de la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoTrabajador' => $codigoTrabajador,
+                'CodigoSede' => $codigoSede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['message' => 'Error al consultar la caja', 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -438,6 +577,12 @@ class CajaController extends Controller
 
             // Si no hay resultado o el resultado es -1
             if (!$result || $result->CodigoCaja == -1) {
+                // Log del error específico
+                Log::warning('Caja no encontrada o cerrada', [
+                    'CodigoTrabajador' => $codigoTrabajador,
+                    'CodigoSede' => $codigoSede,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'CodigoCaja' => -1,
                     'resp' => false
@@ -445,12 +590,32 @@ class CajaController extends Controller
             }
 
             // Si el resultado es válido y positivo
+
+            // Log de éxito
+            Log::info('Estado de la caja consultado correctamente', [
+                'CodigoCaja' => $result->CodigoCaja,
+                'CodigoTrabajador' => $codigoTrabajador,
+                'CodigoSede' => $codigoSede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'CodigoCaja' => $result->CodigoCaja,
                 'resp' => true
             ], 200);
 
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Error al consultar el estado de la caja', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoTrabajador' => $codigoTrabajador,
+                'CodigoSede' => $codigoSede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Error al consultar la caja',
                 'error' => $e->getMessage()
@@ -481,9 +646,23 @@ class CajaController extends Controller
             )
             ->get();
 
+            // Log de éxito
+            Log::info('Salida Dinero Trabajadores listados correctamente', [
+                'cantidad' => count($trabajadores),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($trabajadores);
 
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al listar los trabajadores', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['message' => 'Error al listar los trabajadores', 'error' => $e->getMessage()], 400);
         }
     }
@@ -509,10 +688,25 @@ class CajaController extends Controller
                     DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS Emisor")
                 )
             ->get();
-
+            // Log de éxito
+            Log::info('Ingresos pendientes listados correctamente', [
+                'cantidad' => count($results),
+                'codigoSede' => $codigoSede,
+                'codigoReceptor' => $codigoReceptor,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($results, 200);
 
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al listar los ingresos pendientes', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigoSede' => $codigoSede,
+                'codigoReceptor' => $codigoReceptor,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
         }
         
@@ -620,10 +814,26 @@ class CajaController extends Controller
                 ->unionAll($query2)
                 ->orderBy('FechaPago', 'desc') // Ordena por FechaPago en orden descendente
                 ->get();
-
+            // Log de éxito
+            Log::info('Ingresos y Egresos listados correctamente', [
+                'cantidad_ingresos' => count($Ingresos),
+                'cantidad_egresos' => count($Egresos),
+                'trabajador' => $trabajador,
+                'fecha' => $fecha,
+                'caja' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
 
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al listar los ingresos y egresos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'caja' => $caja,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Error al listar los ingresos y egresos', 'error' => $e->getMessage()], 400);
         }
     }

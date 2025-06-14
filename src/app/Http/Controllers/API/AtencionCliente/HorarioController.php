@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AtencionCliente\Horario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HorarioController extends Controller
 {
@@ -58,8 +59,23 @@ class HorarioController extends Controller
                 ->where('CodigoSede', $request->Sede)
                 ->get();
 
+             // Log de éxito
+            Log::info('Horarios listados correctamente', [
+                'cantidad' => count($horarios),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($horarios, 200);
         } catch (\Exception $e) {
+
+            // Log del error general
+            Log::error('Error al listar los horarios', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'msg' => 'Error al listar los horarios.',
                 'error' => $e->getMessage()
@@ -117,14 +133,30 @@ class HorarioController extends Controller
 
 
             if ($validarHorario) {
+                Log::warning('Intento de registrar horario que se cruza con otro existente', [
+                    'CodigoMedico' => $request->CodigoMedico,
+                    'Fecha' => $request->Fecha,
+                    'HoraInicio' => $request->HoraInicio,
+                    'HoraFin' => $request->HoraFin,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json(['msg' => 'El horario se cruza con otro ya registrado. Cruce: ' . $validarHorario->HoraInicio . ' - ' . $validarHorario->HoraFin], 500);
             }
 
             Horario::create($request->all());
+            Log::info('Horario registrado correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'msg' => 'Horario registrado correctamente.'
             ], 201);
         } catch (\Exception $e) {
+            Log::error('Error al registrar el horario', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'msg' => 'Error al registrar el horario.',
                 'error' => $e->getMessage()

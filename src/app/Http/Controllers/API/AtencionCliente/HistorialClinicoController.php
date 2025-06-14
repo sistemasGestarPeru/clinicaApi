@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AtencionCliente\HistorialClinico;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 class HistorialClinicoController extends Controller
 {
     /**
@@ -87,10 +87,23 @@ class HistorialClinicoController extends Controller
         
             $pacientes = $query->get();
         
+            // Log de éxito
+            Log::info('Pacientes listados correctamente', [
+                'cantidad' => count($pacientes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($pacientes, 200);
 
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al buscar Paciente.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+		        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['msg' => 'Error al buscar Paciente.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -108,9 +121,22 @@ class HistorialClinicoController extends Controller
                 DB::raw("CONCAT(p2.Nombres, ' ', p2.Apellidos) as paciente2")
             )
             ->get();
+
+            // Log de éxito
+            Log::info('Historial Clínico listado correctamente', [
+                'cantidad' => count($entidad),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
         
             return response()->json($entidad, 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al listar Historial Clínico.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al listar Color Ojos.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -135,8 +161,21 @@ class HistorialClinicoController extends Controller
         // Guardar historial
         try {
             HistorialClinico::create($request->all());
+            // Log de éxito
+            Log::info('Historial Clínico registrado correctamente', [
+                'codigo_paciente_01' => $request->CodigoPaciente01,
+                'codigo_paciente_02' => $request->CodigoPaciente02,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Historial Clínico registrado correctamente.'], 200);
         } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error al registrar Historial Clínico.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al registrar Historial Clínico.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -145,8 +184,29 @@ class HistorialClinicoController extends Controller
     public function consultarHistorial($codigo){
         try{
             $entidad = HistorialClinico::where('Codigo', $codigo)->first();
+            if (!$entidad) {
+                // Log del error específico
+                Log::warning('Historial Clínico no encontrado', [
+                    'codigo' => $codigo,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                return response()->json(['msg' => 'Historial Clínico no encontrado.'], 404);
+            }
+            // Log de éxito
+            Log::info('Historial Clínico consultado correctamente', [
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($entidad, 200);
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al consultar Historial Clínico.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al consultar Historial Clinico.' ,'bd' => $e->getMessage()], 500);
         }
     }
@@ -154,9 +214,24 @@ class HistorialClinicoController extends Controller
     public function actualizarHistorial(Request $request){
         try{
             $historial = HistorialClinico::findOrFail($request->Codigo);
+
             $historial->update($request->all());
+            // Log de éxito
+            Log::info('Historial Clínico actualizado correctamente', [
+                'codigo' => $historial->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['msg' => 'Historial Clínico actualizado correctamente.'], 200);
 
         }catch(\Exception $e){
+            // Log del error general
+            Log::error('Error al actualizar Historial Clínico.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'codigo' => $request->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['msg' => 'Error al actualizar Historial Clinico.' ,'bd' => $e->getMessage()], 500);
         }
     }

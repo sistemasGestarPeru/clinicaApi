@@ -11,7 +11,7 @@ use App\Models\Almacen\Lote\Lote;
 use App\Models\Almacen\Lote\MovimientoLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 class TransformacionController extends Controller
 {
     /**
@@ -65,8 +65,24 @@ class TransformacionController extends Controller
                 ->where('sp.Vigente', 1)
                 ->where('sp.CodigoSede', $sede)
                 ->get();
+                
+                // Log de éxito
+                Log::info('Usuarios listados correctamente', [
+                    'cantidad' => count($productos),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+
+            // Log del error general
+            Log::error('Error inesperado al listar Productos', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'error' => 'Error al listar los productos disponibles',
                 'bd' => $e->getMessage()
@@ -201,12 +217,24 @@ class TransformacionController extends Controller
             ]);
 
             DB::commit();
-
+            // Log de éxito
+            Log::info('Transformación registrada correctamente', [
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'transformacion' => $transformacion,
+                'lote' => $lote
+            ]);
             return response()->json([
                 'success' => 'Transformación registrada correctamente',
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Log del error
+            Log::error('Error al registrar la transformación', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'error' => 'Error al registrar la transformación',
                 'bd' => $e->getMessage()

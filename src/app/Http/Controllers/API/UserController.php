@@ -12,14 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 class UserController extends Controller
 {
-
     public function listarUsuarios()
     {
         try {
-
             $usuarios = DB::table('users as u')
                 ->join('personas as p', 'p.Codigo', '=', 'u.CodigoPersona')
                 ->select([
@@ -32,17 +30,32 @@ class UserController extends Controller
                 ])
                 ->get();
 
+            // Log de éxito
+            Log::info('Usuarios listados correctamente', [
+                'cantidad' => count($usuarios),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'res' => true,
                 'usuarios' => $usuarios
             ], 200);
-        } catch (ValidationException $e) {
+
+        } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error inesperado al listar usuarios', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'res' => false,
-                'msg' => 'Error desconocido'
-            ], 401);
+                'msg' => 'Error interno'
+            ], 500);
         }
     }
+
 
     public function consultarUsuario($codigo)
     {
@@ -50,12 +63,39 @@ class UserController extends Controller
 
             $usuarios = User::select('id', 'name', 'Vigente')->where('id', $codigo)->first();
 
+            if (!$usuarios) {
+
+                Log::warning('Usuario no encontrado', [
+                    'codigo' => $codigo,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'Usuario no encontrado'
+                ], 404);
+            }
+
+            // Log de éxito
+            Log::info('Usuario Encontrado', [
+                'cantidad' => ($usuarios),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($usuarios, 200);
-        } catch (ValidationException $e) {
+
+        } catch (\Exception $e) {
+            // Log del error general
+            Log::error('Error inesperado al consultar usuarios', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'res' => false,
-                'msg' => 'Error desconocido'
-            ], 401);
+                'msg' => 'Error interno'
+            ], 500);
         }
     }
 
@@ -79,6 +119,14 @@ class UserController extends Controller
             }
 
             DB::commit();
+
+            // Log de éxito
+            Log::info('Usuario Editado Correctamente', [
+                'Codigo' => $request->id,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Usuario Editado Correctamente'
@@ -87,16 +135,36 @@ class UserController extends Controller
             DB::rollBack();
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+
+                Log::warning('El Nombre de Usuario ya existe. Intente con otro nombre.', [
+                    'mensaje' => $e->getMessage()
+                ]);
+
                 return response()->json([
                     'error' => 'El Nombre de Usuario ya existe. Intente con otro nombre.'
                 ], 500);
             }
 
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
+
             // Capturar otros errores de SQL
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
+
         } catch (\Exception $e) {
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             // Capturar otros errores inesperados
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
@@ -124,11 +192,26 @@ class UserController extends Controller
                 ->limit(1)
                 ->delete();
 
+            // Log de éxito
+            Log::info('Credenciales restablecidas', [
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Credenciales restablecidas'
             ], 200);
-        } catch (ValidationException $e) {
+
+        } catch (\Exception $e) {
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
+            // Capturar otros errores inesperados
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -145,6 +228,13 @@ class UserController extends Controller
             $user->password = bcrypt($request->password);
             $user->CodigoPersona = $request->CodigoPersona;
             $user->save();
+
+            // Log de éxito
+            Log::info('Usuarios listados correctamente', [
+                'Codigo' => $user->id,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Usuario Registrado Correctamente'
@@ -152,17 +242,36 @@ class UserController extends Controller
         } catch (QueryException $e) {
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
+
+                Log::warning('El Nombre de Usuario ya existe.', [
+                    'mensaje' => $e->getMessage()
+                ]);
+
                 return response()->json([
                     'error' => 'El Nombre de Usuario ya existe. Intente con otro nombre.'
                 ], 500);
             }
 
             // Capturar otros errores de SQL
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]); 
+
+
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
@@ -177,6 +286,11 @@ class UserController extends Controller
             $user = User::where('name', $request->identifier)->first();
 
             if (!$user) {
+
+                Log::warning('Usuario no encontrado', [
+                    'Codigo' => $request->identifier
+                ]);
+
                 return response()->json([
                     'res' => false,
                     'msg' => 'Usuario no encontrado.'
@@ -184,6 +298,11 @@ class UserController extends Controller
             }
 
             if ($user && !Hash::check($request->password, $user->password)) {
+
+                Log::warning('Credenciales Incorrectas.', [
+                    'Codigo' => $request->identifier
+                ]);
+
                 return response()->json([
                     'res' => false,
                     'msg' => 'Credenciales Incorrectas.'
@@ -192,6 +311,11 @@ class UserController extends Controller
 
 
             if ($user->Vigente == 0) {
+
+                Log::warning('Usuario deshabilitado.', [
+                    'Codigo' => $request->identifier
+                ]);
+
                 return response()->json([
                     'res' => false,
                     'msg' => 'Usuario deshabilitado.'
@@ -229,7 +353,14 @@ class UserController extends Controller
                     return ['Identificador' => $item->Identificador];
                 });
 
+            Log::info('Acceso Correcto', [
+                'Codigo' => $request->identifier,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+
             $mensaje = 'Acceso Correcto';
+
             return response()->json([
                 'res' => true,
                 'token' => $token,
@@ -242,10 +373,28 @@ class UserController extends Controller
             ], 200);
 
         } catch (ValidationException $e) {
+
+            Log::warning('Error de validación al logear', [
+                'mensaje' => $e->getMessage()
+            ]);
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
             ], 401);
+        
+        } catch (\Exception $e) {
+            // Capturar otros errores inesperados
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]); 
+
+
+            return response()->json([
+                'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
+            ], 500);
         }
     }
 
@@ -278,11 +427,26 @@ class UserController extends Controller
                 ->where('up.CodigoPersona', $codigo)
                 ->first();
 
+            // Log de éxito
+            Log::info('Consulta Perfil', [
+                'Codigo' => count($perfil->Codigo),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'res' => true,
                 'perfil' => $perfil
             ], 200);
-        } catch (ValidationException $e) {
+
+        } catch (\Exception $e) {
+            // Capturar otros errores inesperados
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]); 
+
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
@@ -319,11 +483,26 @@ class UserController extends Controller
                 $perfil->save();
             }
 
+            // Log de éxito
+            Log::info('Asignacion Correcta', [
+                'Codigo' => ($request->Codigo),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Rol asignado correctamente'
             ], 200);
-        } catch (ValidationException $e) {
+
+        } catch (\Exception $e) {
+            // Capturar otros errores inesperados
+
+            Log::error('Ocurrió un error inesperado.', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]); 
+
             return response()->json([
                 'res' => false,
                 'msg' => 'Error desconocido'
