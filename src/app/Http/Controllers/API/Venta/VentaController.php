@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Support\Facades\Log;
 
 class VentaController extends Controller
 {
@@ -74,10 +74,27 @@ class VentaController extends Controller
         // $data['Fecha'] = $fechaActual;
         try {
             EnvioFacturacion::create($data);
+            //log info
+            Log::info('Envio de factura electronica registrado correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarEnvio',
+                'Datos' => $data,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return [
                 'message' => 'Envio de la factura electronica registrado correctamente.'
             ];
         } catch (\Exception $e) {
+            Log::error('Error al registrar el envio de la factura electronica.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarEnvio',
+                'Comando' => $data,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return [
                 'message' => 'Error al registrar el envio de la factura electronica.',
                 'error' => $e->getMessage()
@@ -109,6 +126,16 @@ class VentaController extends Controller
                 ->first();
 
             if (!$datosEmisor) {
+
+                //log warning
+
+                Log::warning('Datos del emisor no encontrados.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'detallesFacturacionElectronica',
+                    'CodigoSede' => $ventaData['CodigoSede'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['error' => 'Datos del emisor no encontrados.'], 404);
             }
 
@@ -292,6 +319,14 @@ class VentaController extends Controller
                 $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
                 $resultado = $data['Resultado'] ?? false;
 
+                //log info  
+                Log::info('Factura electrónica enviada correctamente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'detallesFacturacionElectronica',
+                    'Resultado' => $resultado,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return [
                     'success' => $resultado,
                     'Mensaje' => $mensaje,
@@ -304,6 +339,14 @@ class VentaController extends Controller
                     ? '401 - No autorizado'
                     : '500 - Error interno del servidor';
 
+                //log error
+                Log::error('Error al enviar la factura electrónica.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'detallesFacturacionElectronica',
+                    'Mensaje' => $mensajeError,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return [
                     'success' => false,
                     'Mensaje' => $mensajeError,
@@ -313,6 +356,16 @@ class VentaController extends Controller
             }
         } catch (\Exception $e) {
             // Manejo de errores
+
+            Log::error('Error al generar el JSON de facturación electrónica.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'detallesFacturacionElectronica',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return [
                 'success' => false,
                 'Mensaje' => 'Error Interno',
@@ -409,6 +462,14 @@ class VentaController extends Controller
                 $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
                 $resultado = $data['Resultado'] ?? false;
 
+                //log info
+                Log::info('Anulación de factura electrónica enviada correctamente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'anularFacturacionElectronica',
+                    'Mensaje' => $mensaje,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return [
                     'success' => $resultado,
                     'Mensaje' => $mensaje,
@@ -422,6 +483,15 @@ class VentaController extends Controller
                     ? '401 - No autorizado'
                     : '500 - Error interno del servidor';
 
+                //log info
+
+                Log::error('Error al enviar la anulación de factura electrónica.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'anularFacturacionElectronica',
+                    'Mensaje' => $mensajeError,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return [
                     'success' => false,
                     'Mensaje' => $mensajeError,
@@ -430,6 +500,17 @@ class VentaController extends Controller
                 ];
             }
         } catch (\Exception $e) {
+
+            // Manejo de errores
+            Log::error('Error al generar el JSON de anulación electrónica.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularFacturacionElectronica',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return  ['error' => 'Error al generar el JSON de anulación electrónica.', 'bd' => $e->getMessage()];
         }
     }
@@ -448,8 +529,42 @@ class VentaController extends Controller
                 ->where('cb.Vigente', 1)
                 ->where('eb.Vigente', 1)
                 ->first();
+
+            if (!$resultados) {
+
+                //log warning
+                Log::warning('No se encontraron cuentas de detracción para la empresa especificada.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'cuentaDetraccion',
+                    'CodigoEmpresa' => $empresa,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
+                return response()->json(['error' => 'No se encontraron cuentas de detracción para la empresa especificada.'], 404);
+            }
+
+            //log info
+            Log::info('Cuentas de detracción obtenidas correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'cuentaDetraccion',
+                'CodigoEmpresa' => $empresa,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al obtener cuentas de detracción.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'cuentaDetraccion',
+                'Codigo' => $empresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -465,16 +580,47 @@ class VentaController extends Controller
                 ->first();
 
             if (!$pagoData) {
+
+                //log warning
+                Log::warning('Pago no encontrado.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'anularPago',
+                    'CodigoPago' => $pago,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['error' => 'Pago no encontrado.'], 404);
             }
 
             if ($pagoData->Vigente == 0) {
+
+                //log warning
+                Log::warning('El pago ya fue anulado.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'anularPago',
+                    'CodigoPago' => $pago,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['error' => 'El pago ya fue anulado.'], 400);
             }
 
             $estadoCaja = ValidarFecha::obtenerFechaCaja($pagoData->CodigoCaja);
 
             if ($estadoCaja->Estado == 'C') {
+
+                //log warning
+                Log::warning(
+                    'No se puede anular el pago porque la caja está cerrada.',
+                    [
+                        'Controlador' => 'VentaController',
+                        'Metodo' => 'anularPago',
+                        'CodigoPago' => $pago,
+                        'Mensaje' => __('mensajes.error_anulacion_pago_caja'),
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    ]
+                );
+
                 return response()->json([
                     'error' => __('mensajes.error_anulacion_pago_caja')
                 ], 400);
@@ -500,9 +646,33 @@ class VentaController extends Controller
                 ->decrement('MontoPagado', $monto);
 
             DB::commit();
+
+            //log info
+            Log::info('Pago anulado correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularPago',
+                'CodigoPago' => $pago,
+                'CodigoVenta' => $venta,
+                'MontoAnulado' => $monto,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['message' => 'Pago anulada correctamente.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al anular el pago.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularPago',
+                'CodigoPago' => $pago,
+                'CodigoVenta' => $venta,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'Error al anular el Pago.', 'bd'  =>  $e->getMessage()], 500);
         }
     }
@@ -520,8 +690,28 @@ class VentaController extends Controller
                 ->select('p.Codigo', 'mp.Nombre', 'pdv.Monto', 'p.Fecha', 'mp.CodigoSUNAT', 'p.Vigente')
                 ->get();
 
+            //log info
+            Log::info('Pagos asociados a la venta obtenidos correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'listarPagosAsociados',
+                'CodigoVenta' => $venta,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($pago, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al obtener los pagos asociados a la venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'listarPagosAsociados',
+                'CodigoVenta' => $venta,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -559,6 +749,17 @@ class VentaController extends Controller
         $fechaVentaVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
+
+            //log warning
+            Log::warning('La fecha de recaudación no puede ser mayor a la fecha de apertura de caja.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarPagoVenta',
+                'CodigoCaja' => $pagoData['CodigoCaja'],
+                'FechaCaja' => $fechaCajaVal,
+                'FechaRecaudacion' => $fechaVentaVal,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json([
                 'error' => __('mensajes.error_fecha_recaudacion'),
             ], 400);
@@ -599,9 +800,32 @@ class VentaController extends Controller
             }
 
             DB::commit();
+
+            //log info
+            Log::info('Pago registrado correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarPagoVenta',
+                'CodigoPago' => $codigoPago,
+                'CodigoVenta' => $ventaData,
+                'Monto' => $pagoData['Monto'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['message' => 'Pago registrada correctamente.'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al registrar el pago.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarPagoVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'No se puedo registrar el pago.', 'db' => $e->getMessage()], 500);
         }
     }
@@ -645,6 +869,17 @@ class VentaController extends Controller
         $fechaVentaVal = Carbon::parse($ventaData['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
+
+            //log warning
+            Log::warning('La fecha de la venta no puede ser mayor a la fecha de apertura de caja.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarNotaCredito',
+                'CodigoCaja' => $ventaData['CodigoCaja'],
+                'FechaCaja' => $fechaCajaVal,
+                'FechaVenta' => $fechaVentaVal,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura de caja.'], 400);
         }
 
@@ -672,6 +907,17 @@ class VentaController extends Controller
                 $total = MontoCaja::obtenerTotalCaja($ventaData['CodigoCaja']);
 
                 if ($dataEgreso['Monto'] > $total) {
+
+                    //log warning
+                    Log::warning('No hay suficiente Efectivo en caja para el egreso.', [
+                        'Controlador' => 'VentaController',
+                        'Metodo' => 'registrarNotaCredito',
+                        'CodigoCaja' => $ventaData['CodigoCaja'],
+                        'MontoEgreso' => $dataEgreso['Monto'],
+                        'TotalCaja' => $total,
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    ]);
+
                     return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
                 }
             } else if ($dataEgreso['CodigoSUNAT'] == '003') {
@@ -687,6 +933,17 @@ class VentaController extends Controller
 
             $fechaPagoVal = Carbon::parse($dataEgreso['Fecha'])->toDateString(); // Convertir el string a Carbon
             if ($fechaCajaVal < $fechaPagoVal) {
+
+                //log warning
+                Log::warning('La fecha de la venta no puede ser mayor a la fecha de apertura de caja.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'registrarNotaCredito',
+                    'CodigoCaja' => $ventaData['CodigoCaja'],
+                    'FechaCaja' => $fechaCajaVal,
+                    'FechaPago' => $fechaPagoVal,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
             }
 
@@ -738,8 +995,29 @@ class VentaController extends Controller
             }
 
             DB::commit();
+
+            //log info
+            Log::info('Nota de Crédito registrada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarNotaCredito',
+                'CodigoVenta' => $ventaCreada->Codigo,
+                'MontoTotal' => $ventaData['MontoTotal'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al registrar la Nota de Crédito.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarNotaCredito',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error al registrar la Venta.',
                 'db' => $e->getMessage()
@@ -772,6 +1050,17 @@ class VentaController extends Controller
             ];
             $registroEnvio = null;
         }
+
+        //log info
+        Log::info('Detalles de facturación electrónica procesados.', [
+            'Controlador' => 'VentaController',
+            'Metodo' => 'registrarNotaCredito',
+            'CodigoVenta' => $ventaCreada->Codigo,
+            'success' => $data['success'],
+            'Mensaje' => $data['Mensaje'],
+            'error' => $data['error'] ?? 'Sin error',
+            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+        ]);
 
         return response()->json([
             'message' => 'Nota de Crédito registrada correctamente.',
@@ -837,6 +1126,18 @@ class VentaController extends Controller
         $fechaVentaVal = Carbon::parse($ventaData['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
+
+            //log warning
+            Log::warning('La fecha de la venta no puede ser mayor a la fecha de apertura
+            de caja.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarVenta',
+                'CodigoCaja' => $ventaData['CodigoCaja'],
+                'FechaCaja' => $fechaCajaVal,
+                'FechaVenta' => $fechaVentaVal,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
         }
 
@@ -873,6 +1174,18 @@ class VentaController extends Controller
             }
             $fechaPagoVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
             if ($fechaCajaVal < $fechaPagoVal) {
+
+                //log warning
+                Log::warning('La fecha de la venta no puede ser mayor a la fecha de apertura
+                de caja.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'registrarVenta',
+                    'CodigoCaja' => $ventaData['CodigoCaja'],
+                    'FechaCaja' => $fechaCajaVal,
+                    'FechaPago' => $fechaPagoVal,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
             }
         }
@@ -925,8 +1238,28 @@ class VentaController extends Controller
 
             DB::commit(); // ✅ Solo si todo lo anterior fue exitoso
 
+            //log info
+            Log::info('Venta registrada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarVenta',
+                'CodigoVenta' => $ventaCreada->Codigo,
+                'MontoTotal' => $ventaData['MontoTotal'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al registrar la Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error al registrar la Venta.',
                 'db' => $e->getMessage()
@@ -958,6 +1291,18 @@ class VentaController extends Controller
 
                 $registroEnvio = $this->registrarEnvio($dataEnvio);
             } catch (\Exception $fe) {
+
+                //log error
+                Log::error('Error al procesar la facturación electrónica.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'registrarVenta',
+                    'Data' => $dataEnvio,
+                    'mensaje' => $fe->getMessage(),
+                    'linea' => $fe->getLine(),
+                    'archivo' => $fe->getFile(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
                 $data = [
                     'success' => false,
@@ -967,11 +1312,28 @@ class VentaController extends Controller
                 $registroEnvio = null;
             }
         } else {
-
+            //log info
+            Log::info('Venta registrada sin necesidad de facturación electrónica.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'registrarVenta',
+                'CodigoVenta' => $ventaCreada->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json([
                 'message' => 'Venta registrada correctamente.',
             ], 201);
         }
+
+        //log info
+        Log::info('Detalles de facturación electrónica procesados.', [
+            'Controlador' => 'VentaController',
+            'Metodo' => 'registrarVenta',
+            'CodigoVenta' => $ventaCreada->Codigo,
+            'success' => $data['success'],
+            'Mensaje' => $data['Mensaje'],
+            'error' => $data['error'] ?? 'Sin error',
+            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+        ]);
 
         return response()->json([
             'message' => 'Venta registrada correctamente.',
@@ -1060,9 +1422,28 @@ class VentaController extends Controller
                 )
                 ->get();
 
+            //log info
+            Log::info('Consulta de Documento de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarDocumentoVenta',
+                'CodigoVenta' => $CodVenta,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
 
             return response()->json(['venta' => $venta, 'detalle' => $detalle], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Documento de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarDocumentoVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1154,9 +1535,28 @@ class VentaController extends Controller
                 )
                 ->get();
 
+            //log info
+            Log::info('Consulta de Contrato Producto realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarDatosContratoProducto',
+                'CodigoContrato' => $idContrato,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
 
             return response()->json(['contrato' => $contrato, 'detalle' => $detalle], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Datos de Contrato Producto.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarDatosContratoProducto',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1188,8 +1588,27 @@ class VentaController extends Controller
                     ->orderBy('p.Codigo')
                     ->first();
             }
+
+            //log info
+            Log::info('Consulta de Cliente realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarCliente',
+                'numDocumento' => $numDocumento,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($cliente, 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al buscar Cliente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarCliente',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1246,8 +1665,27 @@ class VentaController extends Controller
                 })
                 ->get();
 
+            //log info
+            Log::info('Consulta de Productos realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarProductos',
+                'nombreProducto' => $nombreProducto,
+                'codigoSede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+            Log::error('Error al buscar Productos.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarProductos',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1324,8 +1762,28 @@ class VentaController extends Controller
                 ->orderByDesc('dv.Codigo')
                 ->get();
 
+            //log info
+            Log::info('Consulta de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarVenta',
+                'Data' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($venta);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al buscar Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'buscarVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage(), 'msg' => 'Error al buscar Venta'], 500);
         }
     }
@@ -1349,8 +1807,29 @@ class VentaController extends Controller
                 ->where('Vigente', 1)
                 ->get();
 
+            //log info
+            Log::info('Consulta de Serie Nota Crédito realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarSerieNotaCredito',
+                'query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
+
             return response()->json($result);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Serie Nota Crédito.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarSerieNotaCredito',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1370,10 +1849,28 @@ class VentaController extends Controller
                 ->where('ldv.Vigente', 1)
                 ->get();
 
-
+            //log info
+            Log::info('Consulta de Serie realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarSerie',
+                'query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
 
             return response()->json($result);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Serie.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarSerie',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1404,8 +1901,29 @@ class VentaController extends Controller
                 ->where('ldv.Codigo', $codigo)
                 ->first();
 
+
+            //log info
+            Log::info('Consulta de Tipo Producto realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarTipoProducto',
+                'query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($result);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Tipo Producto.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarTipoProducto',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1434,11 +1952,31 @@ class VentaController extends Controller
                 $nuevoNumero = 1;
             }
 
+            //log info
+            Log::info('Consulta de Número de Documento de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultaNumDocumentoVenta',
+                'query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             // Retornar la nueva serie y número
             return response()->json([
                 'Numero' => $nuevoNumero
             ]);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Número de Documento de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultaNumDocumentoVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1456,6 +1994,15 @@ class VentaController extends Controller
         $anulacionData['Fecha'] = $fecha;
 
         if (!$codigoVenta || $codigoVenta == 0) {
+
+            //log warning
+            Log::warning('Intento de anulación de venta con código inválido.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularVenta',
+                'Data' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'No se ha encontrado la venta a anular.'], 404);
         }
 
@@ -1518,7 +2065,7 @@ class VentaController extends Controller
             }
 
             DB::commit();
-
+            // cerrar el catch y abrir otro
             //Obtener la sede de la venta
 
             $sede_venta = DB::table('documentoventa')
@@ -1540,6 +2087,14 @@ class VentaController extends Controller
             $respEnvio = $this->registrarEnvio($dataEnvio);
 
 
+            //log info
+            Log::info('Venta anulada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularVenta',
+                'Data' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json([
                 'message' => 'Venta anulada correctamente.',
                 'facturacion' => [
@@ -1550,6 +2105,18 @@ class VentaController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al anular Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'anularVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => 'Ocurrió un error al anular la venta.', 'bd' => $e->getMessage()], 500);
         }
     }
@@ -1584,15 +2151,52 @@ class VentaController extends Controller
                     ->get();
 
                 if (!$serie) {
+                    //log warning
+                    Log::warning('No se encontraron Series para el Documento de Venta.', [
+                        'Controlador' => 'VentaController',
+                        'Metodo' => 'serieCanje',
+                        'Data' => $request->all(),
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    ]);
+
                     return response()->json(['error' => 'No se encontraron Series para este Documento de Venta'], 200);
                 }
             } else {
+
+                //log warning
+                Log::warning('TipoProducto no encontrado para el Documento de Venta.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'serieCanje',
+                    'Data' => $request->all(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 // Si TipoProducto es null o no se encuentra, manejar el caso
                 return response()->json(['error' => 'No se encontraron Series para este Documento de Venta'], 200);
             }
 
+            //log info
+            Log::info('Consulta de Serie para Canje realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'serieCanje',
+                'Data' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($serie);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Serie para Canje.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'serieCanje',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1706,11 +2310,33 @@ class VentaController extends Controller
                 //     ->update(['CodigoVenta' => $nuevoCodigoDocumentoVenta]);
                 DB::commit();
             } else {
+
                 DB::rollBack();
+
+                //log warning
+                Log::warning('No se encontró el documento de venta a canjear.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'canjearDocumentoVenta',
+                    'Data' => $request->all(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
                 return response()->json(['message' => 'No se encontró el documento de venta a canjear.'], 404);
             }
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al canjear Documento de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'canjearDocumentoVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error al registrar la Venta.',
                 'db' => $e->getMessage()
@@ -1743,9 +2369,29 @@ class VentaController extends Controller
 
             $registroEnvio = $this->registrarEnvio($dataEnvio);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al registrar el envío de la factura electrónica.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'canjearDocumentoVenta',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             DB::rollBack();
             return response()->json(['error' => 'Ocurrió un error al registrar la Venta.', 'db' => $e->getMessage()], 500);
         }
+
+        //log info
+        Log::info('Canje de Documento de Venta registrado correctamente.', [
+            'Controlador' => 'VentaController',
+            'Metodo' => 'canjearDocumentoVenta',
+            'Data' => $request->all(),
+            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+        ]);
 
         return response()->json([
             'message' => 'Canje registrado correctamente.',
@@ -1856,8 +2502,26 @@ class VentaController extends Controller
                 return $item;
             });
 
+            //log info
+            Log::info('Consulta de Nota de Crédito realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarNotaCredito',
+                'query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['venta' => $venta, 'detalle' => $detalle, 'devolucion' => $devoluciones], 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al consultar Nota de Crédito.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarNotaCredito',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -1998,8 +2662,25 @@ class VentaController extends Controller
             ')
                 ->get();
 
+            //log info
+            Log::info('Consulta de Nota de Crédito de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarNotaCreditoVenta',
+                'query' => ['CodVenta' => $CodVenta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['venta' => $venta, 'detalle' => $detalle], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Nota de Crédito de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarNotaCreditoVenta',
+                'query' => ['CodVenta' => $CodVenta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -2065,8 +2746,28 @@ class VentaController extends Controller
                 ->where('ddv.CodigoVenta', $venta)
                 ->get();
 
+            //log info
+            Log::info('Consulta de Boleta de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'boletaVentaPDF',
+                'query' => ['venta' => $venta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['data' => $query, 'productos' => $detalleQuery], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Boleta de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'boletaVentaPDF',
+                'query' => ['venta' => $venta],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -2137,8 +2838,29 @@ class VentaController extends Controller
                 ])
                 ->where('ddv.CodigoVenta', $venta)
                 ->get();
+
+            //log info
+            Log::info('Consulta de Factura de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'facturaVentaPDF',
+                'query' => ['venta' => $venta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['data' => $query, 'productos' => $detalleQuery], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Factura de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'facturaVentaPDF',
+                'query' => ['venta' => $venta],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -2222,8 +2944,29 @@ class VentaController extends Controller
                 ])
                 ->where('ddv.CodigoVenta', $venta)
                 ->get();
+
+            //log info
+            Log::info('Consulta de Nota de Crédito realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'notaCreditoPDF',
+                'query' => ['venta' => $venta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['data' => $query, 'productos' => $detalleQuery], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Nota de Crédito.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'notaCreditoPDF',
+                'query' => ['venta' => $venta],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -2285,8 +3028,26 @@ class VentaController extends Controller
                 ->where('ddv.CodigoVenta', $venta)
                 ->get();
 
+
+            //log info
+            Log::info('Consulta de Nota de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'notaVentaPDF',
+                'query' => ['venta' => $venta],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['data' => $query, 'productos' => $detalleQuery], 200);
         } catch (\Exception $e) {
+            Log::error('Error al consultar Nota de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'notaVentaPDF',
+                'query' => ['venta' => $venta],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

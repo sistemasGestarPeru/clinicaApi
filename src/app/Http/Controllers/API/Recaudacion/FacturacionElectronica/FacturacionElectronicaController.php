@@ -7,6 +7,7 @@ use App\Models\Recaudacion\FacturacionElectronica\EnvioFacturacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class FacturacionElectronicaController extends Controller
 {
@@ -50,7 +51,8 @@ class FacturacionElectronicaController extends Controller
         //
     }
 
-    public function envioFacturacionElectronica($JSON, $URL, $TokenPSE){
+    public function envioFacturacionElectronica($JSON, $URL, $TokenPSE)
+    {
 
         $jsonArray = json_decode($JSON, true); // <- Convierte el string JSON en array
 
@@ -63,46 +65,66 @@ class FacturacionElectronicaController extends Controller
             ];
         }
 
-            // Enviar el JSON a la API de facturación electrónica
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => $TokenPSE
-            ])->post($URL, $jsonArray);
-            
+        // Enviar el JSON a la API de facturación electrónica
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => $TokenPSE
+        ])->post($URL, $jsonArray);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
-                $resultado = $data['Resultado'] ?? false;
-                
-                return [
-                    'success' => $resultado,
-                    'Mensaje' => $mensaje,
-                    'JSON' => $jsonArray,
-                    'Estado' => $resultado ? 'A' : 'R',
-                ];
 
-            } else {
-                $status = $response->status();
-                $mensajeError = $status === 401
-                    ? '401 - No autorizado'
-                    : '500 - Error interno del servidor';
-            
-                return [
-                    'success' => false,
-                    'Mensaje' => $mensajeError,
-                    'JSON' => $jsonArray,
-                    'Estado' => 'N',
-                ];
-            }
+        if ($response->successful()) {
+            $data = $response->json();
+            $mensaje = $data['Mensaje'] ?? 'Mensaje no disponible';
+            $resultado = $data['Resultado'] ?? false;
+
+            //log info
+            Log::info('Envio Facturacion Electronica', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'envioFacturacionElectronica',
+                'Codigo' => $jsonArray['CodigoDocumentoVenta'] ?? 'No disponible',
+                'Mensaje' => $mensaje,
+                'Estado' => $resultado ? 'A' : 'R',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return [
+                'success' => $resultado,
+                'Mensaje' => $mensaje,
+                'JSON' => $jsonArray,
+                'Estado' => $resultado ? 'A' : 'R',
+            ];
+        } else {
+            $status = $response->status();
+            $mensajeError = $status === 401
+                ? '401 - No autorizado'
+                : '500 - Error interno del servidor';
+
+            //log error
+            Log::error('Error en Envio Facturacion Electronica', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'envioFacturacionElectronica',
+                'Codigo' => $jsonArray['CodigoDocumentoVenta'] ?? 'No disponible',
+                'Mensaje' => $mensajeError,
+                'Estado' => 'N',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return [
+                'success' => false,
+                'Mensaje' => $mensajeError,
+                'JSON' => $jsonArray,
+                'Estado' => 'N',
+            ];
+        }
     }
 
-    public function registrarEnvio(Request $request){
+    public function registrarEnvio(Request $request)
+    {
 
         $fechaActual = date('Y-m-d H:i:s');
 
         // $tokenPSE = 'WsC0nexGESTLAB@:ILhCvhfykj8lnMAJGGZBog==';
-        
+
         // DB::table('empresas') //CAMBIAR esta en DURO
         //     ->where('Codigo', 1)
         //     ->value('TokenPSE');         
@@ -114,9 +136,9 @@ class FacturacionElectronicaController extends Controller
 
         // Obtener datos del emisor 
         $tokenPSE = DB::table('sedesrec as s')
-        ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
-        ->where('s.Codigo', $result->CodigoSede)
-        ->value('e.TokenPSE');
+            ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
+            ->where('s.Codigo', $result->CodigoSede)
+            ->value('e.TokenPSE');
 
 
         $data = $this->envioFacturacionElectronica($result->JSON, $result->URL, $tokenPSE);
@@ -129,10 +151,22 @@ class FacturacionElectronicaController extends Controller
         $dataEnvio['Estado'] = $data['Estado'];
         $dataEnvio['Mensaje'] = $data['Mensaje'];
         $dataEnvio['CodigoDocumentoVenta'] = $result->CodigoDocumentoVenta;
-        $dataEnvio['CodigoAnulacion'] = $result->CodigoAnulacion;  
-        $dataEnvio['CodigoSede'] = $result->CodigoSede;  
-        try{
+        $dataEnvio['CodigoAnulacion'] = $result->CodigoAnulacion;
+        $dataEnvio['CodigoSede'] = $result->CodigoSede;
+        try {
             EnvioFacturacion::create($dataEnvio);
+
+            //log info
+            Log::info('Registro de Envio Facturacion Electronica', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'registrarEnvio',
+                'Codigo' => $result->CodigoDocumentoVenta ?? $result->CodigoAnulacion,
+                'Tipo' => $result->Tipo,
+                'Estado' => $data['Estado'],
+                'Mensaje' => $data['Mensaje'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Envio de factura electronica registrado correctamente.',
                 'facturacion' => [
@@ -143,44 +177,58 @@ class FacturacionElectronicaController extends Controller
                     'TokenPSE' => $tokenPSE,
                 ]
             ], 201);
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al registrar el envio de factura electronica', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'registrarEnvio',
+                'Codigo' => $result->CodigoDocumentoVenta ?? $result->CodigoAnulacion,
+                'Tipo' => $result->Tipo,
+                'Estado' => 'N',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Error al registrar el envio de la factura electronica.',
                 'error' => $e->getMessage()
             ], 500);
         }
-        
     }
 
 
-    public function listarEnviosFallidos(Request $request){
+    public function listarEnviosFallidos(Request $request)
+    {
 
-        try{
+        try {
 
             $subquery = DB::table('enviofacturacion as e')
-            ->leftJoin('documentoventa as dv', 'e.CodigoDocumentoVenta', '=', 'dv.Codigo')
-            ->leftJoin('anulacion as a', 'e.CodigoAnulacion', '=', 'a.Codigo')
-            ->leftJoin('documentoventa as da', 'a.CodigoDocumentoVenta', '=', 'da.Codigo')
-            ->whereIn('e.Estado', ['N', 'R'])
-            ->select([
-                DB::raw('MAX(e.Codigo) as Codigo'),
-                'e.Tipo',
-                DB::raw("
+                ->leftJoin('documentoventa as dv', 'e.CodigoDocumentoVenta', '=', 'dv.Codigo')
+                ->leftJoin('anulacion as a', 'e.CodigoAnulacion', '=', 'a.Codigo')
+                ->leftJoin('documentoventa as da', 'a.CodigoDocumentoVenta', '=', 'da.Codigo')
+                ->whereIn('e.Estado', ['N', 'R'])
+                ->select([
+                    DB::raw('MAX(e.Codigo) as Codigo'),
+                    'e.Tipo',
+                    DB::raw("
                     CASE
                         WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
                         WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
                         ELSE 'Desconocido'
                     END AS Documento
                 "),
-            ])
-            ->groupBy('e.Tipo', DB::raw("
+                ])
+                ->groupBy('e.Tipo', DB::raw("
                 CASE
                     WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
                     WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
                     ELSE 'Desconocido'
                 END
             "));
-        
+
             // Consulta principal uniendo con la tabla original para obtener los demás campos
             $result = DB::table(DB::raw("({$subquery->toSql()}) as ultimos"))
                 ->mergeBindings($subquery) // Importante para evitar error de bindings
@@ -202,9 +250,26 @@ class FacturacionElectronicaController extends Controller
                 ->orderBy('e.Codigo', 'desc')
                 ->get();
 
-            return response()->json($result, 200);
+            Log::info('Listar Envios Fallidos', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'listarEnviosFallidos',
+                'Cantidad' => $result->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
-        }catch(\Exception $e){
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar los envios fallidos', [
+                'Controlador' => 'FacturacionElectronicaController',
+                'Metodo' => 'listarEnviosFallidos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar los envios fallidos',
                 'error' => $e->getMessage()

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportesController extends Controller
 {
@@ -66,9 +67,29 @@ class ReportesController extends Controller
                 // ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
                 ->get();
 
+            //log info
+            Log::info('Listar Productos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProducto',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $productos->count()
+            ]);
 
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar Productos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProducto',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['message' => 'Error al listar los productos', $e], 500);
         }
     }
@@ -84,8 +105,30 @@ class ReportesController extends Controller
                 ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
                 ->distinct()
                 ->get();
+
+            //log info
+            Log::info('Listar Trabajadores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'empleados',
+                'Sede' => $sede,
+                'Cantidad' => $trabajadores->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($trabajadores, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar los Trabajadores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'empleados',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['message' => 'Error al listar los Trabajadores', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -101,8 +144,27 @@ class ReportesController extends Controller
                 ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
                 ->distinct()
                 ->get();
+
+            //log info
+            Log::info('Listar Médicos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'medicos',
+                'Sede' => $sede,
+                'Cantidad' => $trabajadores->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($trabajadores, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar los Médicos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'medicos',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json(['message' => 'Error al listar los Médicos', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -131,8 +193,27 @@ class ReportesController extends Controller
                 ->where('c.CodigoSede', $sede)
                 ->where('e.Vigente', 1)
                 ->get();
+
+            //log info
+            Log::info('Listar Proveedores Pagos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProveedorPagos',
+                'Sede' => $sede,
+                'Cantidad' => $proveedores->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($proveedores, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar los Proveedores Pagos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProveedorPagos',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json(['message' => 'Error al listar los Proveedores', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -152,8 +233,29 @@ class ReportesController extends Controller
                 ->where('c.Vigente', 1)
                 ->get();
 
+            //log info
+            Log::info('Listar Proveedores Pendientes', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProveedoresPendientes',
+                'Sede' => $sede,
+                'Cantidad' => $proveedores->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($proveedores, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar los Proveedores Pendientes', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'listarProveedoresPendientes',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['message' => 'Error al listar los Proveedores', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -165,8 +267,27 @@ class ReportesController extends Controller
                 ->select('Codigo', 'RazonSocial')
                 ->where('Vigente', 1)
                 ->get();
+
+            //log info
+            Log::info('Listar Empresas', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'empresas',
+                'Cantidad' => $empresas->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($empresas, 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al listar las Empresas', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'empresas',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['message' => 'Error al listar las Empresas', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -182,9 +303,26 @@ class ReportesController extends Controller
                 })
                 ->get();
 
-            return response()->json($sedes, 200);
+            //log info
+            Log::info('Listar Sedes', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'sedes',
+                'Empresa' => $empresa,
+                'Cantidad' => $sedes->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($sedes, 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al listar las Sedes', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'sedes',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json(['message' => 'Error al listar las Sedes', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -293,14 +431,38 @@ class ReportesController extends Controller
                 ->orderBy('FechaPago', 'desc') // Ordena por FechaPago en orden descendente
                 ->get();
 
+
+            //log info
+
+            Log::info('Reporte Cierre Caja Empleado', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteCierreCajaEmpleado',
+                'CantidadIngresos' => $Ingresos->count(),
+                'Query' => $request->all(),
+                'CantidadEgresos' => $Egresos->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['Ingresos' => $Ingresos, 'Egresos' => $Egresos], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Cierre Caja Empleado', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteCierreCajaEmpleado',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['message' => 'Error al listar los ingresos pendientes', 'error' => $e->getMessage()], 400);
         }
     }
 
 
-    public function reporteIngresosPeriodoEmpresa()
+    public function reporteIngresosPeriodoEmpresa(Request $request)
     {
 
         $anio = request()->input('anio'); // Opcional
@@ -342,13 +504,34 @@ class ReportesController extends Controller
                 })
                 ->get();
 
+            //log info
+            Log::info('Reporte Ingresos Periodo Empresa', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresosPeriodoEmpresa',
+                'Query' => $request->all(),
+                'Cantidad' => $query->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($query, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Ingresos Periodo Empresa', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresosPeriodoEmpresa',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
 
-    public function reporteProductosReabastecer()
+    public function reporteProductosReabastecer(Request $request)
     {
 
         $sede = request()->input('Sede'); // Opcional
@@ -368,13 +551,34 @@ class ReportesController extends Controller
                 ->whereColumn('sp.Stock', '<=', 'sp.StockMinimo')
                 ->get();
 
+            //log info
+            Log::info('Reporte Productos Reabastecer', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteProductosReabastecer',
+                'Query' => $request->all(),
+                'Cantidad' => $productos->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Productos Reabastecer', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteProductosReabastecer',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
 
-    public function reporteKardexSimple()
+    public function reporteKardexSimple(Request $request)
     {
 
         $fechaActual = date('Y-m-d');
@@ -404,13 +608,34 @@ class ReportesController extends Controller
                 ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
                 ->get();
 
+            //log info
+            Log::info('Reporte Kardex Simple', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteKardexSimple',
+                'Query' => $request->all(),
+                'Cantidad' => $datos->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($datos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Kardex Simple', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteKardexSimple',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
 
-    public function reporteKardexValorizado()
+    public function reporteKardexValorizado(Request $request)
     {
 
         $fechaActual = date('Y-m-d');
@@ -503,8 +728,30 @@ class ReportesController extends Controller
             //     return $query->where('c.CodigoSede', $sede);
             // });
 
+
+            //log info
+            Log::info('Reporte Catalogo Productos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteCatalogoProductos',
+                'Query' => $request->all(),
+                'Cantidad' => $productos->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Catalogo Productos', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteCatalogoProductos',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -547,8 +794,28 @@ class ReportesController extends Controller
                 })
                 ->get();
 
+            //log info
+            Log::info('Reporte Comisiones Pendientes Pago', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteComisionesPendientesPago',
+                'Query' => $request->all(),
+                'Cantidad' => $comisiones->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($comisiones, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Comisiones Pendientes Pago', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteComisionesPendientesPago',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
 
             return response()->json([
                 'message' => 'Error al listar las comisiones por pagar.',
@@ -581,8 +848,28 @@ class ReportesController extends Controller
                 ->where('cp.Vigente', 1)
                 ->get();
 
+            //log info
+            Log::info('Reporte Contratos por Médico', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteContrato_X_Medico',
+                'Query' => $request->all(),
+                'Cantidad' => $contratos->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($contratos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Contratos por Médico', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteContrato_X_Medico',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
 
             return response()->json([
                 'message' => 'Error al listar los Contratos por Médico.',
@@ -633,8 +920,29 @@ class ReportesController extends Controller
 
             $resultados = $query->get();
 
+            //log info
+            Log::info('Reporte Pagos Proveedores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reportePagosProveedores',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Pagos Proveedores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reportePagosProveedores',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar los pagos a proveedores.',
                 'bd' => $e->getMessage()
@@ -664,8 +972,29 @@ class ReportesController extends Controller
                 ->groupBy('c.Codigo')
                 ->get();
 
+            //log info
+            Log::info('Reporte Pagos Pendientes Proveedores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reportePagosPendientesProveedores',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Pagos Pendientes Proveedores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reportePagosPendientesProveedores',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar los pagos pendientes a proveedores.',
                 'bd' => $e->getMessage()
@@ -702,8 +1031,30 @@ class ReportesController extends Controller
             }
 
             $resultados = $query->get();
+
+            //log info
+            Log::info('Reporte Comisiones Médico Periodo', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteComisionesMedicoPeriodo',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al generar el reporte de Comisiones Médico Periodo', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteComisionesMedicoPeriodo',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar las comisiones por pagar.',
                 'bd' => $e->getMessage()
@@ -739,8 +1090,29 @@ class ReportesController extends Controller
             $resultados = $query
                 ->groupBy('pc.CodigoMedico', DB::raw('CONCAT(p.Nombres, " ", p.Apellidos)'))
                 ->get();
+
+            //log info
+            Log::info('Reporte Ingresos Médico', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresoMedico',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Ingresos Médico', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresoMedico',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar los ingresos por médico.',
                 'bd' => $e->getMessage()

@@ -10,6 +10,7 @@ use App\Models\Recaudacion\PrecioTemporal;
 use App\Models\Recaudacion\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductoController extends Controller
 {
@@ -77,8 +78,28 @@ class ProductoController extends Controller
                 ->orderBY('p.Nombre', 'ASC')
                 ->get();
 
+            //log info
+            Log::info('Productos listados correctamente', [
+                'Controlador' => 'SedeController',
+                'Metodo' => 'listarSedes',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'cantidad' => $productos->count()
+            ]);
+
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar productos', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarProductoCombo',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -104,8 +125,28 @@ class ProductoController extends Controller
                 ->orderBY('p.Nombre', 'ASC')
                 ->get();
 
+
+            //log info
+            Log::info('Productos listados correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'cantidad' => $productos->count()
+            ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar productos', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -116,8 +157,27 @@ class ProductoController extends Controller
 
         try {
             Producto::create($producto);
+            //log info
+            Log::info('Producto registrado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Command' => $producto
+            ]);
+
             return response()->json(['message' => 'Producto registrado correctamente'], 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al registrar producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'Command' => $producto
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -127,8 +187,25 @@ class ProductoController extends Controller
         $producto = $request->all();
         try {
             Producto::where('Codigo', $producto['Codigo'])->update($producto);
+            //log info
+            Log::info('Producto actualizado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'actualizarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Command' => $producto
+            ]);
             return response()->json(['message' => 'Producto actualizado correctamente'], 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al actualizar producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'actualizarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'Command' => $producto
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -137,8 +214,27 @@ class ProductoController extends Controller
     {
         try {
             $producto = Producto::where('Codigo', $Codigo)->first();
+            //log info
+            Log::info('Producto consultado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'consultarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_producto' => $Codigo
+            ]);
             return response()->json($producto, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'consultarProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_producto' => $Codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -150,8 +246,30 @@ class ProductoController extends Controller
     {
         try {
             $temporales = PrecioTemporal::where('CodigoProducto', $codigo)->get();
+
+            //log info
+            Log::info('Temporales listados correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_producto' => $codigo,
+                'cantidad' => $temporales->count()
+            ]);
+
             return response()->json($temporales, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar temporales', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_producto' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -159,10 +277,28 @@ class ProductoController extends Controller
     public function registrarTemporales(RegistrarTemporalRequest $request)
     {
         $producto = $request->input('temporal');
-        PrecioTemporal::create($producto);
-        return response()->json(['message' => 'Producto registrado correctamente'], 200);
+
         try {
+            PrecioTemporal::create($producto);
+            //log info
+            Log::info('Producto temporal registrado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Command' => $producto
+            ]);
+            return response()->json(['message' => 'Producto registrado correctamente'], 200);
         } catch (\Exception $e) {
+            //log error
+            Log::error('Error al registrar producto temporal', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Command' => $producto,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -177,16 +313,56 @@ class ProductoController extends Controller
             // Actualizar el producto siempre y cuando la cantidad actual sea igual al stock
 
             if ($temporal->Vigente == 0) {
+                //log warning
+                Log::warning('Intento de actualizar un precio temporal inactivo', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'actualizarTemporales',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo_temporal' => $producto['Codigo']
+                ]);
                 return response()->json(['error' => 'No se puede actualizar un precio temporal con estado inactivo.'], 400);
             }
 
             if ($temporal->Stock == $producto['Stock']) {
                 PrecioTemporal::where('Codigo', $producto['Codigo'])->update($producto);
+
+                //log info
+                Log::info('Producto temporal actualizado correctamente', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'actualizarTemporales',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'Command' => $producto
+                ]);
+
                 return response()->json(['message' => 'Producto actualizado correctamente'], 200);
             } else {
+
+                //log warning
+                Log::warning('Intento de actualizar un precio temporal con cantidad diferente al stock', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'actualizarTemporales',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo_temporal' => $producto['Codigo'],
+                    'cantidad_actual' => $temporal->Stock,
+                    'cantidad_nueva' => $producto['Stock']
+                ]);
+
                 return response()->json(['error' => 'No se puede actualizar el precio temporal porque la cantidad actual no coincide con el stock.'], 400);
             }
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al actualizar producto temporal', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'actualizarTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_temporal' => $producto['Codigo'],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'Command' => $producto
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -195,23 +371,71 @@ class ProductoController extends Controller
     {
         try {
             $producto = PrecioTemporal::where('Codigo', $Codigo)->first();
+
+            if (!$producto) {
+                //log warning
+                Log::warning('Producto temporal no encontrado', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'consultarTemporal',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo_temporal' => $Codigo
+                ]);
+                return response()->json(['error' => 'Producto temporal no encontrado'], 404);
+            }
+
             return response()->json($producto, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar producto temporal', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'consultarTemporal',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_temporal' => $Codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function existePrecioTemporal($sede, $producto) {
-        try{
+    public function existePrecioTemporal($sede, $producto)
+    {
+        try {
             $existe = DB::table('preciotemporal')
-            ->where('Vigente', 1)
-            ->where('CodigoSede', $sede)
-            ->where('CodigoProducto', $producto)
-            ->where('Stock', '>', 0)
-            ->exists();
+                ->where('Vigente', 1)
+                ->where('CodigoSede', $sede)
+                ->where('CodigoProducto', $producto)
+                ->where('Stock', '>', 0)
+                ->exists();
 
-        return response()->json(['existe' => $existe], 200);
+            //log info
+            Log::info('Consulta de existencia de precio temporal', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'existePrecioTemporal',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'producto' => $producto,
+                'existe' => $existe
+            ]);
+
+            return response()->json(['existe' => $existe], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar existencia de precio temporal', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'existePrecioTemporal',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'producto' => $producto,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -226,8 +450,32 @@ class ProductoController extends Controller
                 ->where('CodigoProducto', $producto)
                 ->where('Stock', '>', 0)
                 ->get();
+
+            //log info
+            Log::info('Precios temporales consultados correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'preciosTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'producto' => $producto,
+                'cantidad' => $productos->count()
+            ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar precios temporales', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'preciosTemporales',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'producto' => $producto,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -246,8 +494,37 @@ class ProductoController extends Controller
                 ->selectRaw("SUM(CASE WHEN tg.Tipo = 'G' THEN (pc.Precio - (pc.Precio / (1 + (tg.Porcentaje / 100)))) * pc.Cantidad ELSE 0 END) AS MontoIGV")
                 ->value('MontoIGV'); // Obtiene el resultado directamente
 
+            if ($montoIGV === null) {
+                //log warning
+                Log::warning('No se encontró IGV para el combo', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'comboIGV',
+                    'codigo_combo' => $codigo
+                ]);
+                return response()->json(['error' => 'No se encontró IGV para el combo'], 404);
+            }
+
+            //log info
+            Log::info('IGV del combo consultado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'comboIGV',
+                'codigo_combo' => $codigo,
+                'monto_igv' => $montoIGV
+            ]);
+
             return response()->json($montoIGV, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar IGV del combo', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'comboIGV',
+                'codigo_combo' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -268,9 +545,32 @@ class ProductoController extends Controller
                 ComboProducto::create($producto);
             }
             DB::commit();
+
+            //log info
+            Log::info('Combo de producto registrado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'combo' => $combo,
+                'productos' => $productos
+            ]);
+
             return response()->json(['message' => 'Producto registrado correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al registrar combo de producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'registrarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'combo' => $combo,
+                'productos' => $productos,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -323,9 +623,32 @@ class ProductoController extends Controller
                 }
             }
             DB::commit();
+
+            //log info
+            Log::info('Combo de producto actualizado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'actualizarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'combo' => $combo,
+                'productos' => $productos
+            ]);
+
             return response()->json(['message' => 'Producto actualizado correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al actualizar combo de producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'actualizarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'combo' => $combo,
+                'productos' => $productos,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -366,6 +689,17 @@ class ProductoController extends Controller
                 ->where('ddv.CodigoProducto', $codigo)
                 ->exists(); // Devuelve true si hay al menos un registro
 
+            //log info
+            Log::info('Combo de producto consultado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'consultarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_combo' => $codigo,
+                'producto' => $producto,
+                'productos_en_combo' => $productosEnCombo->count(),
+                'existe' => $existe
+            ]);
+
             // Retornar en JSON
             return response()->json([
                 'combo' => $producto,
@@ -373,6 +707,18 @@ class ProductoController extends Controller
                 'existe' => $existe
             ]);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar combo de producto', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'consultarComboProducto',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_combo' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -381,8 +727,28 @@ class ProductoController extends Controller
     {
         try {
             $productos = Producto::where('Tipo', 'C')->get();
+
+            //log info
+            Log::info('Combos listados correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarCombos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'cantidad' => $productos->count()
+            ]);
+
             return response()->json($productos, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar combos', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'listarCombos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -396,8 +762,37 @@ class ProductoController extends Controller
                 ->where('CodigoCombo', $combo)
                 ->sum(DB::raw('Precio * Cantidad'));
 
+            if ($precioCombo === null) {
+                //log warning
+                Log::warning('No se encontró precio para el combo', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'precioCombo',
+                    'combo' => $combo
+                ]);
+                return response()->json(['error' => 'No se encontró precio para el combo'], 404);
+            }
+
+            //log info
+            Log::info('Precio del combo consultado correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'precioCombo',
+                'combo' => $combo,
+                'precio_combo' => $precioCombo
+            ]);
+
             return response()->json($precioCombo, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar precio del combo', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'precioCombo',
+                'combo' => $combo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -423,8 +818,36 @@ class ProductoController extends Controller
                 ")
                 ->first(); // Obtiene una sola fila con ambos valores
 
+            if (!$resultado) {
+                //log warning
+                Log::warning('No se encontró información para el combo', [
+                    'Controlador' => 'ProductoController',
+                    'Metodo' => 'tipoProductoCombo',
+                    'producto' => $producto
+                ]);
+            }
+
+            //log info
+            Log::info('Tipo de producto y monto IGV del combo consultados correctamente', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'tipoProductoCombo',
+                'producto' => $producto,
+                'resultado' => $resultado
+            ]);
+
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar tipo de producto y monto IGV del combo', [
+                'Controlador' => 'ProductoController',
+                'Metodo' => 'tipoProductoCombo',
+                'producto' => $producto,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

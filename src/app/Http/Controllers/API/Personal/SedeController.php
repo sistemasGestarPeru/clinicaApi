@@ -74,6 +74,7 @@ class SedeController extends Controller
             Log::error('Error al listar empresas', [
                 'Controlador' => 'SedeController',
                 'Metodo' => 'listarEmpresas',
+                'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
@@ -114,6 +115,7 @@ class SedeController extends Controller
             Log::error('Error al listar sedes', [
                 'Controlador' => 'SedeController',
                 'Metodo' => 'listarSedes',
+                'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
