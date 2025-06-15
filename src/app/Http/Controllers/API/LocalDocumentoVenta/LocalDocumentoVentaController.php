@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Recaudacion\LocalDocumentoVenta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LocalDocumentoVentaController extends Controller
 {
@@ -53,8 +54,23 @@ class LocalDocumentoVentaController extends Controller
     {
         try {
             $sedeDocVenta = LocalDocumentoVenta::find($codigo);
+            Log::info('Consultar Documento Venta Sede', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'consultarSedeDocumentoVenta',
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($sedeDocVenta, 200);
         } catch (\Exception $e) {
+            Log::error('Error al consultar Documento Venta Sede', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'consultarSedeDocumentoVenta',
+                'Codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json($e, 500);
         }
     }
@@ -69,8 +85,23 @@ class LocalDocumentoVentaController extends Controller
 
         try {
             LocalDocumentoVenta::create($sedeDocVenta);
+            Log::info('Registrar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'registrarSedeDocVenta',
+                'CodigoSede' => $sedeDocVenta['CodigoSede'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Sede Documento Venta registrado correctamente'], 200);
         } catch (\Exception $e) {
+            Log::error('Error al registrar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'registrarSedeDocVenta',
+                'CodigoSede' => $sedeDocVenta['CodigoSede'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json($e, 500);
         }
     }
@@ -92,8 +123,25 @@ class LocalDocumentoVentaController extends Controller
                 ->where('ldv.CodigoSede', $sede)
                 ->where('tdv.Vigente', 1)
                 ->get();
+
+            Log::info('Listar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'listarSedeDocumentoVenta',
+                'CodigoSede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'listarSedeDocumentoVenta',
+                'CodigoSede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json($e, 500);
         }
     }
@@ -134,8 +182,27 @@ class LocalDocumentoVentaController extends Controller
             //     ->whereNull('subquery.CodigoSerieDocumentoVenta') 
             //     ->select('ldv.Codigo', 'ldv.Serie', 'tpv.Nombre', 'ldv.TipoProducto')
             //     ->get();
+
+            Log::info('Listar Documentos Referencia', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'listarDocumentosReferencia',
+                'CodigoSede' => $sede,
+                'ConsultaDoc' => $consultaDoc,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($documentos, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar Documentos Referencia', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'listarDocumentosReferencia',
+                'CodigoSede' => $sede,
+                'ConsultaDoc' => $consultaDoc,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json($e, 500);
         }
     }
@@ -155,7 +222,27 @@ class LocalDocumentoVentaController extends Controller
                     'CodigoSede' => $sedeDocVenta['CodigoSede'],
                     'CodigoSerieDocumentoVenta' => $sedeDocVenta['CodigoSerieDocumentoVenta']
                 ]);
+
+            Log::info('Actualizar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'actualizarSedeDocVenta',
+                'CodigoSede' => $sedeDocVenta['CodigoSede'],
+                'CodigoDocumento' => $sedeDocVenta['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
         } catch (\Exception $e) {
+
+            Log::error('Error al actualizar Sede Documento Venta', [
+                'Controlador' => 'LocalDocumentoVentaController',
+                'Metodo' => 'actualizarSedeDocVenta',
+                'CodigoSede' => $sedeDocVenta['CodigoSede'],
+                'CodigoDocumento' => $sedeDocVenta['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json(['error' => 'Ocurrió un error al actualizar Sede Documento Venta.', 'bd' => $e->getMessage()], 500);
         }
     }

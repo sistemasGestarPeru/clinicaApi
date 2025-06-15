@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\ControladoresGenerales;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ControladorGeneralController extends Controller
 {
@@ -60,9 +61,27 @@ class ControladorGeneralController extends Controller
                 ->select('a.Nombre', 'a.URL')
                 ->get();
 
+            Log::info('Apps encontradas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarApp',
+                'Trabajador' => $codigoTrabajador,
+                'Cantidad' => count($resultado),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
+
+            Log::error('Error al listar Apps', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'buscarProducto',
+                'Trabajador' => $codigoTrabajador,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -75,6 +94,14 @@ class ControladorGeneralController extends Controller
                 ->select('e.Codigo as id', 'e.Nombre as nombre')
                 ->where('cl.CodigoTrabajador', $codigoTrabajador)
                 ->get();
+
+            Log::info('Empresas encontradas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'ConsultaEmpresasTrab',
+                'Trabajador' => $codigoTrabajador,
+                'Cantidad' => count($empresas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($empresas, 200);
         } catch (\Exception $e) {
@@ -91,8 +118,23 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as Codigo', 'Siglas as Nombre', 'CodigoSUNAT')
                 ->get();
 
+            Log::info('Tipo de documentos de identidad listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTipoDocIdentidad',
+                'Cantidad' => count($documentos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($documentos, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar tipo de documentos de identidad', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTipoDocIdentidad',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -106,8 +148,23 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
 
+            Log::info('Empresas listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarEmpresas',
+                'Cantidad' => count($empresas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($empresas, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar empresas', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarEmpresas',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -120,8 +177,25 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo as id', 'Nombre as nombre')
                 ->get();
 
+            Log::info('Sedes listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarSedesEmpresas',
+                'Empresa' => $codigoEmpresa,
+                'Cantidad' => count($sedes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($sedes, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar sedes de la empresa', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarSedesEmpresas',
+                'Empresa' => $codigoEmpresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -149,8 +223,27 @@ class ControladorGeneralController extends Controller
                 ->whereNull('ass.Codigo')
                 ->get();
 
+            Log::info('Sedes Disponibles listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'cboSedesDisponibles',
+                'Empresa' => $codigoEmpresa,
+                'Cantidad' => count($sedes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($sedes, 200);
         } catch (\Exception $e) {
+
+            Log::error('Error al buscar producto', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'cboSedesDisponibles',
+                'Empresa' => $codigoEmpresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -178,29 +271,44 @@ class ControladorGeneralController extends Controller
                 ->where('e.Vigente', 1)
                 ->whereNull('cl.Codigo')
                 ->get();
-
+            Log::info('Empresas Disponibles listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'cboEmpresasDisponibles',
+                'Trabajador' => $codigoTrabajador,
+                'Cantidad' => count($empresas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($empresas);
         } catch (\Exception $e) {
+            Log::error('Error al listar empresas disponibles', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'cboEmpresasDisponibles',
+                'Trabajador' => $codigoTrabajador,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
 
-    public function listarDepartamentos($sede)
-    {
-        try {
-            $departamentos = DB::table('sedesrec as s')
-                ->join('departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
-                ->where('s.Codigo', $sede)
-                ->where('s.Vigente', 1)
-                ->where('d.Vigente', 1)
-                ->select('s.CodigoDepartamento as CodigoDepartamento')
-                ->first();
+    // public function listarDepartamentos($sede)
+    // {
+    //     try {
+    //         $departamentos = DB::table('sedesrec as s')
+    //             ->join('departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
+    //             ->where('s.Codigo', $sede)
+    //             ->where('s.Vigente', 1)
+    //             ->where('d.Vigente', 1)
+    //             ->select('s.CodigoDepartamento as CodigoDepartamento')
+    //             ->first();
 
-            return response()->json($departamentos);
-        } catch (\Exception $e) {
-            return response()->json('Error en la consulta: ' . $e->getMessage());
-        }
-    }
+    //         return response()->json($departamentos);
+    //     } catch (\Exception $e) {
+    //         return response()->json('Error en la consulta: ' . $e->getMessage());
+    //     }
+    // }
 
     public function listarTiposDocVenta($sede, $tipo)
     {
@@ -223,8 +331,27 @@ class ControladorGeneralController extends Controller
                 ->distinct()
                 ->get();
 
+            Log::info('Tipos de documentos de venta listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTiposDocVenta',
+                'Sede' => $sede,
+                'Tipo' => $tipo,
+                'Cantidad' => count($docVentas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($docVentas);
         } catch (\Exception $e) {
+            Log::error('Error al listar tipos de documentos de venta', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTiposDocVenta',
+                'Sede' => $sede,
+                'Tipo' => $tipo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -255,6 +382,14 @@ class ControladorGeneralController extends Controller
                 ->distinct()
                 ->get();
 
+            Log::info('Tipos de documentos de venta para devoluciones listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTiposDocVentaDevolucion',
+                'Sede' => $sede,
+                'CodigoSunat' => $codigoSunat,
+                'Cantidad' => count($docVentas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($docVentas);
         } catch (\Exception $e) {
@@ -269,8 +404,23 @@ class ControladorGeneralController extends Controller
                 ->where('sp.Vigente', 1)
                 ->select('sp.Codigo', 'sp.Siglas as Nombre')
                 ->get();
+
+            Log::info('Sistemas de pensión listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarSistemaPension',
+                'Cantidad' => count($sistemaPension),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($sistemaPension);
         } catch (\Exception $e) {
+            Log::error('Error al listar sistemas de pensión', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarSistemaPension',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -287,8 +437,24 @@ class ControladorGeneralController extends Controller
                 ->where('s.Vigente', 1)
                 ->where('lmp.Vigente', 1)
                 ->get();
+            Log::info('Medios de pago listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMedioPago',
+                'Sede' => $sede,
+                'Cantidad' => count($medioPago),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($medioPago);
         } catch (\Exception $e) {
+            Log::error('Error al listar medios de pago', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMedioPago',
+                'Sede' => $sede,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -303,8 +469,28 @@ class ControladorGeneralController extends Controller
                 ->where('ebd.Vigente', 1)
                 ->select('bd.Codigo', DB::raw("CONCAT(ebd.Nombre, ' - ', bd.Numero) AS Nombre"))
                 ->get();
+
+            Log::info('Billeteras digitales listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarBilleterasDigitalesEmpresa',
+                'Empresa' => $empresa,
+                'Cantidad' => count($result),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($result);
         } catch (\Exception $e) {
+
+            Log::error('Error al listar billeteras digitales', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarBilleterasDigitalesEmpresa',
+                'Empresa' => $empresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -320,8 +506,28 @@ class ControladorGeneralController extends Controller
                 ->where('cb.Detraccion', 0)
                 ->select('cb.Codigo as Codigo', 'eb.Siglas', 'cb.Numero')
                 ->get();
+
+            Log::info('Cuentas bancarias listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarCuentasBancariasEmpresa',
+                'Empresa' => $empresa,
+                'Cantidad' => count($result),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($result);
         } catch (\Exception $e) {
+
+            Log::error('Error al listar cuentas bancarias', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarCuentasBancariasEmpresa',
+                'Empresa' => $empresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -333,8 +539,22 @@ class ControladorGeneralController extends Controller
                 ->where('Vigente', 1)
                 ->select('Codigo as Codigo', 'Nombre as Nombre', 'Descripcion as Descripcion')
                 ->get();
+            Log::info('Motivos de anulación listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivosAnulacion',
+                'Cantidad' => count($result),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('Error al listar motivos de anulación', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivosAnulacion',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -355,8 +575,34 @@ class ControladorGeneralController extends Controller
                 ->where('eb.Vigente', 1) // Filtro por Vigencia de Entidad Bancaria
                 ->first();
 
+            if (!$resultado) {
+                Log::info('No se encontraron cuentas de detracción para la empresa', [
+                    'Controlador' => 'ControladorGeneralController',
+                    'Metodo' => 'cuentaDetraccion',
+                    'Empresa' => $empresa,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                return response()->json('No se encontraron cuentas de detracción para la empresa', 404);
+            }
+            Log::info('Cuenta de detracción encontrada correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'cuentaDetraccion',
+                'Empresa' => $empresa,
+                'Cuenta' => $resultado->Codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($resultado);
         } catch (\Exception $e) {
+            Log::error('Error al obtener cuenta de detracción', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'cuentaDetraccion',
+                'Empresa' => $empresa,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -370,9 +616,22 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo', 'Nombre', 'Descripcion')
                 ->where('Vigente', 1) // 
                 ->get();
-
+            Log::info('Motivos de pago por servicio listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoPagoServicio',
+                'Cantidad' => count($resultado),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($resultado);
         } catch (\Exception $e) {
+            Log::error('Error al listar motivos de pago por servicio', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoPagoServicio',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -398,8 +657,23 @@ class ControladorGeneralController extends Controller
                 })
                 ->get();
 
+            Log::info('Personal Autorizado listado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'personalAutorizado',
+                'Cantidad' => count($trabajadores),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($trabajadores);
         } catch (\Exception $e) {
+            Log::error('Error al listar Personal Autorizado', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'personalAutorizado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -419,8 +693,26 @@ class ControladorGeneralController extends Controller
                 ->where('ass.CodigoSede', $sede)
                 ->where('ass.FechaFin', '>=', $fecha)
                 ->get();
+
+            Log::info('Personal listado correctamente', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'personal',
+                'Sede' => $sede,
+                'Cantidad' => count($trabajadores),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($trabajadores);
         } catch (\Exception $e) {
+            Log::error('Error al listar personal', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'personal',
+                'Sede' => $sede,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -432,9 +724,22 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo', 'Nombre', 'Siglas')
                 ->where('Vigente', 1)
                 ->get();
-
+            Log::info('Tipos de moneda listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTipoMoneda',
+                'Cantidad' => count($resp),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($resp);
         } catch (\Exception $e) {
+            Log::error('Error al listar tipos de moneda', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarTipoMoneda',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -459,9 +764,24 @@ class ControladorGeneralController extends Controller
                 ->where('ags.CodigoSede', $sede)
                 ->where('t.Tipo', 'M')
                 ->get();
-
+            Log::info('Médicos listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMedicos',
+                'Sede' => $sede,
+                'Cantidad' => count($resultado),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($resultado);
         } catch (\Exception $e) {
+            Log::error('Error al listar médicos', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMedicos',
+                'Sede' => $sede,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -476,8 +796,24 @@ class ControladorGeneralController extends Controller
                 ->where('s.Vigente', 1)
                 ->where('s.Codigo', $sede)
                 ->get();
+            Log::info('Pacientes listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarPacientes',
+                'Sede' => $sede,
+                'Cantidad' => count($resultado),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($resultado);
         } catch (\Exception $e) {
+            Log::error('Error al listar pacientes', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarPacientes',
+                'Sede' => $sede,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -489,8 +825,22 @@ class ControladorGeneralController extends Controller
                 ->select('Codigo', 'Nombre', 'CodigoSUNAT')
                 ->where('Vigente', 1)
                 ->get();
+            Log::info('Motivos de nota de crédito listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoNotaCredito',
+                'Cantidad' => count($resultado),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($resultado);
         } catch (\Exception $e) {
+            Log::error('Error al listar motivos de nota de crédito', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoNotaCredito',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -502,8 +852,22 @@ class ControladorGeneralController extends Controller
                 ->where('Vigente', 1)
                 ->select('Codigo', 'Nombre', 'Descripcion')
                 ->get();
+            Log::info('Motivos de anulación de contrato listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoAnulacionContrato',
+                'Cantidad' => count($motivos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($motivos);
         } catch (\Exception $e) {
+            Log::error('Error al listar motivos de anulación de contrato', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarMotivoAnulacionContrato',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -518,9 +882,22 @@ class ControladorGeneralController extends Controller
                 )
                 ->where('Vigente', 1)
                 ->get();
-
+            Log::info('Donantes listados correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarDonantes',
+                'Cantidad' => count($personas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($personas);
         } catch (\Exception $e) {
+            Log::error('Error al listar donantes', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarDonantes',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
@@ -537,8 +914,23 @@ class ControladorGeneralController extends Controller
                 ->where('Vigente', 1)
                 ->get();
 
+            Log::info('Categorías de productos listadas correctamente', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarCategoriaProducto',
+                'Cantidad' => count($categoria),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($categoria);
         } catch (\Exception $e) {
+            Log::error('Error al listar categorías de productos', [
+                'Controlador' => 'ControladorGeneralController',
+                'Metodo' => 'listarCategoriaProducto',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }

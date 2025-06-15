@@ -11,6 +11,8 @@ use App\Models\Recaudacion\ValidacionCaja\MontoCaja;
 use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+
 class DetraccionController extends Controller
 {
     /**
@@ -55,7 +57,7 @@ class DetraccionController extends Controller
 
     public function listarDetraccionesPendientes($sede)
     {
-        try{
+        try {
             $ventas = DB::table('documentoventa as dv')
                 ->join('detraccion as d', 'dv.Codigo', '=', 'd.CodigoDocumentoVenta')
                 ->select(
@@ -71,11 +73,27 @@ class DetraccionController extends Controller
                 ->orderBy('dv.Fecha', 'desc')
                 ->get();
 
-            return response()->json($ventas);
+            Log::info('Detracciones Pendientes Consultadas', [
+                'Controlador' => 'DetraccionController',
+                'Metodo' => 'listarDetraccionesPendientes',
+                'sede' => $sede,
+                'Cantidad' => count($ventas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
-        }catch(\Exception $e){
+            return response()->json($ventas);
+        } catch (\Exception $e) {
+            Log::error('Error al listar detracciones pendientes', [
+                'Controlador' => 'DetraccionController',
+                'Metodo' => 'listarDetraccionesPendientes',
+                'sede' => $sede,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
-        } 
+        }
     }
 
     public function registrarPagoDetraccion(Request $request)
@@ -84,11 +102,11 @@ class DetraccionController extends Controller
         $dataEgreso = $request->input('egreso');
         $empresa = $request->input('empresa');
         //Validar Egreso
-        if(isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0){
+        if (isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0) {
             $dataEgreso['CodigoCuentaOrigen'] = null;
         }
 
-        if(isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0){
+        if (isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0) {
             $dataEgreso['CodigoBilleteraDigital'] = null;
         }
 
@@ -101,15 +119,23 @@ class DetraccionController extends Controller
 
             $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
 
-            if($dataEgreso['Monto'] > $total){
-                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total ], 500);
-            }
+            if ($dataEgreso['Monto'] > $total) {
 
-        }else if($dataEgreso['CodigoSUNAT'] == '003'){
+                Log::warning('No hay suficiente Efectivo en caja', [
+                    'Controlador' => 'DetraccionController',
+                    'Metodo' => 'registrarPagoDetraccion',
+                    'CodigoCaja' => $dataEgreso['CodigoCaja'],
+                    'Monto' => $dataEgreso['Monto'],
+                    'TotalCaja' => $total,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
+                return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
+            }
+        } else if ($dataEgreso['CodigoSUNAT'] == '003') {
             $dataEgreso['Lote'] = null;
             $dataEgreso['Referencia'] = null;
-
-        }else if($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006'){
+        } else if ($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006') {
             $dataEgreso['CodigoCuentaBancaria'] = null;
             $dataEgreso['CodigoBilleteraDigital'] = null;
         }
@@ -118,22 +144,36 @@ class DetraccionController extends Controller
         $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
         $fechaEgresoVal = Carbon::parse($dataEgreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
-        
+
         if ($fechaCajaVal < $fechaEgresoVal) {
-            return response()->json(['error' => 'La fecha de la venta no puede ser mayor a la fecha de apertura la caja.'], 400);
+            Log::warning('Fecha de pago es mayor a la fecha de apertura de la caja', [
+                'Controlador' => 'DetraccionController',
+                'Metodo' => 'registrarPagoDetraccion',
+                'CodigoCaja' => $dataEgreso['CodigoCaja'],
+                'FechaCaja' => $fechaCajaVal,
+                'FechaEgreso' => $fechaEgresoVal,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['error' => 'La fecha de pago no puede ser mayor a la fecha de apertura la caja.'], 400);
         }
         //Validar Egreso
         $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
         $egresoValidator->validate();
         DB::beginTransaction();
-        try{
+        try {
 
             $codigoEntidadBancaria = DB::table('cuentabancaria')
-            ->where('Detraccion', 1)
-            ->where('CodigoEmpresa', $empresa)
-            ->value('CodigoEntidadBancaria');
+                ->where('Detraccion', 1)
+                ->where('CodigoEmpresa', $empresa)
+                ->value('CodigoEntidadBancaria');
 
             if (!$codigoEntidadBancaria) {
+                Log::warning('No se ha configurado cuenta de Detracción para la empresa', [
+                    'Controlador' => 'DetraccionController',
+                    'Metodo' => 'registrarPagoDetraccion',
+                    'Empresa' => $empresa,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => 'No se ha configurado cuenta de Detracción para esta empresa.'
                 ], 400);
@@ -147,13 +187,28 @@ class DetraccionController extends Controller
             ]);
 
             DB::table('detraccion')
-            ->whereIn('Codigo', $detraccion) // $detraccion es un array [1,2,3]
-            ->update(['CodigoPagoDetraccion' => $egresoCreado]);
+                ->whereIn('Codigo', $detraccion) // $detraccion es un array [1,2,3]
+                ->update(['CodigoPagoDetraccion' => $egresoCreado]);
             DB::commit();
+            Log::info('Pago de Detracción registrado correctamente', [
+                'Controlador' => 'DetraccionController',
+                'Metodo' => 'registrarPagoDetraccion',
+                'CodigoEgreso' => $egresoCreado,
+                'detracciones' => $detraccion,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Pago de Detracción registrado correctamente', 'egreso' => $egresoCreado]);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al registrar el Pago de Detracción', [
+                'Controlador' => 'DetraccionController',
+                'Metodo' => 'registrarPagoDetraccion',
+                'detracciones' => $detraccion,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => 'Ocurrió un error al registrar el Pago de Detracción', 'bd' => $e->getMessage()], 500);
         }
     }

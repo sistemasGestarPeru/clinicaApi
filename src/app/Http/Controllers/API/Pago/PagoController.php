@@ -10,6 +10,7 @@ use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PagoController extends Controller
 {
@@ -66,8 +67,20 @@ class PagoController extends Controller
         try {
             // Intentar crear el pago
             Pago::create($request->all());
+            Log::info('Registrar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'registrarPago',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['message' => 'Pago registrado correctamente'], 200);
         } catch (\Exception $e) {
+            Log::error('Error al registrar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'registrarPago',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+            ]);
             // En caso de error, devuelve el mensaje de error y un código de estado 500 (error interno del servidor)
             return response()->json(['message' => 'Error al registrar el Pago', 'error' => $e->getMessage()], 500);
         }
@@ -92,12 +105,27 @@ class PagoController extends Controller
                 ->increment('MontoPagado', $pagoDocData['Monto']);
 
             DB::commit();
+
+            Log::info('Registrar Pago Documento Venta', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'registrarPagoDocumentoVenta',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Pago Asociado correctamente.',
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
+
+            Log::error('Error al asociar Pago Documento Venta', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'registrarPagoDocumentoVenta',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+            ]);
+
             return response()->json([
                 'error' => 'Error al asociar el Pago.',
                 'bd' => $e->getMessage(),
@@ -144,8 +172,24 @@ class PagoController extends Controller
                 ")
                 ->get();
 
+            //log info
+            Log::info('Buscar Pagos', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'buscarPago',
+                'Contador' => count($pagos),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+
             return response()->json($pagos, 200);
         } catch (\Exception $e) {
+            Log::error('Error al buscar Pagos', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'buscarPago',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json([
                 'error' => $e->getMessage(),
             ], 500);
@@ -161,13 +205,13 @@ class PagoController extends Controller
         try {
 
             $subquery = "
-            SELECT CodigoDocumentoReferencia, SUM(MontoTotal) AS MontoTotalNC
-            FROM documentoventa 
-            WHERE CodigoMotivoNotaCredito IS NOT NULL
-            AND Vigente = 1
-            AND CodigoSede = $codigoSede
-            GROUP BY CodigoDocumentoReferencia
-        ";
+                SELECT CodigoDocumentoReferencia, SUM(MontoTotal) AS MontoTotalNC
+                FROM documentoventa 
+                WHERE CodigoMotivoNotaCredito IS NOT NULL
+                AND Vigente = 1
+                AND CodigoSede = $codigoSede
+                GROUP BY CodigoDocumentoReferencia
+            ";
 
             $ventas = DB::table('documentoventa as VENTA')
                 ->leftJoin(DB::raw("($subquery) AS NOTACREDITO"), 'NOTACREDITO.CodigoDocumentoReferencia', '=', 'VENTA.Codigo')
@@ -187,10 +231,26 @@ class PagoController extends Controller
                 VENTA.Numero, 
                 DATE(VENTA.Fecha) AS Fecha
             ')
-            ->get();
-
+                ->get();
+            //log info
+            Log::info('Buscar Ventas', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'buscarVentas',
+                'Contador' => count($ventas),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
             return response()->json($ventas, 200);
         } catch (\Exception $e) {
+
+            Log::error('Error al buscar Ventas', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'buscarVentas',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'error' => $e->getMessage(),
             ], 500);
@@ -213,6 +273,14 @@ class PagoController extends Controller
             $estadoCaja = ValidarFecha::obtenerFechaCaja($registroPagoExiste->CodigoCaja); // Caja que registra el pago
 
             if ($estadoCaja->Estado == 'C') {
+                // log warning
+                Log::warning('Intento de anular Pago en caja cerrada', [
+                    'Controlador' => 'PagoController',
+                    'Metodo' => 'anularPago',
+                    'codigoPago' => $codigoPago,
+                    'codigoCaja' => $codigoCaja,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
                 ], 400);
@@ -229,18 +297,43 @@ class PagoController extends Controller
                     ]);
             } else {
                 DB::rollBack();
+                // log warning
+                Log::warning('Intento de anular Pago no existente', [
+                    'Controlador' => 'PagoController',
+                    'Metodo' => 'anularPago',
+                    'codigoPago' => $codigoPago,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json([
                     'message' => 'El Pago no existe.',
                 ], 404);
             }
 
             DB::commit();
+            // log info
+            Log::info('Anular Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'anularPago',
+                'codigoPago' => $codigoPago,
+                'codigoTrabajador' => $codigoTrabajador,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Pago anulado correctamente.',
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
+            // log error
+            Log::error('Error al anular Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'anularPago',
+                'codigoPago' => $codigoPago,
+                'codigoTrabajador' => $codigoTrabajador,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json([
                 'message' => 'Error al anular el Pago.',
                 'error' => $e->getMessage()
@@ -256,9 +349,39 @@ class PagoController extends Controller
         try {
 
             $pago = Pago::find($codigoPago); //Encontro resultado
-            return response()->json($pago, 200);
+            if (!$pago) {
+                // log warning
+                Log::warning('Pago no encontrado', [
+                    'Controlador' => 'PagoController',
+                    'Metodo' => 'consultarPago',
+                    'codigoPago' => $codigoPago,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                return response()->json([
+                    'error' => 'No se ha encontrado el pago.'
+                ], 404);
+            }
 
+            // log info
+            Log::info('Consultar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'consultarPago',
+                'codigoPago' => $codigoPago,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json($pago, 200);
         } catch (\Exception $e) {
+            // log error
+            Log::error('Error al consultar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'consultarPago',
+                'codigoPago' => $codigoPago,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
             return response()->json([
                 'error' => $e->getMessage(),
             ], 500);
@@ -271,9 +394,16 @@ class PagoController extends Controller
 
         $pagoEncontrado = Pago::find($pagoData['Codigo']); //Encontro resultado
         $estadoCaja = ValidarFecha::obtenerFechaCaja($pagoEncontrado->CodigoCaja); // Caja Actual
-        
-        
+
+
         if (!$pagoEncontrado) {
+            // log warning
+            Log::warning('Pago no encontrado', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'editarPago',
+                'codigoPago' => $pagoData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'error' => 'No se ha encontrado el pago.'
             ], 404);
@@ -286,12 +416,20 @@ class PagoController extends Controller
         // }
 
         if ($estadoCaja->Estado == 'C') {
+            // log warning
+            Log::warning('Intento de editar Pago en caja cerrada', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'editarPago',
+                'codigoPago' => $pagoData['Codigo'],
+                'codigoCaja' => $pagoData['CodigoCaja'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
-                 'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
+                'error' => __('mensajes.error_act_egreso_caja', ['tipo' => '']),
             ], 400);
         }
 
-         if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
+        if (isset($pagoData['CodigoCuentaBancaria']) && $pagoData['CodigoCuentaBancaria'] == 0) {
             $pagoData['CodigoCuentaBancaria'] = null;
         }
 
@@ -304,6 +442,18 @@ class PagoController extends Controller
         $fechaVentaVal = Carbon::parse($pagoData['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
+            // log warning
+            Log::warning(
+                'Intento de editar Pago con fecha fuera del rango de la caja',
+                [
+                    'Controlador' => 'PagoController',
+                    'Metodo' => 'editarPago',
+                    'codigoPago' => $pagoData['Codigo'],
+                    'fechaCaja' => $fechaCajaVal,
+                    'fechaVenta' => $fechaVentaVal,
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]
+            );
             return response()->json([
                 'error' => __('mensajes.error_fecha_recaudacion'),
             ], 400);
@@ -326,7 +476,7 @@ class PagoController extends Controller
 
         try {
 
-        
+
             DB::table('pago')
                 ->where('Codigo', $pagoData['Codigo'])
                 ->update([
@@ -342,10 +492,30 @@ class PagoController extends Controller
                     'NumeroOperacion' => $pagoData['NumeroOperacion'],
                 ]);
 
+            // log info
+            Log::info('Editar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'editarPago',
+                'codigoPago' => $pagoData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json([
                 'message' => 'Pago actualizado correctamente',
             ], 200);
+            
         } catch (\Exception $e) {
+            // log error
+            Log::error('Error al editar Pago', [
+                'Controlador' => 'PagoController',
+                'Metodo' => 'editarPago',
+                'codigoPago' => $pagoData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'error' => $e->getMessage(),
             ], 500);

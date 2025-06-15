@@ -14,6 +14,7 @@ use App\Models\Recaudacion\PagoComision;
 use App\Models\Recaudacion\ValidacionCaja\ValidarFecha;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class PagoComisionController extends Controller
 {
@@ -57,39 +58,54 @@ class PagoComisionController extends Controller
         //
     }
 
-    public function listarMedicosPendientesP($sede){
+    public function listarMedicosPendientesP($sede)
+    {
 
-        try{
+        try {
 
             $medicos = DB::table('comision as c')
 
-            ->join('personas as p', 'p.Codigo', '=', 'c.CodigoMedico')
-            ->whereNull('c.CodigoPagoComision')
-            ->distinct()
-            ->select('c.CodigoMedico as Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"))
-            ->get();
+                ->join('personas as p', 'p.Codigo', '=', 'c.CodigoMedico')
+                ->whereNull('c.CodigoPagoComision')
+                ->distinct()
+                ->select('c.CodigoMedico as Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"))
+                ->get();
+
+            //log info
+            Log::info('Listar Médicos Pendientes de Pago', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarMedicosPendientesP',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json($medicos, 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
+            Log::error('Error al listar los médicos pendientes', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarMedicosPendientesP',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine()
+            ]);
             return response()->json([
                 'message' => 'Error al listar los medicos pendientes',
                 'bd' => $e->getMessage()
             ], 500);
-        }   
+        }
     }
 
-    public function registrarComisionPendiente(Request $request){
+    public function registrarComisionPendiente(Request $request)
+    {
         $medico = $request->input('medico');
         $comision = $request->input('comisionPendiente');
         $dataEgreso = $request->input('egreso');
 
         //Validar Egreso
-        if(isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0){
+        if (isset($dataEgreso['CodigoCuentaOrigen']) && $dataEgreso['CodigoCuentaOrigen'] == 0) {
             $dataEgreso['CodigoCuentaOrigen'] = null;
         }
 
-        if(isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0){
+        if (isset($dataEgreso['CodigoBilleteraDigital']) && $dataEgreso['CodigoBilleteraDigital'] == 0) {
             $dataEgreso['CodigoBilleteraDigital'] = null;
         }
 
@@ -102,15 +118,20 @@ class PagoComisionController extends Controller
 
             $total = MontoCaja::obtenerTotalCaja($dataEgreso['CodigoCaja']);
 
-            if($dataEgreso['Monto'] > $total){
+            if ($dataEgreso['Monto'] > $total) {
+                Log::warning('Error al registrar comisión', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'registrarComisionPendiente',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'mensaje' => __('mensajes.error_sin_efectivo', ['total' => $total]),
+                    'Disponible' => $total
+                ]);
                 return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
-
-        }else if($dataEgreso['CodigoSUNAT'] == '003'){
+        } else if ($dataEgreso['CodigoSUNAT'] == '003') {
             $dataEgreso['Lote'] = null;
             $dataEgreso['Referencia'] = null;
-
-        }else if($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006'){
+        } else if ($dataEgreso['CodigoSUNAT'] == '005' || $dataEgreso['CodigoSUNAT'] == '006') {
             $dataEgreso['CodigoCuentaBancaria'] = null;
             $dataEgreso['CodigoBilleteraDigital'] = null;
         }
@@ -121,17 +142,23 @@ class PagoComisionController extends Controller
 
 
         if ($fechaCajaVal < $fechaEgresoVal) {
+            Log::warning('Error al registrar comisión', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'registrarComisionPendiente',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => __('mensajes.error_fecha_pago')
+            ]);
             return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
         //Validar Egreso
         $egresoValidator = Validator::make($dataEgreso, (new GuardarEgresoRequest())->rules());
         $egresoValidator->validate();
         DB::beginTransaction();
-        try{
+        try {
 
             $egresoCreado = Egreso::create($dataEgreso)->Codigo;
 
-            $pagoComision = ['Codigo' => $egresoCreado,'CodigoMedico' => $medico];
+            $pagoComision = ['Codigo' => $egresoCreado, 'CodigoMedico' => $medico];
             PagoComision::create($pagoComision);
 
             foreach ($comision as $item) {
@@ -143,20 +170,31 @@ class PagoComisionController extends Controller
                         'Numero' => $item['Numero'],
                     ]);
             }
-            
-            DB::commit();
 
+            DB::commit();
+            Log::info('Comisión registrada correctamente', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'registrarComisionPendiente',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json([
                 'message' => 'Comisión registrada correctamente'
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al registrar comisión', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'registrarComisionPendiente',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'error' => 'Error al registrar la comisión',
                 'bd' => $e->getMessage()
             ], 500);
         }
-
     }
 
     public function registrarPagoComision(Request $request)
@@ -184,6 +222,12 @@ class PagoComisionController extends Controller
             $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
             if ($fechaCajaVal < $fechaVentaVal) {
+                Log::warning('Error al registrar pago de comisión', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'registrarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'mensaje' => __('mensajes.error_fecha_pago')
+                ]);
                 return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
             }
 
@@ -198,6 +242,13 @@ class PagoComisionController extends Controller
                 $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
                 if ($egreso['Monto'] > $total) {
+                    Log::warning('Error al registrar pago de comisión', [
+                        'Controlador' => 'PagoComisionController',
+                        'Metodo' => 'registrarPagoComision',
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                        'mensaje' => __('mensajes.error_sin_efectivo', ['total' => $total]),
+                        'Disponible' => $total
+                    ]);
                     return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
                 }
             } else if ($egreso['CodigoSUNAT'] == '003') {
@@ -236,15 +287,27 @@ class PagoComisionController extends Controller
                 DetalleComision::create($detalle);
             }
 
-
-            
             DB::commit();
+
+            Log::info('Pago de comisión registrado correctamente', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'registrarPagoComision',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
             return response()->json([
                 'message' => 'Pago de comisión registrado correctamente'
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al registrar el pago de comisión', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'registrarPagoComision',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'error' => 'Error al registrar el Pago de Comisión',
                 'bd' => $e->getMessage(),
@@ -253,9 +316,10 @@ class PagoComisionController extends Controller
     }
 
 
-    public function listarComisionesPagar($sede, $medico){
+    public function listarComisionesPagar($sede, $medico)
+    {
         //falta la sede
-        try{
+        try {
             $comisiones = DB::table('comision as c')
                 ->leftJoin('pagocomision as pc', 'c.CodigoPagoComision', '=', 'pc.Codigo')
                 ->leftJoin('documentoventa as dv', 'c.CodigoDocumentoVenta', '=', 'dv.Codigo')
@@ -277,17 +341,35 @@ class PagoComisionController extends Controller
                 ->where(function ($query) use ($sede) {
                     $query->where(function ($q) use ($sede) {
                         $q->where('dv.CodigoSede', $sede)
-                          ->whereNotNull('dv.Codigo');
+                            ->whereNotNull('dv.Codigo');
                     })->orWhere(function ($q) use ($sede) {
                         $q->where('cp.CodigoSede', $sede)
-                          ->whereNotNull('cp.Codigo');
+                            ->whereNotNull('cp.Codigo');
                     });
                 })
                 ->get();
 
-            return response()->json($comisiones, 200);
+            //log info
+            Log::info('Listar Comisiones por Pagar', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarComisionesPagar',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'Cantidad' => count($comisiones)
+            ]);
 
-        }catch(\Exception $e){
+            return response()->json($comisiones, 200);
+        } catch (\Exception $e) {
+
+            Log::error('Error al listar las comisiones por pagar', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarComisionesPagar',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar las comisiones por pagar',
                 'bd' => $e->getMessage()
@@ -322,7 +404,6 @@ class PagoComisionController extends Controller
                         WHEN e.Codigo IS NULL THEN c.Vigente
                                             ELSE e.Vigente
                         END AS Vigente")
-                    
                 )
                 ->where(function ($query) use ($sede) {
                     $query->where('cp.CodigoSede', $sede)
@@ -330,9 +411,27 @@ class PagoComisionController extends Controller
                 })
                 ->get();
 
+            //log info
+            Log::info('Listar Pagos de Comisiones', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarPagosComisiones',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'Cantidad' => count($resultados)
+            ]);
 
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
+
+            Log::error('Error al listar los pagos de comisiones', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarPagosComisiones',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json([
                 'message' => 'Error al listar los pagos de comisiones',
                 'bd' => $e->getMessage()
@@ -364,7 +463,7 @@ class PagoComisionController extends Controller
                 ->get();
 
 
-                $paciente = DB::table('comision as c')
+            $paciente = DB::table('comision as c')
                 ->leftJoin('documentoventa as dv', 'dv.Codigo', '=', 'c.CodigoDocumentoVenta')
                 ->leftJoin('contratoproducto as cp', 'cp.Codigo', '=', 'c.CodigoContrato')
                 ->leftJoin('personas as pDV', 'pDV.Codigo', '=', 'dv.CodigoPaciente')
@@ -388,11 +487,19 @@ class PagoComisionController extends Controller
                 ")
                 ->where('c.Codigo', $codigo)
                 ->first();
-            
+
 
 
 
             if ($comision) {
+
+                Log::info('Consulta de Pago de Comisión', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'consultarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo' => $codigo
+                ]);
+
                 return response()->json([
                     'comision' => $comision,
                     'detalleComision' => $detalleComision,
@@ -400,11 +507,26 @@ class PagoComisionController extends Controller
                     'paciente' => $paciente
                 ], 200);
             } else {
+                Log::warning('Pago de Comisión no encontrado', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'consultarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo' => $codigo
+                ]);
                 return response()->json([
                     'error' => 'Pago de comisión no encontrado'
                 ], 404);
             }
         } catch (\Exception $e) {
+            Log::error('Error al consultar el pago de comisión', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'consultarPagoComision',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'error' => 'Error al consultar el pago de comisión',
                 'bd' => $e->getMessage()
@@ -412,78 +534,109 @@ class PagoComisionController extends Controller
         }
     }
 
-    public function actualizarPagoComision(Request $request) {
+    public function actualizarPagoComision(Request $request)
+    {
         //revisar todo
         $egreso = $request->input('egreso');
         $comision = $request->input('comision');
 
         DB::beginTransaction();
 
-        try{
-            
+        try {
+
             $comisionData = Comision::find($comision['Codigo']);
             $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
 
             if (!$comisionData) {
+                Log::warning('Comisión no encontrada', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'actualizarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo' => $comision['Codigo']
+                ]);
                 return response()->json([
                     'error' => 'No se ha encontrado la Comisión.'
                 ], 404);
             }
 
             if ($estadoCaja->Estado == 'C') {
+                Log::warning('Error al actualizar el pago de comisión', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'actualizarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'mensaje' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios'])
+                ]);
                 return response()->json([
                     'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
                 ], 400);
             }
 
-            if($comisionData['Vigente'] == 0){
+            if ($comisionData['Vigente'] == 0) {
+                Log::warning('Error al actualizar el pago de comisión', [
+                    'Controlador' => 'PagoComisionController',
+                    'Metodo' => 'actualizarPagoComision',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'mensaje' => __('mensajes.error_act_egreso', ['tipo' => 'servicio'])
+                ]);
                 return response()->json([
                     'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
                 ], 400);
             }
 
-            if(isset($egreso['Codigo']) && $egreso['Codigo'] != 0){
-                
-                if($comision['Vigente'] == 0){
+            if (isset($egreso['Codigo']) && $egreso['Codigo'] != 0) {
+
+                if ($comision['Vigente'] == 0) {
 
                     $egresoData = Egreso::find($egreso['Codigo']);
                     $egresoData->update(['Vigente' => 0]);
-    
+
                     $comisionData->update(['Vigente' => 0]);
                 }
-
-            }else if(isset($egreso) && !isset($egreso['Codigo']) && $comision['Vigente'] == 1){
+            } else if (isset($egreso) && !isset($egreso['Codigo']) && $comision['Vigente'] == 1) {
 
                 //Validar Egreso
                 $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
                 $egresoValidator->validate();
-    
+
                 if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
                     $egreso['CodigoCuentaOrigen'] = null;
                 }
-    
+
                 if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
                     $egreso['CodigoBilleteraDigital'] = null;
                 }
-    
+
                 $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
                 $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
                 $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
-    
+
                 if ($fechaCajaVal < $fechaVentaVal) {
+                    Log::warning('Error al actualizar el pago de comisión', [
+                        'Controlador' => 'PagoComisionController',
+                        'Metodo' => 'actualizarPagoComision',
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                        'mensaje' => __('mensajes.error_fecha_pago')
+                    ]);
                     return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
                 }
-    
+
                 if ($egreso['CodigoSUNAT'] == '008') {
                     $egreso['CodigoCuentaOrigen'] = null;
                     $egreso['CodigoBilleteraDigital'] = null;
                     $egreso['Lote'] = null;
                     $egreso['Referencia'] = null;
                     $egreso['NumeroOperacion'] = null;
-    
+
                     $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
-    
+
                     if ($egreso['Monto'] > $total) {
+                        Log::warning('Error al actualizar el pago de comisión', [
+                            'Controlador' => 'PagoComisionController',
+                            'Metodo' => 'actualizarPagoComision',
+                            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                            'mensaje' => __('mensajes.error_sin_efectivo', ['total' => $total]),
+                            'Disponible' => $total
+                        ]);
                         return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
                     }
                 } else if ($egreso['CodigoSUNAT'] == '003') {
@@ -493,13 +646,13 @@ class PagoComisionController extends Controller
                     $egreso['CodigoCuentaBancaria'] = null;
                     $egreso['CodigoBilleteraDigital'] = null;
                 }
-            
+
                 $egreso = Egreso::create($egreso);
                 $pagoComision['CodigoMedico'] = $comisionData['CodigoMedico'];
                 $pagoComision['Codigo'] = $egreso->Codigo;
                 PagoComision::create($pagoComision);
                 $comision['CodigoPagoComision'] = $egreso->Codigo;
-                
+
                 $comisionData->update([
                     'CodigoPagoComision' => $comision['CodigoPagoComision'],
                     'TipoDocumento' => $comision['TipoDocumento'],
@@ -507,17 +660,31 @@ class PagoComisionController extends Controller
                     'Numero' => $comision['Numero'],
                     'Comentario' => $comision['Comentario'],
                 ]);
-            }else if(!isset($egreso['Codigo']) && $comision['Vigente'] == 0){
+            } else if (!isset($egreso['Codigo']) && $comision['Vigente'] == 0) {
                 $comisionData->update(['Vigente' => 0]);
             }
 
             DB::commit();
+            Log::info('Pago de Comisión actualizado correctamente', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'actualizarPagoComision',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $comision['Codigo']
+            ]);
             return response()->json([
                 'message' => 'Pago Comisión actualizado correctamente.'
             ], 200);
-        
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al actualizar el pago de comisión', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'actualizarPagoComision',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $comision['Codigo'],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'error' => 'Error al actualizar el pago de comisión',
                 'bd' => $e->getMessage()
@@ -552,7 +719,7 @@ class PagoComisionController extends Controller
                     ->where('cp.Vigente', 1)
                     ->where(function ($q) {
                         $q->whereNull('c.Codigo')
-                          ->orWhere('c.Vigente', 0);
+                            ->orWhere('c.Vigente', 0);
                     })
                     ->when($termino, function ($query) use ($termino) {
                         return $query->where(function ($q) use ($termino) {
@@ -585,7 +752,7 @@ class PagoComisionController extends Controller
                     ->whereNull('dv.CodigoContratoProducto')
                     ->where(function ($q) {
                         $q->whereNull('c.Codigo')
-                          ->orWhere('c.Vigente', 0);
+                            ->orWhere('c.Vigente', 0);
                     })
                     ->where(function ($query) use ($termino) {
                         $query->where('p.Nombres', 'LIKE', "{$termino}%")
@@ -599,9 +766,24 @@ class PagoComisionController extends Controller
                             ->where('p.Tipo', 'S');
                     });
             }
-
+            //log info
+            Log::info('Listar Documentos para Comisiones', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarDocumentos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'sede' => $sede,
+                'Cantidad' => $query->count()
+            ]);
             return response()->json($query->get(), 200);
         } catch (\Exception $e) {
+            Log::error('Error al buscar los documentos', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'listarDocumentos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'message' => 'Error al buscar los documentos',
                 'error' => $e->getMessage()
@@ -613,27 +795,44 @@ class PagoComisionController extends Controller
     {
         try {
 
-            if ($tipo == 'C'){
+            if ($tipo == 'C') {
 
                 $detalles = DB::table('contratoproducto as cp')
-                ->join('detallecontrato as dc', 'cp.Codigo', '=', 'dc.CodigoContrato')
-                ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
-                ->where('cp.Codigo', $codigo)
-                ->where('p.Tipo', 'S')
-                ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
-
-            }else{
+                    ->join('detallecontrato as dc', 'cp.Codigo', '=', 'dc.CodigoContrato')
+                    ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
+                    ->where('cp.Codigo', $codigo)
+                    ->where('p.Tipo', 'S')
+                    ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
+            } else {
                 $detalles = DB::table('documentoVenta as dv')
-                ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
-                ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
-                ->where('dv.Codigo', $codigo)
-                ->where('p.Tipo', 'S')
-                ->select('ddv.Codigo as CodigoDetalleVenta', 'ddv.Descripcion');
+                    ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                    ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
+                    ->where('dv.Codigo', $codigo)
+                    ->where('p.Tipo', 'S')
+                    ->select('ddv.Codigo as CodigoDetalleVenta', 'ddv.Descripcion');
             }
-
+            //log info
+            Log::info('Consultar Detalle de Documento', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'consultarDetalleDocumento',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codigo,
+                'tipo' => $tipo,
+                'Cantidad' => $detalles->count()
+            ]);
             // Retornar en formato JSON (si es necesario)
             return response()->json($detalles->get(), 200);
         } catch (\Exception $e) {
+            Log::error('Error al consultar el detalle del documento', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'consultarDetalleDocumento',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codigo,
+                'tipo' => $tipo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json([
                 'error' => 'Error al consultar el documento',
                 'message' => $e->getMessage()
