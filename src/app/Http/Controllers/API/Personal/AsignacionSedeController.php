@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Personal;
 use App\Http\Controllers\Controller;
 use App\Models\Personal\AsignacionSede;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AsignacionSedeController extends Controller
 {

@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 use App\Http\Requests\Recaudacion\ContratoLaboral\GuardarContratoLaboralRequest as RecaudacionGuardarContratoLaboralRequest;
 
@@ -62,8 +63,28 @@ class TrabajadorController extends Controller
     {
         try {
             new (AsignacionSede::create($request->all()));
+
+            //log info
+            Log::info('Registrar Asignación Sede', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'regAsignacionSede',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'datos' => $request->all()
+            ]);
             return (['msg' => 'Sede Asignada correctamente']);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al Asignar Sede', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'regAsignacionSede',
+                'datos' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
             return response()->json('Error al Asignar Sede', 400);
         }
     }
@@ -72,9 +93,26 @@ class TrabajadorController extends Controller
     {
         try {
             new (ContratoLaboral::create($request->all()));
+
+            //log info
+            Log::info('Registrar Contrato Laboral', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'regContratoLab',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'datos' => $request->all()
+            ]);
             return (['msg' => 'Contrato Laboral registrado correctamente']);
         } catch (\Exception $e) {
-
+            //log error
+            Log::error('Error al registrar Contrato Laboral', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'regContratoLab',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
             return response()->json('Error al registrar al Contrato Laboral', 400);
         }
     }
@@ -92,9 +130,27 @@ class TrabajadorController extends Controller
             $asignacionVigente = $asignacion->FechaFin == null || $asignacion->FechaFin > $fecha;
 
             if ($estadoActual == 0) {
+
+                //log warning
+                Log::warning('Intento de actualización de asignación inactiva', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarAsignacion',
+                    'CodigoAsignacion' => $asignacionData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'No se puede actualizar una asignación Inactiva.'], 400);
             }
             if (!$asignacionVigente) {
+
+                //log warning
+                Log::warning('Intento de actualización de asignación finalizada', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarAsignacion',
+                    'CodigoAsignacion' => $asignacionData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'No se puede actualizar una asignación Finalizada.'], 400);
             }
 
@@ -102,8 +158,29 @@ class TrabajadorController extends Controller
                 $asignacion->update($asignacionData);
             }
 
+            //log info
+            Log::info('Asignación actualizada correctamente', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarAsignacion',
+                'CodigoAsignacion' => $asignacionData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['msg' => 'Asignación actualizada correctamente'], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al actualizar Asignación', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarAsignacion',
+                'CodigoAsignacion' => $asignacionData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['error' => 'Error al actualizar la Asignación', 'bd' => $e->getMessage()], 400);
         }
     }
@@ -124,10 +201,28 @@ class TrabajadorController extends Controller
             $contratoVigente = $contrato->FechaFin == null || $contrato->FechaFin > $fecha;
 
             if ($estadoActual == 0) {
+
+                //log warning
+                Log::warning('Intento de actualización de contrato inactivo', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarContrato',
+                    'CodigoContrato' => $contratoData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'No se puede actualizar un contrato Inactivo.'], 400);
             }
 
             if (!$contratoVigente) {
+
+                //log warning
+                Log::warning('Intento de actualización de contrato finalizado', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarContrato',
+                    'CodigoContrato' => $contratoData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'No se puede actualizar un contrato Finalizado.'], 400);
             }
 
@@ -153,6 +248,15 @@ class TrabajadorController extends Controller
                     if (($contratoData['FechaInicio'] >= $resultado->FechaInicio && $contratoData['FechaInicio'] <= $resultado->FechaFin) ||
                         ($contratoData['FechaFin'] >= $resultado->FechaInicio && $contratoData['FechaFin'] <= $resultado->FechaFin)
                     ) {
+
+                        //log warning
+                        Log::warning('Fechas de contrato superpuestas', [
+                            'Controlador' => 'TrabajadorController',
+                            'Metodo' => 'actualizarContrato',
+                            'CodigoContrato' => $contratoData['Codigo'],
+                            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                        ]);
+
                         return response()->json(['error' => 'Las fechas del contrato se superponen con las fechas de la asignación existente.'], 400);
                     }
                 }
@@ -179,9 +283,31 @@ class TrabajadorController extends Controller
             }
 
             DB::commit();
+
+            //log info
+            Log::info('Contrato actualizado correctamente', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarContrato',
+                'CodigoContrato' => $contratoData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['msg' => 'Contrato actualizado correctamente.'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al actualizar Contrato', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarContrato',
+                'CodigoContrato' => $contratoData['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['error' => 'Error al actualizar al Contrato: ' . $e->getMessage()], 400);
         }
     }
@@ -203,8 +329,28 @@ class TrabajadorController extends Controller
                 ->where('ass.Codigo', $codAsignacion)
                 ->first();
 
+            //log info
+
+            Log::info('Consultar Asignacion', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarAsignacion',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codAsignacion
+            ]);
+
             return response()->json($asignacion);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Asignacion', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarAsignacion',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codAsignacion,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
 
             return response()->json('Error al obtener datos', 400);
         }
@@ -240,8 +386,31 @@ class TrabajadorController extends Controller
                 ->addBinding([$fecha], 'select') // Bind de la fecha
                 ->get();
 
+            //log info
+            Log::info('Listar Asignaciones', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarAsignaciones',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $resultados->count(),
+                'CodigoTrabajador' => $codTrab,
+                'CodigoEmpresa' => $codEmpresa
+            ]);
+
             return response()->json($resultados);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar Asignaciones', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarAsignaciones',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoTrabajador' => $codTrab,
+                'CodigoEmpresa' => $codEmpresa
+            ]);
+
             return response()->json('Error al obtener datos', 400);
         }
     }
@@ -273,8 +442,29 @@ class TrabajadorController extends Controller
                 ->addBinding([$fecha], 'select') // Bind de la fecha
                 ->get();
 
+            //log info
+            Log::info('Listar Contratos', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarContratos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $results->count(),
+                'CodigoTrabajador' => $codTrab
+            ]);
+
             return response()->json($results, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar Contratos', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarContratos',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'CodigoTrabajador' => $codTrab
+            ]);
+
             return response()->json('Error al obtener datos', 400);
         }
     }
@@ -301,8 +491,27 @@ class TrabajadorController extends Controller
                 ->where('cl.Codigo', $codContratoLab)
                 ->first();
 
+            //log info
+            Log::info('Consultar Contrato', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarContrato',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoContrato' => $codContratoLab
+            ]);
+
             return response()->json($results, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Contrato', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarContrato',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoContrato' => $codContratoLab,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
 
             return response()->json('Error al obtener datos', 400);
         }
@@ -349,8 +558,25 @@ class TrabajadorController extends Controller
                 ->where('cl.Vigente', '=', 1)
                 ->get();
 
+            //log info
+            Log::info('Consultar Contrato Laboral', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarContratoLab',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoTrabajador' => $codigoTrabajador
+            ]);
+
             return response()->json($contratoLab, 200);
         } catch (\Exception $e) {
+            Log::error('Error al consultar Contrato Laboral', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarContratoLab',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoTrabajador' => $codigoTrabajador,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json('Error al obtener los datos', 400);
         }
     }
@@ -382,9 +608,31 @@ class TrabajadorController extends Controller
 
             DB::commit();
 
+            //log info
+
+            Log::info('Registrar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'registrarPersonaTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoTrabajador' => $trabajadorData['Codigo'],
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['msg' => 'Trabajador registrado correctamente: ' . $trabajadorData['Codigo']], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            //log error
+            Log::error('Error al registrar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'registrarPersonaTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['error' => 'Error al registrar al Trabajador: ' . $e->getMessage()], 400);
         }
     }
@@ -413,9 +661,29 @@ class TrabajadorController extends Controller
             $trabajadorData['Codigo'] = $personaData['Codigo'];
             Trabajador::create($trabajadorData);
             DB::commit();
+
+            //log info
+            Log::info('Registrar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'registrarTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoTrabajador' => $trabajadorData['Codigo'],
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['msg' => 'Trabajador registrado correctamente: ' . $trabajadorData['Codigo']], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            //log error
+            Log::error('Error al registrar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'registrarTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
             return response()->json(['error' => 'Error al registrar al Trabajador: ' . $e->getMessage()], 400);
         }
     }
@@ -448,10 +716,28 @@ class TrabajadorController extends Controller
 
             // Verificar si la persona existe
             if (!$personaRegistrado) {
+
+                //log warning
+                Log::warning('Intento de actualización de persona no encontrada', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarTrabajador',
+                    'CodigoPersona' => $personaData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'Trabajador no encontrado.'], 404);
             }
             // Verificar si el trabajador existe
             if (!$trabajadorRegistrado) {
+
+                //log warning
+                Log::warning('Intento de actualización de trabajador no encontrado', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'actualizarTrabajador',
+                    'CodigoTrabajador' => $trabajadorData['Codigo'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
                 return response()->json(['error' => 'Trabajador no encontrado.'], 404);
             }
 
@@ -479,9 +765,28 @@ class TrabajadorController extends Controller
             }
 
             DB::commit();
+
+            //log info
+            Log::info('Actualizar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'CodigoTrabajador' => $trabajadorData['Codigo'],
+                'datos' => $request->all()
+            ]);
+
             return response()->json(['msg' => 'Trabajador actualizado correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al actualizar Trabajador', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'actualizarTrabajador',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'datos' => $request->all()
+            ]);
             return response()->json(['error' => 'Error al actualizar al Trabajador: ' . $e->getMessage()], 400);
         }
     }
@@ -514,8 +819,29 @@ class TrabajadorController extends Controller
                 ->orderBy('p.Nombres', 'asc')
                 ->get();
 
+            //log info
+            Log::info('Buscar Personas', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'buscar',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'query' => $request->all(),
+                'CantidadResultados' => $personas->count()
+            ]);
+
             return response()->json($personas, 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al buscar Personas', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'buscar',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'query' => $request->all()
+            ]);
+
             return response()->json('Error al obtener los datos', 400);
         }
     }
@@ -544,8 +870,24 @@ class TrabajadorController extends Controller
                 ])
                 ->get();
 
+            //log info
+            Log::info('Listar Trabajadores', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarTrabajadores',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $trabajadores->count()
+            ]);
+
             return response()->json($trabajadores, 200);
         } catch (\Exception $e) {
+            Log::error('Error al listar Trabajadores', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'listarTrabajadores',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
             return response()->json(['error' => 'Error al obtener los trabajadores'], 400);
         }
     }
@@ -587,19 +929,57 @@ class TrabajadorController extends Controller
                     ->first();
 
                 if ($persona && $trabajador) {
+
+                    //log info
+                    Log::info('Consultar Persona y Trabajador', [
+                        'Controlador' => 'TrabajadorController',
+                        'Metodo' => 'consultarNumDoc',
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                        'query' => $request->all(),
+                        'tipo' => $tipo
+                    ]);
+
                     return response()->json([
                         'persona' => $persona,
                         'trabajador' => $trabajador
                     ], 200);
                 } else {
+
+                    //log info
+                    Log::info('Consultar Persona sin Trabajador', [
+                        'Controlador' => 'TrabajadorController',
+                        'Metodo' => 'consultarNumDoc',
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                        'query' => $request->all(),
+                    ]);
+
                     return response()->json([
                         'persona' => $persona
                     ], 200);
                 }
             } else {
+
+                //log info
+                Log::info('Consultar Persona no encontrada', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'consultarNumDoc',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'query' => $request->all()
+                ]);
+
                 return response()->json(['mensaje' => 'No se encontraron registros', 'resp' => -1], 200);
             }
         } catch (\Exception $e) {
+            Log::error('Error al consultar persona por documento', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarNumDoc',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'query' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
             return response()->json(['error' => 'Error al obtener los datos: ' . $e->getMessage()], 400);
         }
     }
@@ -609,49 +989,80 @@ class TrabajadorController extends Controller
     {
         $Codigo = $request->input('Codigo');
 
-        // Consultar los datos de persona
-        $persona = DB::table('personas')
-            ->select(
-                'Codigo',
-                'Nombres',
-                'Apellidos',
-                'Direccion',
-                'Celular',
-                'Correo',
-                'NumeroDocumento',
-                'CodigoTipoDocumento',
-                'CodigoNacionalidad',
-                'CodigoDepartamento',
+        try {
+            // Consultar los datos de persona
+            $persona = DB::table('personas')
+                ->select(
+                    'Codigo',
+                    'Nombres',
+                    'Apellidos',
+                    'Direccion',
+                    'Celular',
+                    'Correo',
+                    'NumeroDocumento',
+                    'CodigoTipoDocumento',
+                    'CodigoNacionalidad',
+                    'CodigoDepartamento',
 
-            )
-            ->where('Codigo', '=', $Codigo)
-            ->where('Vigente', '=', 1)
-            ->first();
+                )
+                ->where('Codigo', '=', $Codigo)
+                ->where('Vigente', '=', 1)
+                ->first();
 
-        // Consultar los datos de trabajador
-        $trabajador = DB::table('trabajadors')
-            ->select(
-                'CorreoCoorporativo',
-                'FechaNacimiento',
-                'CodigoSistemaPensiones',
-                'AutorizaDescuento',
-                'Vigente',
-                'Tipo'
-            )
-            ->where('Codigo', '=', $Codigo)
+            // Consultar los datos de trabajador
+            $trabajador = DB::table('trabajadors')
+                ->select(
+                    'CorreoCoorporativo',
+                    'FechaNacimiento',
+                    'CodigoSistemaPensiones',
+                    'AutorizaDescuento',
+                    'Vigente',
+                    'Tipo'
+                )
+                ->where('Codigo', '=', $Codigo)
 
-            ->first();
+                ->first();
 
-        if ($persona && $trabajador) {
-            // Combinar ambos resultados en una única estructura
-            $resultado = [
-                'persona' => $persona,
-                'trabajador' => $trabajador
-            ];
+            if ($persona && $trabajador) {
 
-            return response()->json($resultado);
-        } else {
-            return response()->json(['error' => 'No se encontraron registros'], 404);
+                // Combinar ambos resultados en una única estructura
+                $resultado = [
+                    'persona' => $persona,
+                    'trabajador' => $trabajador
+                ];
+
+                //log info
+                Log::info('Consultar Persona y Trabajador por Código', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'consultarTrabCodigo',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'Codigo' => $Codigo
+                ]);
+
+                return response()->json($resultado);
+            } else {
+                //log info
+                Log::info('Consultar Persona y Trabajador por Código no encontrados', [
+                    'Controlador' => 'TrabajadorController',
+                    'Metodo' => 'consultarTrabCodigo',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'Codigo' => $Codigo
+                ]);
+                return response()->json(['error' => 'No se encontraron registros'], 404);
+            }
+        } catch (\Exception $e) {
+            //log error
+            Log::error('Error al consultar persona y trabajador por Código', [
+                'Controlador' => 'TrabajadorController',
+                'Metodo' => 'consultarTrabCodigo',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Codigo' => $Codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
+            return response()->json(['error' => 'Error al obtener los datos: ' . $e->getMessage()], 400);
         }
     }
 }

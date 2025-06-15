@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Personal\TipoDocumento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TipoDocumentoController extends Controller
 {
@@ -53,9 +54,26 @@ class TipoDocumentoController extends Controller
         try {
 
             TipoDocumento::create($tipoDocumento);
-
+            //log info
+            Log::info('Registrar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'registrarTipoDocumento',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'tipo_documento' => $tipoDocumento
+            ]);
             return response()->json(['message' => 'Tipo Documento registrado correctamente'], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al registrar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'registrarTipoDocumento',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -66,9 +84,27 @@ class TipoDocumentoController extends Controller
 
         try {
             TipoDocumento::where('Codigo', $tipoDocumento['Codigo'])->update($tipoDocumento);
-
+            //log info
+            Log::info('Actualizar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'actualizarTipoDocumento',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'tipo_documento' => $tipoDocumento
+            ]);
             return response()->json(['message' => 'Tipo Documento actualizado correctamente'], 200);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al actualizar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'actualizarTipoDocumento',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'tipo_documento' => $tipoDocumento
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -77,8 +113,28 @@ class TipoDocumentoController extends Controller
     {
         try {
             $tipoDocumento = TipoDocumento::all();
+
+            //log info
+            Log::info('Listar Tipo Documentos', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'listarTipoDocumentos',
+                'Cantidad' => $tipoDocumento->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json($tipoDocumento);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar Tipo Documentos', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'listarTipoDocumentos',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -87,8 +143,28 @@ class TipoDocumentoController extends Controller
     {
         try {
             $tipoDocumento = TipoDocumento::find($codigo);
+
+            //log info
+            Log::info('Consultar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'consultarTipoDocumento',
+                'codigo' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json($tipoDocumento);
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar Tipo Documento', [
+                'Controlador' => 'TipoDocumentoController',
+                'Metodo' => 'consultarTipoDocumento',
+                'codigo' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

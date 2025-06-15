@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class PagoProveedorController extends Controller
 {
@@ -70,11 +71,11 @@ class PagoProveedorController extends Controller
         $pagoProveedorValidator = Validator::make($pagoProveedor, (new GuardarPagoProveedorRequest())->rules());
         $pagoProveedorValidator->validate();
 
-        if(isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0){
+        if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
             $egreso['CodigoCuentaOrigen'] = null;
         }
 
-        if(isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0){
+        if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
             $egreso['CodigoBilleteraDigital'] = null;
         }
 
@@ -83,7 +84,15 @@ class PagoProveedorController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
-            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);}
+            //log warning
+            Log::warning('Fecha de pago es anterior a la fecha de caja', [
+                'FechaCaja' => $fechaCajaVal,
+                'FechaPago' => $fechaVentaVal,
+                'CodigoCaja' => $egreso['CodigoCaja'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
+        }
 
         if ($egreso['CodigoSUNAT'] == '008') {
             $egreso['CodigoCuentaOrigen'] = null;
@@ -94,15 +103,20 @@ class PagoProveedorController extends Controller
 
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
-            if($egreso['Monto'] > $total){
+            if ($egreso['Monto'] > $total) {
+                //log warning
+                Log::warning('Pago excede el total disponible en caja', [
+                    'MontoPago' => $egreso['Monto'],
+                    'TotalDisponible' => $total,
+                    'CodigoCaja' => $egreso['CodigoCaja'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
-
-        }else if($egreso['CodigoSUNAT'] == '003'){
+        } else if ($egreso['CodigoSUNAT'] == '003') {
             $egreso['Lote'] = null;
             $egreso['Referencia'] = null;
-
-        }else if($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006'){
+        } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
             $egreso['CodigoCuentaBancaria'] = null;
             $egreso['CodigoBilleteraDigital'] = null;
         }
@@ -117,10 +131,27 @@ class PagoProveedorController extends Controller
 
             DB::commit();
 
-            return response()->json(['message' => 'Pago registrado correctamente'], 200);
+            Log::info('Pago registrado correctamente', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'registrarPago',
+                'CodigoEgreso' => $idEgreso,
+                'CodigoPagoProveedor' => $pagoProveedor['Codigo'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
+            return response()->json(['message' => 'Pago registrado correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            Log::error('Error al registrar pago', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'registrarPago',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
             return response()->json(['error' => $e], 500);
         }
     }
@@ -130,33 +161,40 @@ class PagoProveedorController extends Controller
     {
         try {
 
-        $resultado = DB::table('compra as C')
-            ->join('cuota as CU', 'CU.CodigoCompra', '=', 'C.Codigo')
-            ->leftJoin('pagoproveedor as PP', 'PP.CodigoCuota', '=', 'CU.Codigo')
-            ->join('proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
-            ->select(
-                'C.Codigo as Compra',
-                'C.Fecha',
-                'C.Serie',
-                'C.Numero',
-                'P.Codigo as Proveedor',
-                'P.RazonSocial'
-            )
-            ->where('CU.Vigente', 1)
-            ->where('C.Vigente', 1)
-            ->where('P.Vigente', 1)
-            ->groupBy(
-                'C.Codigo',
-                'C.Fecha',
-                'C.Serie',
-                'C.Numero',
-                'P.Codigo',
-                'P.RazonSocial'
-            )
-            
-            ->havingRaw('SUM(CASE WHEN PP.Codigo IS NULL THEN 1 ELSE 0 END) > 0')
-            ->orderBy('C.Fecha', 'DESC')
-            ->get();
+            $resultado = DB::table('compra as C')
+                ->join('cuota as CU', 'CU.CodigoCompra', '=', 'C.Codigo')
+                ->leftJoin('pagoproveedor as PP', 'PP.CodigoCuota', '=', 'CU.Codigo')
+                ->join('proveedor as P', 'P.Codigo', '=', 'C.CodigoProveedor')
+                ->select(
+                    'C.Codigo as Compra',
+                    'C.Fecha',
+                    'C.Serie',
+                    'C.Numero',
+                    'P.Codigo as Proveedor',
+                    'P.RazonSocial'
+                )
+                ->where('CU.Vigente', 1)
+                ->where('C.Vigente', 1)
+                ->where('P.Vigente', 1)
+                ->groupBy(
+                    'C.Codigo',
+                    'C.Fecha',
+                    'C.Serie',
+                    'C.Numero',
+                    'P.Codigo',
+                    'P.RazonSocial'
+                )
+
+                ->havingRaw('SUM(CASE WHEN PP.Codigo IS NULL THEN 1 ELSE 0 END) > 0')
+                ->orderBy('C.Fecha', 'DESC')
+                ->get();
+
+            Log::info('Listado de compras de proveedores', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'listarComprasProveedores',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $resultado->count()
+            ]);
 
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
@@ -170,33 +208,41 @@ class PagoProveedorController extends Controller
 
         try {
             $resultado = DB::table('cuota AS C')
-            ->select(
-                'C.Codigo',
-                'C.Fecha',
-                'C.Monto',
-                DB::raw("
+                ->select(
+                    'C.Codigo',
+                    'C.Fecha',
+                    'C.Monto',
+                    DB::raw("
                     CASE
                         WHEN tm.Siglas = 'PEN' THEN COALESCE(SUM(e.Monto), 0)
                         ELSE COALESCE(SUM(PP.MontoMonedaExtranjera), 0)
                     END AS MontoTotalPagado
                 "),
-                DB::raw("
+                    DB::raw("
                     CASE
                         WHEN tm.Siglas = 'PEN' THEN (C.Monto - COALESCE(SUM(e.Monto), 0))
                         ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
                     END AS MontoRestante
                 "),
-                'PP.Adelanto',
-                'C.TipoMoneda AS CodMoneda',
-                'tm.Siglas AS TipoMoneda',
-                
-            )
-            ->leftJoin('pagoproveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
-            ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
-            ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
-            ->where('C.CodigoCompra', '=', $codigoCompra)
-            ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas', 'PP.Adelanto')
-            ->get();
+                    'PP.Adelanto',
+                    'C.TipoMoneda AS CodMoneda',
+                    'tm.Siglas AS TipoMoneda',
+
+                )
+                ->leftJoin('pagoproveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
+                ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
+                ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
+                ->where('C.CodigoCompra', '=', $codigoCompra)
+                ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas', 'PP.Adelanto')
+                ->get();
+
+            Log::info('Listado de cuotas de proveedor', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'listarCuotasProveedor',
+                'CodigoCompra' => $codigoCompra,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'Cantidad' => $resultado->count()
+            ]);
 
             return response()->json($resultado, 200);
         } catch (\Exception $e) {
@@ -220,6 +266,13 @@ class PagoProveedorController extends Controller
         $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
 
         if ($fechaCajaVal < $fechaVentaVal) {
+            //log warning
+            Log::warning('Fecha de pago es anterior a la fecha de caja', [
+                'FechaCaja' => $fechaCajaVal,
+                'FechaPago' => $fechaVentaVal,
+                'CodigoCaja' => $egreso['CodigoCaja'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
         }
 
@@ -241,6 +294,13 @@ class PagoProveedorController extends Controller
             $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
 
             if ($egreso['Monto'] > $total) {
+                //log warning
+                Log::warning('Pago excede el total disponible en caja', [
+                    'MontoPago' => $egreso['Monto'],
+                    'TotalDisponible' => $total,
+                    'CodigoCaja' => $egreso['CodigoCaja'],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
                 return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
             }
         } else if ($egreso['CodigoSUNAT'] == '003') {
@@ -262,8 +322,27 @@ class PagoProveedorController extends Controller
 
             //agregar pago proveedor    
             DB::commit();
+            //log info
+            Log::info('Pago de cuota registrado', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'pagarCuota',
+                'CodigoEgreso' => $idEgreso,
+                'CodigoCuota' => $pagoProveedor['CodigoCuota'],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json(['message' => 'Pago de cuota registrado correctamente'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            //log error
+            Log::error('Error al registrar pago de cuota', [
+                'Controlador' => 'PagoProveedorController',
+                'Metodo' => 'pagarCuota',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

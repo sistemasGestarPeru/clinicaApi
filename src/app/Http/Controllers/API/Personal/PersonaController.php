@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class PersonaController extends Controller
 {
@@ -52,29 +53,46 @@ class PersonaController extends Controller
         //
     }
 
-    public function consultarPerfil($codigo){
+    public function consultarPerfil($codigo)
+    {
 
-        try{
+        try {
 
             $persona = DB::table('personas as p')
-            ->join('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
-            ->where('p.Codigo', $codigo)
-            ->select(
-                'p.Codigo',
-                'p.Nombres',
-                'p.Apellidos',
-                'p.Direccion',
-                'p.Celular',
-                'p.Correo',
-                'td.Siglas',
-                'p.NumeroDocumento'
-            )
-            ->first(); // O usar ->get() si esperas múltiples resultados
-        
-        return response()->json($persona);
-        
-        return response()->json($persona);
-        }catch (\Exception $e) {
+                ->join('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
+                ->where('p.Codigo', $codigo)
+                ->select(
+                    'p.Codigo',
+                    'p.Nombres',
+                    'p.Apellidos',
+                    'p.Direccion',
+                    'p.Celular',
+                    'p.Correo',
+                    'td.Siglas',
+                    'p.NumeroDocumento'
+                )
+                ->first(); // O usar ->get() si esperas múltiples resultados
+            //log info
+            Log::info('Consultar Perfil', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'consultarPerfil',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_persona' => $codigo
+            ]);
+
+            return response()->json($persona);
+        } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al consultar perfil', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'consultarPerfil',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_persona' => $codigo
+            ]);
             // Capturar otros errores inesperados
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
@@ -83,7 +101,8 @@ class PersonaController extends Controller
     }
 
 
-    public function actualizarPerfil(Request $request) {
+    public function actualizarPerfil(Request $request)
+    {
         try {
             // 1️⃣ Validar los datos antes de actualizar
             $validator = Validator::make($request->all(), [
@@ -97,31 +116,60 @@ class PersonaController extends Controller
                 ],
                 'Correo'   => 'required|email|max:255',
             ]);
-    
+
             if ($validator->fails()) {
+
+                //log warning
+                Log::warning('Errores de validación al actualizar perfil', [
+                    'Controlador' => 'PersonaController',
+                    'Metodo' => 'actualizarPerfil',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'detalles' => $validator->errors()
+                ]);
+
                 return response()->json([
                     'error' => 'Errores de validación',
                     'detalles' => $validator->errors()
                 ], 422);
             }
-    
+
             // 2️⃣ Buscar la persona y actualizar los datos
             $persona = Persona::findOrFail($request->Codigo);
             $persona->Direccion = $request->Direccion;
             $persona->Celular = $request->Celular;
             $persona->Correo = $request->Correo;
             $persona->save();
-    
+
+            //log info
+            Log::info('Perfil actualizado correctamente', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'actualizarPerfil',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_persona' => $request->Codigo
+            ]);
+
             return response()->json('Perfil actualizado correctamente', 200);
-    
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al actualizar perfil', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'actualizarPerfil',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'command' => $request->all()
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
         }
     }
 
-    public function cambiarContrasenia(Request $request) {
+    public function cambiarContrasenia(Request $request)
+    {
         try {
             // 1️⃣ Validación de los datos recibidos
             $validator = Validator::make($request->all(), [
@@ -141,37 +189,71 @@ class PersonaController extends Controller
                     }
                 ]
             ]);
-    
+
             if ($validator->fails()) {
+                //log warning
+                Log::warning('Errores de validación al cambiar contraseña', [
+                    'Controlador' => 'PersonaController',
+                    'Metodo' => 'cambiarContrasenia',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'detalles' => $validator->errors()
+                ]);
                 return response()->json([
                     'error' => 'Errores de validación',
                     'detalles' => $validator->errors()
                 ], 422);
             }
-    
+
             // 2️⃣ Buscar el usuario con Eloquent
             $user = User::where('CodigoPersona', $request->usuario)->first();
-    
+
             // 3️⃣ Verificar la contraseña actual
             if (!Hash::check($request->actual, $user->password)) {
+
+                //log warning
+                Log::warning('Contraseña actual incorrecta al cambiar contraseña', [
+                    'Controlador' => 'PersonaController',
+                    'Metodo' => 'cambiarContrasenia',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                    'codigo_usuario' => $request->usuario
+                ]);
+
                 return response()->json([
                     'error' => 'La contraseña actual no es correcta.'
                 ], 400);
             }
-    
+
             // 4️⃣ Actualizar la contraseña
             $user->password = bcrypt($request->nueva);
             $user->save();
-    
+
+
+            //log info
+            Log::info('Contraseña actualizada correctamente', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'cambiarContrasenia',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo_usuario' => $request->usuario
+            ]);
+
             return response()->json(['message' => 'Contraseña actualizada correctamente.'], 200);
-    
         } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al cambiar contraseña', [
+                'Controlador' => 'PersonaController',
+                'Metodo' => 'cambiarContrasenia',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'command' => $request->all()
+            ]);
+
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.',
                 'bd' => $e->getMessage()
             ], 500);
         }
     }
-    
-    
 }
