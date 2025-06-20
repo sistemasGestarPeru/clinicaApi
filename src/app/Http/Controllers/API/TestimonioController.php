@@ -272,9 +272,9 @@ class TestimonioController extends Controller
         $testimoniosArray = [];
         foreach ($testimonios as $testimonio) {
             $testimoniosArray[] = [
-                // 'nombre' => $testimonio->nombre,
-                // 'apellidoPaterno' => $testimonio->apellidoPaterno,
-                // 'apellidoMaterno' => $testimonio->apellidoMaterno,
+                'nombre' => $testimonio->nombre,
+                'apellidoPaterno' => $testimonio->apellidoPaterno,
+                'apellidoMaterno' => $testimonio->apellidoMaterno,
                 'imagen' => $testimonio->imagen,
                 'sede_id' => $testimonio->sede->nombre,
                 'descripcion' => $testimonio->descripcion,
