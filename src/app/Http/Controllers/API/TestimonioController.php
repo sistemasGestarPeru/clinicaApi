@@ -278,7 +278,7 @@ class TestimonioController extends Controller
                 'imagen' => $testimonio->imagen,
                 'sede_id' => $testimonio->sede->nombre,
                 'descripcion' => $testimonio->descripcion,
-                'fecha' => $testimonio->fecha
+                'Fecha' => $testimonio->Fecha
             ];
         }
 
