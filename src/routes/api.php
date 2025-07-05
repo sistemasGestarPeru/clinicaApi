@@ -97,50 +97,6 @@ Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVige
 Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
 
 
-
-//PASARLO A RUTAS PRIVADAS
-/*********************************************************** ATENCION AL CLIENTE ***********************************************************/
-
-/*********************************************************** Configuracion ***********************************************************/
-
-Route::get('confAtencionCliente/listarColorOjos', [ConfiguracionesController::class, 'listarColorOjos']);
-Route::get('confAtencionCliente/listarTonoPiel', [ConfiguracionesController::class, 'listarTonoPiel']);
-Route::get('confAtencionCliente/listarTexturaCabello', [ConfiguracionesController::class, 'listarTexturaCabello']);
-Route::get('confAtencionCliente/listarMedioPublicitario', [ConfiguracionesController::class, 'listarMedioPublicitario']);
-
-Route::post('confAtencionCliente/registrarColorOjos', [ConfiguracionesController::class, 'registrarColorOjos']);
-Route::post('confAtencionCliente/registrarTonoPiel', [ConfiguracionesController::class, 'registrarTonoPiel']);
-Route::post('confAtencionCliente/registrarTexturaCabello', [ConfiguracionesController::class, 'registrarTexturaCabello']);
-Route::post('confAtencionCliente/registrarMedioPublicitario', [ConfiguracionesController::class, 'registrarMedioPublicitario']);
-
-Route::post('confAtencionCliente/actualizarColorOjos', [ConfiguracionesController::class, 'actualizarColorOjos']);
-Route::post('confAtencionCliente/actualizarTonoPiel', [ConfiguracionesController::class, 'actualizarTonoPiel']);
-Route::post('confAtencionCliente/actualizarTexturaCabello', [ConfiguracionesController::class, 'actualizarTexturaCabello']);
-Route::post('confAtencionCliente/actualizarMedioPublicitario', [ConfiguracionesController::class, 'actualizarMedioPublicitario']);
-
-Route::get('confAtencionCliente/consultarColorOjos/{codigo}', [ConfiguracionesController::class, 'consultarColorOjos']);
-Route::get('confAtencionCliente/consultarTonoPiel/{codigo}', [ConfiguracionesController::class, 'consultarTonoPiel']);
-Route::get('confAtencionCliente/consultarTexturaCabello/{codigo}', [ConfiguracionesController::class, 'consultarTexturaCabello']);
-Route::get('confAtencionCliente/consultarMedioPublicitario/{codigo}', [ConfiguracionesController::class, 'consultarMedioPublicitario']);
-
-/*********************************************************** Paciente ***********************************************************/
-Route::post('paciente/listarPacientes', [PacienteController::class, 'listarPacientes']);
-Route::post('paciente/buscarPersona', [PacienteController::class, 'buscarPersona']);
-Route::get('paciente/consultarPaciente/{codigo}', [PacienteController::class, 'consultarPaciente']);
-Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
-
-/*********************************************************** Historial Clinico ***********************************************************/
-Route::post('historiaClinica/actualizarHistorial', [HistorialClinicoController::class, 'actualizarHistorial']);
-Route::post('historiaClinica/registrarHistorial', [HistorialClinicoController::class, 'registrarHistorial']);
-Route::get('historiaClinica/consultarHistorial/{codigo}', [PacienteController::class, 'consultarHistorial']);
-Route::post('historiaClinica/listarHistorial', [HistorialClinicoController::class, 'listarHistorial']);
-Route::post('historiaClinica/buscarPacienteHistorial', [HistorialClinicoController::class, 'buscarPacienteHistorial']);
-
-/*********************************************************** Horario ***********************************************************/
-Route::post('horario/registrarHorario', [HorarioController::class, 'registrarHorario']);
-Route::post('horario/listarHorarios', [HorarioController::class, 'listarHorarios']);
-
-
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('cerrarSesion', [UserController::class, 'cerrarSesion']);
@@ -632,4 +588,47 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('asignacionsede/listar', [AsignacionSedeController::class, 'index']);
     Route::get('contratolaboral/listar', [ContratoLaboralController::class, 'index']);
     /*******************************************************************************************************************************/
+
+    //PASARLO A RUTAS PRIVADAS
+    /*********************************************************** ATENCION AL CLIENTE ***********************************************************/
+
+    /*********************************************************** Configuracion ***********************************************************/
+
+    Route::get('confAtencionCliente/listarColorOjos', [ConfiguracionesController::class, 'listarColorOjos']);
+    Route::get('confAtencionCliente/listarTonoPiel', [ConfiguracionesController::class, 'listarTonoPiel']);
+    Route::get('confAtencionCliente/listarTexturaCabello', [ConfiguracionesController::class, 'listarTexturaCabello']);
+    Route::get('confAtencionCliente/listarMedioPublicitario', [ConfiguracionesController::class, 'listarMedioPublicitario']);
+
+    Route::post('confAtencionCliente/registrarColorOjos', [ConfiguracionesController::class, 'registrarColorOjos']);
+    Route::post('confAtencionCliente/registrarTonoPiel', [ConfiguracionesController::class, 'registrarTonoPiel']);
+    Route::post('confAtencionCliente/registrarTexturaCabello', [ConfiguracionesController::class, 'registrarTexturaCabello']);
+    Route::post('confAtencionCliente/registrarMedioPublicitario', [ConfiguracionesController::class, 'registrarMedioPublicitario']);
+
+    Route::post('confAtencionCliente/actualizarColorOjos', [ConfiguracionesController::class, 'actualizarColorOjos']);
+    Route::post('confAtencionCliente/actualizarTonoPiel', [ConfiguracionesController::class, 'actualizarTonoPiel']);
+    Route::post('confAtencionCliente/actualizarTexturaCabello', [ConfiguracionesController::class, 'actualizarTexturaCabello']);
+    Route::post('confAtencionCliente/actualizarMedioPublicitario', [ConfiguracionesController::class, 'actualizarMedioPublicitario']);
+
+    Route::get('confAtencionCliente/consultarColorOjos/{codigo}', [ConfiguracionesController::class, 'consultarColorOjos']);
+    Route::get('confAtencionCliente/consultarTonoPiel/{codigo}', [ConfiguracionesController::class, 'consultarTonoPiel']);
+    Route::get('confAtencionCliente/consultarTexturaCabello/{codigo}', [ConfiguracionesController::class, 'consultarTexturaCabello']);
+    Route::get('confAtencionCliente/consultarMedioPublicitario/{codigo}', [ConfiguracionesController::class, 'consultarMedioPublicitario']);
+
+    /*********************************************************** Paciente ***********************************************************/
+    Route::post('paciente/listarPacientes', [PacienteController::class, 'listarPacientes']);
+    Route::post('paciente/buscarPersona', [PacienteController::class, 'buscarPersona']);
+    Route::get('paciente/consultarPaciente/{codigo}', [PacienteController::class, 'consultarPaciente']);
+    Route::post('paciente/registrarPaciente', [PacienteController::class, 'registrarPaciente']);
+
+    /*********************************************************** Historial Clinico ***********************************************************/
+    Route::post('historiaClinica/actualizarHistorial', [HistorialClinicoController::class, 'actualizarHistorial']);
+    Route::post('historiaClinica/registrarHistorial', [HistorialClinicoController::class, 'registrarHistorial']);
+    Route::get('historiaClinica/consultarHistorial/{codigo}', [PacienteController::class, 'consultarHistorial']);
+    Route::post('historiaClinica/listarHistorial', [HistorialClinicoController::class, 'listarHistorial']);
+    Route::post('historiaClinica/buscarPacienteHistorial', [HistorialClinicoController::class, 'buscarPacienteHistorial']);
+
+    /*********************************************************** Horario ***********************************************************/
+    Route::post('horario/registrarHorario', [HorarioController::class, 'registrarHorario']);
+    Route::post('horario/listarHorarios', [HorarioController::class, 'listarHorarios']);
+
 });
