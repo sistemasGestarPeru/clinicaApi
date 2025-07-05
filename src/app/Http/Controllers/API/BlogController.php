@@ -78,7 +78,7 @@ class BlogController extends Controller
      */
     public function index()
     {
-        $blogs = Blog::all(['id', 'Titulo', 'Imagen', 'vigente']);
+        $blogs = Blog::all(['id', 'Titulo', 'Descripcion', 'Fecha', 'Imagen', 'vigente']);
 
         $blogsArray = [];
 
@@ -86,6 +86,8 @@ class BlogController extends Controller
             $blogsArray[] = [
                 'id' => $blog->id,
                 'Titulo' => $blog->Titulo,
+                'Descripcion' => $blog->Descripcion,
+                'Fecha' => $blog->Fecha,
                 'Imagen' => $blog->Imagen,
                 'vigente' => $blog->vigente
             ];

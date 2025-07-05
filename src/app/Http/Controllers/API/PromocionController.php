@@ -84,7 +84,7 @@ class PromocionController extends Controller
                 ->whereDate('fecha_fin', '<', now())
                 ->update(['vigente' => false]);
 
-            $promociones = Promocion::all(['id', 'titulo', 'imagen', 'vigente']);
+            $promociones = Promocion::all([ 'id', 'titulo', 'fecha_inicio', 'fecha_fin', 'sedes', 'file', 'descripcion', 'imagen', 'vigente']);
 
             $promocionesArray = [];
 
@@ -92,6 +92,11 @@ class PromocionController extends Controller
                 $promocionesArray[] = [
                     'id' => $promocion->id,
                     'titulo' => $promocion->titulo,
+                    'fecha_inicio' => $promocion->fecha_inicio,
+                    'fecha_fin' => $promocion->fecha_fin,
+                    'sedes' => $promocion->sedes,
+                    'file' => $promocion->file,
+                    'descripcion' => $promocion->descripcion,
                     'imagen' => $promocion->imagen,
                     'vigente' => $promocion->vigente
                 ];

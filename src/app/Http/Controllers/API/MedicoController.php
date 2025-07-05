@@ -120,6 +120,11 @@ class MedicoController extends Controller
                 'nombre' => $medico->nombre,
                 'apellidoPaterno' => $medico->apellidoPaterno,
                 'apellidoMaterno' => $medico->apellidoMaterno,
+                'CMP' => $medico->CMP,
+                'RNE' => $medico->RNE,
+                'linkedin' => $medico->linkedin,
+                'descripcion' => $medico->descripcion,
+                'sede_id' => $medico->sede_id,
                 'genero' => $medico->genero,
                 'imagen' => $medico->imagen,
                 'vigente' => $medico->vigente,
@@ -144,6 +149,10 @@ class MedicoController extends Controller
                 'nombre' => $medico->nombre,
                 'apellidoPaterno' => $medico->apellidoPaterno,
                 'apellidoMaterno' => $medico->apellidoMaterno,
+                'CBP' => $medico->CBP,
+                'sede_id' => $medico->sede_id,
+                'descripcion' => $medico->descripcion,
+                'linkedin' => $medico->linkedin,
                 'genero' => $medico->genero,
                 'imagen' => $medico->imagen,
                 'vigente' => $medico->vigente,
@@ -238,7 +247,7 @@ class MedicoController extends Controller
             $medico->genero = $request->input('genero');
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
-            // $medico->CBP = $request->input('CBP');
+            $medico->CBP = $request->input('CBP');
             $medico->descripcion = $request->input('descripcion');
 
             // Obtener el valor de linkedin del request

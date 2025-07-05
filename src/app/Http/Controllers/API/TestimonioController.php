@@ -98,7 +98,7 @@ class TestimonioController extends Controller
             $testimonio->apellidoMaterno = $request->input('apellidoMaterno');
             $testimonio->sede_id = $request->input('sede_id');
             $testimonio->descripcion = $request->input('descripcion');
-            $testimonio->fecha = $request->input('Fecha');
+            $testimonio->fecha = $request->input('fecha');
 
             // Asignar la URL del archivo en Google Cloud Storage al campo 'imagen'
             $testimonio->imagen = $url;
@@ -160,7 +160,7 @@ class TestimonioController extends Controller
             $testimonio->apellidoMaterno = $request->input('apellidoMaterno');
             $testimonio->sede_id = $request->input('sede_id');
             $testimonio->descripcion = $request->input('descripcion');
-            $testimonio->fecha = $request->input('Fecha');
+            $testimonio->fecha = $request->input('fecha');
             $testimonio->vigente = $request->input('vigente');
 
             // Guardar los cambios en la base de datos
@@ -187,7 +187,10 @@ class TestimonioController extends Controller
                 'nombre',
                 'apellidoPaterno',
                 'apellidoMaterno',
+                'sede_id',
+                'descripcion',
                 'imagen',
+                'fecha',
                 'vigente'
             ]
         );
@@ -199,7 +202,10 @@ class TestimonioController extends Controller
                 'nombre' => $testimonio->nombre,
                 'apellidoPaterno' => $testimonio->apellidoPaterno,
                 'apellidoMaterno' => $testimonio->apellidoMaterno,
+                'sede_id' => $testimonio->sede_id,
+                'descripcion' => $testimonio->descripcion,
                 'imagen' => $testimonio->imagen,
+                'fecha' => $testimonio->fecha,
                 'vigente' => $testimonio->vigente
             ];
         }
@@ -272,9 +278,9 @@ class TestimonioController extends Controller
         $testimoniosArray = [];
         foreach ($testimonios as $testimonio) {
             $testimoniosArray[] = [
-                'nombre' => $testimonio->nombre,
-                'apellidoPaterno' => $testimonio->apellidoPaterno,
-                'apellidoMaterno' => $testimonio->apellidoMaterno,
+                // 'nombre' => $testimonio->nombre,
+                // 'apellidoPaterno' => $testimonio->apellidoPaterno,
+                // 'apellidoMaterno' => $testimonio->apellidoMaterno,
                 'imagen' => $testimonio->imagen,
                 'sede_id' => $testimonio->sede->nombre,
                 'descripcion' => $testimonio->descripcion,
