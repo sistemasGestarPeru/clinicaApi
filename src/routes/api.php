@@ -88,6 +88,7 @@ Route::get('testimonio/listarIndex', [TestimonioController::class, 'listarUltimo
 Route::get('testimonio/listarActivos', [TestimonioController::class, 'listarVigente']);
 Route::get('medico/ginecologosActivos', [MedicoController::class, 'listarGinecologosVigentes']);
 Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVigentes']);
+Route::get('medico/psicologosActivos', [MedicoController::class, 'listarPsicologosVigentes']);
 Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
 Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
 Route::post('blog/buscar', [BlogController::class, 'buscarBlog']);
@@ -117,8 +118,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /***************************************************************************/
 
     /*********************** RUTAS ADICIONALES MEDICOS **************************/
-    Route::get('listarGinecologos', [MedicoController::class, 'listarGinecologos']);
-    Route::get('listarBiologos', [MedicoController::class, 'listarBiologos']);
+    Route::get('medico/listarMedicos/{tipo}', [MedicoController::class, 'listarMedicos']);
+    Route::get('medico/consultarMedico/{id}', [MedicoController::class, 'consultarMedico']);
     Route::post('medico/update', [MedicoController::class, 'updatePost']);
 
     /***************************************************************************/

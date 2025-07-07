@@ -27,6 +27,7 @@ class Medico extends Model
         'CMP',
         'RNE',
         'CBP',
+        'CPSP',
         'tipo',
         'sede_id',
         'vigente',

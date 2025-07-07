@@ -393,7 +393,8 @@ class UserController extends Controller
 
 
             return response()->json([
-                'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
+                'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.',
+                'mensaje' => $e->getMessage()
             ], 500);
         }
     }

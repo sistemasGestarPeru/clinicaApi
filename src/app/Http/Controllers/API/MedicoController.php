@@ -9,6 +9,7 @@ use App\Http\Resources\MedicoResource;
 use App\Models\Medico;
 use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MedicoController extends Controller
 {
@@ -105,63 +106,47 @@ class MedicoController extends Controller
         return $medicosArray;
     }
 
-    public function listarGinecologos()
+    public function listarMedicos($tipo)
     {
-        $medicos = Medico::with('sede')
-            ->where('tipo', 0)
-            ->orderBy('id', 'asc')
-            ->get();
+        try{
+            $medicos = DB::table('medicos')
+                ->select(
+                    'id',
+                    DB::raw("CONCAT(nombre, ' ', apellidoPaterno, ' ', apellidoMaterno) as nombres"),
+                    'genero',
+                    'imagen',
+                    'vigente'
+                )
+                ->where('tipo', $tipo)
+                ->get();
+            return response()->json($medicos, 200);
 
-        $medicosArray = [];
-
-        foreach ($medicos as $medico) {
-            $medicosArray[] = [
-                'id' => $medico->id,
-                'nombre' => $medico->nombre,
-                'apellidoPaterno' => $medico->apellidoPaterno,
-                'apellidoMaterno' => $medico->apellidoMaterno,
-                'CMP' => $medico->CMP,
-                'RNE' => $medico->RNE,
-                'linkedin' => $medico->linkedin,
-                'descripcion' => $medico->descripcion,
-                'sede_id' => $medico->sede_id,
-                'genero' => $medico->genero,
-                'imagen' => $medico->imagen,
-                'vigente' => $medico->vigente,
-            ];
+        }catch (\Exception $e) {
+            return response()->json([
+                'mensaje' => 'Ocurrió un error al listar los médicos',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return $medicosArray;
     }
 
-    public function listarBiologos()
-    {
-        $medicos = Medico::with('sede')
-            ->where('tipo', 1)
-            ->orderBy('id', 'asc')
-            ->get();
+    public function consultarMedico($id){
+        try {
 
-        $medicosArray = [];
+            $medico = Medico::findOrFail($id);
+            if (!$medico) {
+                return response()->json([
+                    'mensaje' => 'Médico no encontrado'
+                ], 404);
+            }
+            return response()->json($medico, 200);
 
-        foreach ($medicos as $medico) {
-            $medicosArray[] = [
-                'id' => $medico->id,
-                'nombre' => $medico->nombre,
-                'apellidoPaterno' => $medico->apellidoPaterno,
-                'apellidoMaterno' => $medico->apellidoMaterno,
-                'CBP' => $medico->CBP,
-                'sede_id' => $medico->sede_id,
-                'descripcion' => $medico->descripcion,
-                'linkedin' => $medico->linkedin,
-                'genero' => $medico->genero,
-                'imagen' => $medico->imagen,
-                'vigente' => $medico->vigente,
-            ];
+        } catch (\Exception $e) {
+            return response()->json([
+                'mensaje' => 'Ocurrió un error al consultar los médicos',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return $medicosArray;
     }
-
 
     /**
      * Store a newly created resource in storage.
@@ -192,6 +177,7 @@ class MedicoController extends Controller
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
+            $medico->CPSP = $request->input('CPSP'); 
             $medico->tipo = $request->input('tipo');
             $medico->sede_id = $request->input('sede_id');
 
@@ -248,6 +234,7 @@ class MedicoController extends Controller
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
+            $medico->CPSP = $request->input('CPSP');
             $medico->descripcion = $request->input('descripcion');
 
             // Obtener el valor de linkedin del request
@@ -355,54 +342,95 @@ class MedicoController extends Controller
 
     public function listarGinecologosVigentes()
     {
-        $ginecologo = Medico::with('sede')
-            ->where('tipo', 0)
-            ->where('vigente', 1)
-            ->orderBy('id', 'asc')
-            ->get();
+        try{
 
-        $ginecologosArray = [];
+            $medicos = DB::table('medicos')
+                ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
+                ->select(
+                    'medicos.nombre',
+                    'medicos.apellidoPaterno',
+                    'medicos.apellidoMaterno',
+                    'medicos.genero',
+                    'medicos.imagen',
+                    'medicos.CMP',
+                    'medicos.RNE',
+                    'sedes.nombre as sede_id',
+                    'medicos.descripcion'
+                )
+                ->where('medicos.tipo', 0)
+                ->where('medicos.vigente', 1)
+                ->orderBy('medicos.id', 'asc')
+                ->get();
 
-        foreach ($ginecologo as $medico) {
-            $ginecologosArray[] = [
-                'nombre' => $medico->nombre,
-                'apellidoPaterno' => $medico->apellidoPaterno,
-                'apellidoMaterno' => $medico->apellidoMaterno,
-                'genero' => $medico->genero,
-                'imagen' => $medico->imagen,
-                'CMP' => $medico->CMP,
-                'RNE' => $medico->RNE,
-                'sede_id' => $medico->sede->nombre,
-                'descripcion' => $medico->descripcion,
-            ];
+            return response()->json($medicos, 200);
+            
+        }catch (\Exception $e) {
+            return response()->json([
+                'mensaje' => 'Ocurrió un error al listar los ginecólogos',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return $ginecologosArray;
     }
 
     public function listarBiologosVigentes()
     {
-        $biologo = Medico::with('sede')
-            ->where('tipo', 1)
-            ->where('vigente', 1)
-            ->orderBy('id', 'asc')
-            ->get();
+        try{
 
-        $biologosArray = [];
+            $medicos = DB::table('medicos')
+                ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
+                ->select(
+                    'medicos.nombre',
+                    'medicos.apellidoPaterno',
+                    'medicos.apellidoMaterno',
+                    'medicos.genero',
+                    'medicos.imagen',
+                    'medicos.CMP',
+                    'medicos.RNE',
+                    'sedes.nombre as sede_id',
+                    'medicos.descripcion'
+                )
+                ->where('medicos.tipo', 1)
+                ->where('medicos.vigente', 1)
+                ->orderBy('medicos.id', 'asc')
+                ->get();
 
-        foreach ($biologo as $medico) {
-            $biologosArray[] = [
-                'nombre' => $medico->nombre,
-                'apellidoPaterno' => $medico->apellidoPaterno,
-                'apellidoMaterno' => $medico->apellidoMaterno,
-                'genero' => $medico->genero,
-                'imagen' => $medico->imagen,
-                'CBP' => $medico->CBP,
-                'sede_id' => $medico->sede->nombre,
-                'descripcion' => $medico->descripcion,
-            ];
+            return response()->json($medicos, 200);
+            
+        }catch (\Exception $e) {
+            return response()->json([
+                'mensaje' => 'Ocurrió un error al listar los biólogos',
+                'error' => $e->getMessage()
+            ], 500);
         }
+    }
 
-        return $biologosArray;
+    public function listarPsicologosVigentes(){
+        try{
+            $medicos = DB::table('medicos')
+                ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
+                ->select(
+                    'medicos.nombre',
+                    'medicos.apellidoPaterno',
+                    'medicos.apellidoMaterno',
+                    'medicos.genero',
+                    'medicos.imagen',
+                    'medicos.CMP',
+                    'medicos.RNE',
+                    'sedes.nombre as sede_id',
+                    'medicos.descripcion'
+                )
+                ->where('medicos.tipo', 2)
+                ->where('medicos.vigente', 1)
+                ->orderBy('medicos.id', 'asc')
+                ->get();
+
+            return response()->json($medicos, 200);
+            
+        }catch (\Exception $e) {
+            return response()->json([
+                'mensaje' => 'Ocurrió un error al listar los psicólogos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

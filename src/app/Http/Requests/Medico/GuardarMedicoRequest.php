@@ -32,7 +32,7 @@ class GuardarMedicoRequest extends FormRequest
             'RNE' => 'nullable|string|max:10|unique:medicos',
             'CBP' => 'nullable|string|max:10|unique:medicos',
             'sede_id' => 'required|integer',
-            'tipo' => 'required|boolean',
+            'tipo' => 'required|integer',
         ];
     }
 }

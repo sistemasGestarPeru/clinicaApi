@@ -31,9 +31,9 @@ class ActualizarMedicoRequest extends FormRequest
             // 'CMP' => "'nullable|unique:medicos,CMP," . $this->route('medico')->id,
             // 'RNE' => "'nullable|unique:medicos,RNE," . $this->route('medico')->id,
             // 'CBP' => "'nullable|unique:medicos,CBP," . $this->route('medico')->id,
-            'tipo' => 'nullable|boolean',
+            'tipo' => 'nullable|integer',
             'sede_id' => 'nullable|integer|exists:sedes,id',
-            'vigente' => 'nullable|boolean',
+            'vigente' => 'nullable|integer',
         ];
     }
 }

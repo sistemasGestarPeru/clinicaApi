@@ -78,54 +78,59 @@ class PortadaController extends Controller
      */
     public function index()
     {
+
         try {
-            $portada = Portada::where('identificadorHijo', 1)
-                ->get(['imagenEsc', 'identificadorPadre', 'TextoBtn']);
+            $portadas = Portada::select('imagenEsc', 'identificadorPadre', 'TextoBtn')
+                ->where('identificadorHijo', 0)
+                ->get();
+            return response()->json($portadas);
 
-            $portadasArray = [];
-
-            foreach ($portada as $item) {
-                $portadasArray[] = [
-                    'imagenEsc' => $item->imagenEsc,
-                    'identificadorPadre' => $item->identificadorPadre,
-                    'TextoBtn' => $item->TextoBtn
-                ];
-            }
-
-            return $portadasArray;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las portadas',
                 'error' => $e->getMessage()
             ], 500);
         }
+
+        // try {
+        //     $portada = Portada::where('identificadorHijo', 1)
+        //         ->get(['imagenEsc', 'identificadorPadre', 'TextoBtn']);
+
+        //     $portadasArray = [];
+
+        //     foreach ($portada as $item) {
+        //         $portadasArray[] = [
+        //             'imagenEsc' => $item->imagenEsc,
+        //             'identificadorPadre' => $item->identificadorPadre,
+        //             'TextoBtn' => $item->TextoBtn
+        //         ];
+        //     }
+
+        //     return $portadasArray;
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'message' => 'Error al obtener las portadas',
+        //         'error' => $e->getMessage()
+        //     ], 500);
+        // }
     }
 
     public function consultarListado($id)
     {
         try {
-            // Obtener todas las portadas que coinciden con el identificadorPadre $id
-            $portadas = Portada::where('identificadorPadre', $id)->get(['id', 'imagenEsc']);
+            $portadas = Portada::select('id', 'imagenEsc')
+                ->where('identificadorPadre', $id)
+                ->where('identificadorHijo', '!=', 0)
+                ->get();
+            return response()->json($portadas);
 
-            $portadasArray = [];
-
-            foreach ($portadas as $portada) {
-
-                if ($portada->id != $id) {
-                    $portadasArray[] = [
-                        'id' => $portada->id,
-                        'imagenEsc' => $portada->imagenEsc,
-                    ];
-                }
-            }
-
-            return $portadasArray;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las portadas',
                 'error' => $e->getMessage()
             ], 500);
         }
+
     }
 
     /**
@@ -287,28 +292,13 @@ class PortadaController extends Controller
     public function listarVigentes($id)
     {
         try {
-            // Obtener todas las portadas que coinciden con el identificadorPadre $id
-            $portadas = Portada
-                ::where('identificadorPadre', $id)
-                ->where('vigente', 1)
-                ->get(['id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn']);
+            $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn')
+                ->where('identificadorPadre', $id)
+                ->where('identificadorHijo', '!=', 0)
+                ->where('Vigente', 1)
+                ->get();
+            return response()->json($portadas);
 
-            $portadasArray = [];
-
-            foreach ($portadas as $portada) {
-
-                if ($portada->id != $id) {
-                    $portadasArray[] = [
-                        'id' => $portada->id,
-                        'imagenEsc' => $portada->imagenEsc,
-                        'imagenCel' => $portada->imagenCel,
-                        'TextoBtn' => $portada->TextoBtn,
-                        'UrlBtn' => $portada->UrlBtn
-                    ];
-                }
-            }
-
-            return $portadasArray;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las portadas',
