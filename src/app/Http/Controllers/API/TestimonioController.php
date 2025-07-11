@@ -9,6 +9,7 @@ use App\Http\Resources\TestimonioResource;
 use App\Models\Testimonio;
 use Google\Cloud\Storage\StorageClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TestimonioController extends Controller
 {
@@ -246,26 +247,28 @@ class TestimonioController extends Controller
 
     public function listarUltimos()
     {
-        $testimonios = Testimonio::with('sede')
-            ->where('vigente', true)
-            ->limit(3)
-            ->select('id', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'imagen', 'sede_id', 'descripcion', 'fecha')
-            ->orderBy('id', 'desc')
-            ->get();
-
-        $testimoniosArray = [];
-        foreach ($testimonios as $testimonio) {
-            $testimoniosArray[] = [
-                'nombre' => $testimonio->nombre,
-                'apellidoPaterno' => $testimonio->apellidoPaterno,
-                'apellidoMaterno' => $testimonio->apellidoMaterno,
-                'imagen' => $testimonio->imagen,
-                'sede_id' => $testimonio->sede->nombre,
-                'descripcion' => $testimonio->descripcion
-            ];
+        try{
+            $testimonios = DB::table('testimonios as t')
+                ->join(DB::raw('(
+                    SELECT sede_id, MAX(Fecha) AS max_fecha
+                    FROM testimonios
+                    WHERE vigente = 1
+                    GROUP BY sede_id
+                ) as ultimos'), function ($join) {
+                    $join->on('t.sede_id', '=', 'ultimos.sede_id')
+                        ->on('t.Fecha', '=', 'ultimos.max_fecha');
+                })
+                ->join('sedes as s', 's.id', '=', 't.sede_id')
+                ->where('s.vigente', 1)
+                ->select('t.descripcion', 't.imagen', DB::raw('s.nombre as sede_id'))
+                ->get();
+            return response()->json($testimonios, 200);
+            
+        }catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Ocurrió un error al listar los testimonios: ' . $e->getMessage()
+            ], 500);
         }
-
-        return $testimoniosArray;
     }
 
     public function listarVigente()
