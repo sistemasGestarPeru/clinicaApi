@@ -26,6 +26,8 @@ class ActualizarRequest extends FormRequest
             "TextoBtn" => "nullable|string",
             "UrlBtn" => "nullable|string",
             "vigente" => "nullable|boolean",
+            "Titulo" => "nullable|string",
+            "Descripcion" => "nullable|string",
         ];
     }
 }

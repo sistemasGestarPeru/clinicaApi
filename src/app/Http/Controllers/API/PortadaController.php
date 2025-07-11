@@ -80,7 +80,7 @@ class PortadaController extends Controller
     {
 
         try {
-            $portadas = Portada::select('imagenEsc', 'identificadorPadre', 'TextoBtn')
+            $portadas = Portada::select('imagenEsc', 'identificadorPadre', 'TextoBtn', 'id')
                 ->where('identificadorHijo', 0)
                 ->get();
             return response()->json($portadas);
@@ -193,6 +193,32 @@ class PortadaController extends Controller
      * Update con Post the specified resource in storage.
      */
 
+
+    public function updateTitulos(Request $request){
+
+        try{
+            $portada = Portada::find($request->input('id'));
+            if (!$portada) {
+                return response()->json([
+                    'error' => 'Portada no encontrada'
+                ], 404);
+            }
+            $portada->Titulo = $request->input('Titulo');
+            $portada->Descripcion = $request->input('Descripcion');
+            $portada->save();
+            
+            return response()->json([
+                'message' => 'Portada actualizada correctamente'
+            ], 200);
+
+        }catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al actualizar la portada',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function updatePost(ActualizarRequest $request)
     {
         try {
@@ -202,34 +228,6 @@ class PortadaController extends Controller
                 return response()->json([
                     'error' => 'Portada no encontrada'
                 ], 404);
-            }
-
-            // Subir y actualizar la imagen de la portada - Escritorio
-            if ($request->hasFile('imagen')) {
-                $uploadConfigEsc = $this->getUploadConfig($request, 'imagen');
-                $urlImgE = $this->uploadFile($uploadConfigEsc);
-
-                // Eliminar la imagen anterior si existe
-                if ($portada->imagenEsc != null && $this->fileExists($portada->imagenEsc)) {
-                    $this->deleteFile($portada->imagenEsc);
-                }
-
-                // Asignar la nueva URL de la imagen
-                $portada->imagenEsc = $urlImgE;
-            }
-
-            // Subir y actualizar la imagen de la portada - Celular
-            if ($request->hasFile('imagenCel')) {
-                $uploadConfigCel = $this->getUploadConfig($request, 'imagenCel');
-                $urlCel = $this->uploadFile($uploadConfigCel);
-
-                // Eliminar la imagen anterior si existe
-                if ($portada->imagenCel != null && $this->fileExists($portada->imagenCel)) {
-                    $this->deleteFile($portada->imagenCel);
-                }
-
-                // Asignar la nueva URL de la imagen
-                $portada->imagenCel = $urlCel;
             }
 
             // Actualizar el texto del botón y la URL del botón

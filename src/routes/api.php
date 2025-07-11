@@ -136,6 +136,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     /*********************** RUTAS ADICIONALES PORTADAS **************************/
     Route::post('portadas/update', [PortadaController::class, 'updatePost']);
+    Route::post('portadas/updateTitulos', [PortadaController::class, 'updateTitulos']);
     Route::get('portadas/consultar/{id}', [PortadaController::class, 'consultarListado']);
 
     /***************************************************************************/

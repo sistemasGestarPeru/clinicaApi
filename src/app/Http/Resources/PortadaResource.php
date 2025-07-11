@@ -20,7 +20,9 @@ class PortadaResource extends JsonResource
             'imagenCel' => $this->imagenCel,
             'TextoBtn' => $this->TextoBtn,
             'UrlBtn' => $this->UrlBtn,
-            'vigente' => $this->vigente
+            'vigente' => $this->vigente,
+            'Titulo' => $this->Titulo,
+            'Descripcion' => $this->Descripcion
         ];
     }
 }
