@@ -94,7 +94,7 @@ Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
 Route::post('blog/buscar', [BlogController::class, 'buscarBlog']);
 Route::get('promocion/listarActivos', [PromocionController::class, 'listarVigentes']);
 Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']);
-Route::get('portadas/listarActivos/{id}', [PortadaController::class, 'listarVigentes']);
+Route::get('portadas/listarActivos/{id}/{condicion}', [PortadaController::class, 'listarVigentes']);
 Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
 
 

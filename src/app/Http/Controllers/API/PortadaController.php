@@ -289,14 +289,23 @@ class PortadaController extends Controller
         }
     }
 
-    public function listarVigentes($id)
+    public function listarVigentes($id, $condicion)
     {
         try {
-            $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn')
-                ->where('identificadorPadre', $id)
-                ->where('identificadorHijo', '!=', 0)
-                ->where('Vigente', 1)
-                ->get();
+            if($condicion == 1) {
+                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'Titulo', 'Descripcion')
+                    ->where('identificadorPadre', $id)
+                    ->where('identificadorHijo', '!=', 0)
+                    ->where('Vigente', 1)
+                    ->get();
+
+            }else{
+                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'Titulo', 'Descripcion')
+                    ->where('identificadorPadre', $id)
+                    ->where('Vigente', 1)
+                    ->get();
+            }
+
             return response()->json($portadas);
 
         } catch (\Exception $e) {
