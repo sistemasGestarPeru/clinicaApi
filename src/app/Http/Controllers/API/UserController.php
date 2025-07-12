@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 class UserController extends Controller
 {
     public function listarUsuarios()
@@ -40,7 +41,6 @@ class UserController extends Controller
                 'res' => true,
                 'usuarios' => $usuarios
             ], 200);
-
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error inesperado al listar usuarios', [
@@ -83,7 +83,6 @@ class UserController extends Controller
             ]);
 
             return response()->json($usuarios, 200);
-
         } catch (\Exception $e) {
             // Log del error general
             Log::error('Error inesperado al consultar usuarios', [
@@ -156,7 +155,6 @@ class UserController extends Controller
             return response()->json([
                 'error' => 'Ocurrió un error inesperado. Inténtelo nuevamente.'
             ], 500);
-
         } catch (\Exception $e) {
 
             Log::error('Ocurrió un error inesperado.', [
@@ -202,7 +200,6 @@ class UserController extends Controller
                 'res' => true,
                 'msg' => 'Credenciales restablecidas'
             ], 200);
-
         } catch (\Exception $e) {
 
             Log::error('Ocurrió un error inesperado.', [
@@ -269,7 +266,7 @@ class UserController extends Controller
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
-            ]); 
+            ]);
 
 
             return response()->json([
@@ -282,7 +279,7 @@ class UserController extends Controller
     public function acceso(AccesoRequest $request)
     {
         try {
-            
+
             $user = User::where('name', $request->identifier)->first();
 
             if (!$user) {
@@ -336,13 +333,14 @@ class UserController extends Controller
                 ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
                 ->where('up.CodigoPersona', $user->CodigoPersona)
                 ->where('m.Vigente', 1)
+                ->where('pm.Vigente', 1)
                 ->orderBy('pm.Codigo')
                 ->get(['m.GUID']) // Obtener los GUIDs como un array de objetos
                 ->map(function ($item) {
                     return ['GUID' => $item->GUID];
                 });
 
-                $aplicaciones = DB::table('usuario_perfil as up')
+            $aplicaciones = DB::table('usuario_perfil as up')
                 ->join('rol as r', 'up.CodigoRol', '=', 'r.Codigo')
                 ->join('aplicacion as a', 'r.CodigoAplicacion', '=', 'a.Codigo')
                 ->where('up.CodigoPersona', $user->CodigoPersona)
@@ -371,7 +369,6 @@ class UserController extends Controller
                 'mensaje' => $mensaje,
                 'aplicacion' => $aplicaciones
             ], 200);
-
         } catch (ValidationException $e) {
 
             Log::warning('Error de validación al logear', [
@@ -381,7 +378,6 @@ class UserController extends Controller
                 'res' => false,
                 'msg' => 'Error desconocido'
             ], 401);
-        
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
 
@@ -389,7 +385,7 @@ class UserController extends Controller
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
-            ]); 
+            ]);
 
 
             return response()->json([
@@ -414,10 +410,10 @@ class UserController extends Controller
         try {
 
             $codApp = DB::table('aplicacion')
-            ->where('URL', $app)
-            ->value('Codigo');
+                ->where('URL', $app)
+                ->value('Codigo');
 
-            if (empty($codigo) || $codigo == 0) {
+            if (empty($codApp) || $codApp == 0) {
                 return response()->json(['error' => 'La aplicación no existe.'], 404);
             }
 
@@ -430,7 +426,7 @@ class UserController extends Controller
 
             // Log de éxito
             Log::info('Consulta Perfil', [
-                'Codigo' => count($perfil->Codigo),
+                'Codigo' => ($perfil->Codigo),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
@@ -438,7 +434,6 @@ class UserController extends Controller
                 'res' => true,
                 'perfil' => $perfil
             ], 200);
-
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
 
@@ -446,7 +441,7 @@ class UserController extends Controller
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
-            ]); 
+            ]);
 
             return response()->json([
                 'res' => false,
@@ -468,15 +463,6 @@ class UserController extends Controller
                 $perfil->update([
                     'CodigoRol' => $request->CodigoRol
                 ]);
-
-
-                if ($rolAnterior != $request->CodigoRol) {
-                    DB::table('personal_access_tokens')
-                        ->where('tokenable_id', $request->Codigo)
-                        ->orderByDesc('id')
-                        ->limit(1)
-                        ->delete();
-                }
             } else {
                 $perfil = new UsuarioPerfil();
                 $perfil->CodigoPersona = $request->CodigoPersona;
@@ -490,11 +476,20 @@ class UserController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
+            // $usuario = User::find($perfil->CodigoPersona);
+
+            // if ($perfil && $rolAnterior != $request->CodigoRol) {
+            //     DB::table('personal_access_tokens')
+            //         ->where('tokenable_id', $usuario->id)
+            //         ->orderByDesc('id')
+            //         ->limit(1)
+            //         ->delete();
+            // }
+
             return response()->json([
                 'res' => true,
                 'msg' => 'Rol asignado correctamente'
             ], 200);
-
         } catch (\Exception $e) {
             // Capturar otros errores inesperados
 
@@ -502,7 +497,7 @@ class UserController extends Controller
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
-            ]); 
+            ]);
 
             return response()->json([
                 'res' => false,
