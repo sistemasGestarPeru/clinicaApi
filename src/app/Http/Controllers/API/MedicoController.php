@@ -384,8 +384,9 @@ class MedicoController extends Controller
                     'medicos.apellidoMaterno',
                     'medicos.genero',
                     'medicos.imagen',
-                    'medicos.CMP',
-                    'medicos.RNE',
+                    // 'medicos.CMP',
+                    // 'medicos.RNE',
+                    'medicos.CBP',
                     'sedes.nombre as sede_id',
                     'medicos.descripcion'
                 )
@@ -414,8 +415,9 @@ class MedicoController extends Controller
                     'medicos.apellidoMaterno',
                     'medicos.genero',
                     'medicos.imagen',
-                    'medicos.CMP',
-                    'medicos.RNE',
+                    // 'medicos.CMP',
+                    // 'medicos.RNE',
+                    'medicos.CPSP',
                     'sedes.nombre as sede_id',
                     'medicos.descripcion'
                 )
