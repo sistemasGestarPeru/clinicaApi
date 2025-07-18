@@ -771,7 +771,7 @@ class TrabajadorController extends Controller
                 'Controlador' => 'TrabajadorController',
                 'Metodo' => 'actualizarTrabajador',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'CodigoTrabajador' => $trabajadorData['Codigo'],
+                'CodigoTrabajador' => $trabajadorRegistrado->Codigo,
                 'datos' => $request->all()
             ]);
 
