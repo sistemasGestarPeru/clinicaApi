@@ -230,14 +230,37 @@ class PortadaController extends Controller
                 ], 404);
             }
 
-            // Actualizar el texto del botón y la URL del botón
+            // Procesar imagen PC
+            if ($request->hasFile('imagenEsc')) {
+                $uploadConfig = $this->getUploadConfig($request, 'imagenEsc');
+                $url = $this->uploadFile($uploadConfig);
 
+                // Eliminar imagen anterior si existe
+                if ($portada->imagenEsc != null && $this->fileExists($portada->imagenEsc)) {
+                    $this->deleteFile($portada->imagenEsc);
+                }
+
+                $portada->imagenEsc = $url;
+            }
+
+            // Procesar imagen móvil
+            if ($request->hasFile('imagenCel')) {
+                $uploadConfigCel = $this->getUploadConfig($request, 'imagenCel');
+                $urlCel = $this->uploadFile($uploadConfigCel);
+
+                if ($portada->imagenCel != null && $this->fileExists($portada->imagenCel)) {
+                    $this->deleteFile($portada->imagenCel);
+                }
+
+                $portada->imagenCel = $urlCel;
+            }
+
+            // Actualizar el texto del botón y la URL del botón
             $textoBtn = $request->input('TextoBtn');
             $UrlBtn = $request->input('UrlBtn');
 
             $portada->UrlBtn = ($UrlBtn === 'undefined' || $UrlBtn === 'null') ? null : $UrlBtn;
             $portada->TextoBtn = ($textoBtn === 'undefined' || $textoBtn === 'null') ? null : $textoBtn;
-
             $portada->vigente = $request->input('vigente');
             $portada->save();
 
