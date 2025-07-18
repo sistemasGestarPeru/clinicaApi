@@ -16,5 +16,7 @@ class Blog extends Model
         'Imagen',
         'Descripcion',
         'vigente',
+        'Comentario',
+        'Link'
     ];
 }

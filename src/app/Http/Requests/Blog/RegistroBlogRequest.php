@@ -25,6 +25,8 @@ class RegistroBlogRequest extends FormRequest
             'Titulo' => "required|string",
             'Descripcion' => "required|string",
             'Fecha' => "required|date",
+            'Comentario' => "nullable|string",
+            'Link' => "nullable|string"
         ];
     }
 }

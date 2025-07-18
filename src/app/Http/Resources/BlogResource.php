@@ -21,6 +21,8 @@ class BlogResource extends JsonResource
             'Imagen' => $this->Imagen,
             'Descripcion' => $this->Descripcion,
             'vigente' => $this->vigente,
+            'Comentario' => $this->Comentario,
+            'Link' => $this->Link,
         ];
     }
 }

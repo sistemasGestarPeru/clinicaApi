@@ -78,7 +78,7 @@ class BlogController extends Controller
      */
     public function index()
     {
-        $blogs = Blog::all(['id', 'Titulo', 'Descripcion', 'Fecha', 'Imagen', 'vigente']);
+        $blogs = Blog::all(['id', 'Titulo', 'Descripcion', 'Fecha', 'Imagen', 'vigente', 'Comentario', 'Link']);
 
         $blogsArray = [];
 
@@ -89,7 +89,9 @@ class BlogController extends Controller
                 'Descripcion' => $blog->Descripcion,
                 'Fecha' => $blog->Fecha,
                 'Imagen' => $blog->Imagen,
-                'vigente' => $blog->vigente
+                'vigente' => $blog->vigente,
+                'Comentario' => $blog->Comentario,
+                'Link' => $blog->Link
             ];
         }
 
@@ -128,6 +130,8 @@ class BlogController extends Controller
             $blog->Descripcion = $request->input('Descripcion');
             $blog->Fecha = $request->input('Fecha');
             $blog->vigente = $request->input('vigente');
+            $blog->Comentario = $request->input('Comentario');
+            $blog->Link = $request->input('Link');
             $blog->save();
 
             return response()->json([
@@ -155,6 +159,8 @@ class BlogController extends Controller
             $blog->Fecha = $request->input('Fecha');
             $blog->Imagen = $url;
             $blog->Descripcion = $request->input('Descripcion');
+            $blog->Comentario = $request->input('Comentario');
+            $blog->Link = $request->input('Link');
 
             $blog->save();
 
