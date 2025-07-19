@@ -118,7 +118,7 @@ class PortadaController extends Controller
     public function consultarListado($id)
     {
         try {
-            $portadas = Portada::select('id', 'imagenEsc')
+            $portadas = Portada::select('id', 'imagenEsc', 'vigente')
                 ->where('identificadorPadre', $id)
                 ->where('identificadorHijo', '!=', 0)
                 ->get();
@@ -141,8 +141,8 @@ class PortadaController extends Controller
         try {
             // Sube la imagen de la portada - Escritorio
             $urlImgE = null;
-            if ($request->hasFile('imagen')) {
-                $uploadConfigEsc = $this->getUploadConfig($request, 'imagen');
+            if ($request->hasFile('imagenEsc')) {
+                $uploadConfigEsc = $this->getUploadConfig($request, 'imagenEsc');
                 $urlImgE = $this->uploadFile($uploadConfigEsc);
             }
 
