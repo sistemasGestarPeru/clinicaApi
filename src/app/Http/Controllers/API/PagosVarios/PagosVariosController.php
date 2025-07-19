@@ -233,7 +233,7 @@ class PagosVariosController extends Controller
                 ->join('egreso as e', 'e.Codigo', '=', 'pv.Codigo')
                 ->join('personas as p', 'p.Codigo', '=', 'pv.CodigoReceptor')
                 ->join('caja as c', 'c.Codigo', '=', 'e.CodigoCaja')
-                ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, e.Vigente, CONCAT(p.Nombres, " ", p.Apellidos) as Receptor')
+                ->selectRaw('e.Codigo, DATE(e.Fecha) as Fecha, pv.Tipo, e.Monto, pv.Comentario, e.Vigente, CONCAT(p.Apellidos, " ", p.Nombres) as Receptor')
                 // ->where('e.Vigente', 1)
                 ->where('c.CodigoSede', $sede)
                 ->when(!empty($tipo), function ($query) use ($tipo) {
@@ -309,7 +309,7 @@ class PagosVariosController extends Controller
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
             ]);
-            
+
             return response()->json(['error' => 'Error al consultar los pagos varios', 'message' => $e->getMessage()], 500);
         }
     }

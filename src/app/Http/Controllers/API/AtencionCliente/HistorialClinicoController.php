@@ -122,8 +122,8 @@ class HistorialClinicoController extends Controller
                 ->select(
                     'hc.Codigo',
                     'hc.Numero as numero',
-                    DB::raw("CONCAT(p1.Nombres, ' ', p1.Apellidos) as paciente1"),
-                    DB::raw("CONCAT(p2.Nombres, ' ', p2.Apellidos) as paciente2")
+                    DB::raw("CONCAT(p1.Apellidos, ' ', p1.Nombres) as paciente1"),
+                    DB::raw("CONCAT(p2.Apellidos, ' ', p2.Nombres) as paciente2")
                 )
                 ->get();
 

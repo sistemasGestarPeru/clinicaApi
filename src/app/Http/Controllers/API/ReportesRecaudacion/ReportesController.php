@@ -102,7 +102,7 @@ class ReportesController extends Controller
                 ->join('asignacion_sedes as ass', 't.Codigo', '=', 'ass.CodigoTrabajador')
                 ->where('t.Tipo', 'A')
                 ->where('ass.CodigoSede', $sede)
-                ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+                ->select('p.Codigo', DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres"))
                 ->distinct()
                 ->get();
 
@@ -141,7 +141,7 @@ class ReportesController extends Controller
                 ->join('asignacion_sedes as ass', 't.Codigo', '=', 'ass.CodigoTrabajador')
                 ->where('t.Tipo', 'M')
                 ->where('ass.CodigoSede', $sede)
-                ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+                ->select('p.Codigo', DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres"))
                 ->distinct()
                 ->get();
 
@@ -339,7 +339,7 @@ class ReportesController extends Controller
             $query1 = DB::table('pago as p')
                 ->selectRaw("
                     CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
-                    CONCAT(pa.Nombres, ' ', pa.Apellidos) AS Paciente,
+                    CONCAT(pa.Apellidos, ' ', pa.Nombres) AS Paciente,
                     mp.Nombre AS MedioPago,
                     CONCAT(DATE_FORMAT(p.Fecha, '%d/%m/%Y'), ' ', TIME(p.Fecha)) AS FechaPago,
                     p.Monto AS MontoPagado,
@@ -482,7 +482,7 @@ class ReportesController extends Controller
                         ELSE ce.RUC
                     END AS NumDocumento,
                     CASE 
-                        WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                         ELSE ce.RazonSocial
                     END AS Cliente,
                     dv.TotalGravado as BaseTributaria,
@@ -771,7 +771,7 @@ class ReportesController extends Controller
                 ->select(
                     'c.Codigo',
                     DB::raw('p.Codigo AS CodigoMedico'),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
                     'c.TipoDocumento as TipoDocumento',
                     'c.Monto',
                     'c.Serie',
@@ -837,7 +837,7 @@ class ReportesController extends Controller
                 ->select(
                     DB::raw('DATE(cp.Fecha) as Fecha'),
                     DB::raw("LPAD(cp.NumContrato, 5, '0') as Numero"),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente01"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Paciente01"),
                     'cp.Total',
                     'cp.TotalPagado'
                 )
@@ -1015,7 +1015,7 @@ class ReportesController extends Controller
                 ->selectRaw("
                     DATE(e.Fecha) as Fecha,
                     CONCAT(c.Serie, ' ', c.Numero) as Documento,
-                    CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres,
+                    CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres,
                     c.Comentario,
                     e.Monto
                 ")
@@ -1073,7 +1073,7 @@ class ReportesController extends Controller
             $query = DB::table('egreso as e')
                 ->selectRaw('
                     pc.CodigoMedico,
-                    CONCAT(p.Nombres, " ", p.Apellidos) as Nombres,
+                    CONCAT(p.Apellidos, " ", p.Nombres) as Nombres,
                     SUM(e.Monto) as PagoTotal
                 ')
                 ->join('pagocomision as pc', 'e.Codigo', '=', 'pc.Codigo')
@@ -1088,7 +1088,7 @@ class ReportesController extends Controller
             }
 
             $resultados = $query
-                ->groupBy('pc.CodigoMedico', DB::raw('CONCAT(p.Nombres, " ", p.Apellidos)'))
+                ->groupBy('pc.CodigoMedico', DB::raw('CONCAT(p.Apellidos, " ", p.Nombres)'))
                 ->get();
 
             //log info

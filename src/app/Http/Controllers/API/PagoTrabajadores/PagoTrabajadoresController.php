@@ -119,7 +119,7 @@ class PagoTrabajadoresController extends Controller
                 ->join('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
                 ->select(
                     'pp.Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres"),
                     DB::raw("DATE_FORMAT(pp.Mes, '%m/%Y') AS Mes"),
                     'e.Vigente'
                 );

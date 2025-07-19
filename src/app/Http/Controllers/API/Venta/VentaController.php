@@ -152,7 +152,7 @@ class VentaController extends Controller
                     ->where('p.Codigo', $ventaData['CodigoPersona'])
                     ->select(
                         'p.NumeroDocumento',
-                        DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"),
+                        DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres"),
                         'td.CodigoSUNAT',
                         'p.Direccion'
                     )
@@ -1358,7 +1358,7 @@ class VentaController extends Controller
                     DB::raw('DATE(dv.Fecha) as Fecha'),
                     DB::raw("
                     CASE 
-                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                         WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
                         ELSE 'No identificado'
                     END AS NombreCompleto
@@ -1379,9 +1379,9 @@ class VentaController extends Controller
                     END AS CodTipoDoc
                 "),
                     'dv.CodigoMedico',
-                    DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) AS NombreMedico"),
+                    DB::raw("CONCAT(medico.Apellidos, ' ', medico.Nombres) AS NombreMedico"),
                     DB::raw('COALESCE(dv.CodigoPaciente, 0) AS CodigoPaciente'),
-                    DB::raw("COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"),
+                    DB::raw("COALESCE(CONCAT(paciente.Apellidos, ' ', paciente.Nombres), '') AS NombrePaciente"),
                     DB::raw("COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"),
                     'dv.CodigoTipoDocumentoVenta',
                     'tdv.Nombre as TipoDocumentoVenta',
@@ -1469,13 +1469,13 @@ class VentaController extends Controller
                     'CONTRATO.NumContrato',
                     DB::raw('DATE(CONTRATO.Fecha) as Fecha'),
                     'PACIENTE.Codigo as CodigoPaciente',
-                    DB::raw("CONCAT(PACIENTE.Nombres, ' ', PACIENTE.Apellidos) as NombrePaciente"),
+                    DB::raw("CONCAT(PACIENTE.Apellidos, ' ', PACIENTE.Nombres) as NombrePaciente"),
                     DB::raw("CONCAT(tdPaciente.Siglas, ': ', PACIENTE.NumeroDocumento) as DocumentoPaciente"),
                     'CONTRATO.CodigoMedico',
-                    DB::raw("CONCAT(MEDICO.Nombres, ' ', MEDICO.Apellidos) as NombreMedico"),
+                    DB::raw("CONCAT(MEDICO.Apellidos, ' ', MEDICO.Nombres) as NombreMedico"),
                     DB::raw("COALESCE(VENTA.CodigoClienteEmpresa, 0) as CodigoEmpresa"),
                     DB::raw("COALESCE(VENTA.CodigoPersona, 0) as CodigoPersona"),
-                    DB::raw("COALESCE(CONCAT(CLIENTE.Nombres, ' ', CLIENTE.Apellidos), EMPRESA.RazonSocial, '') as NombreCompleto"),
+                    DB::raw("COALESCE(CONCAT(CLIENTE.Apellidos, ' ', CLIENTE.Nombres), EMPRESA.RazonSocial, '') as NombreCompleto"),
                     DB::raw("COALESCE(CONCAT(td.Siglas, ': ', CLIENTE.NumeroDocumento), CONCAT( 'RUC' , ': ' , EMPRESA.Ruc), '') as DocumentoCompleto")
                 )
                 ->first();
@@ -1584,7 +1584,7 @@ class VentaController extends Controller
                     ->where('p.NumeroDocumento', $numDocumento)
                     ->where('p.CodigoTipoDocumento', $codDocumento)
                     ->where('p.Vigente', 1)
-                    ->select('p.Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto"), DB::raw('1 as TipoCliente'))
+                    ->select('p.Codigo', DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as NombreCompleto"), DB::raw('1 as TipoCliente'))
                     ->orderBy('p.Codigo')
                     ->first();
             }
@@ -1712,7 +1712,7 @@ class VentaController extends Controller
                 ABS(dv.MontoTotal) as MontoTotal,
                 ABS(dv.MontoPagado) as MontoPagado,
                 CASE 
-                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                     WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
                     ELSE 'No identificado'
                 END AS NombreCliente,
@@ -2417,7 +2417,7 @@ class VentaController extends Controller
                 ->select([
                     DB::raw("
                     CASE 
-                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                         WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
                         ELSE 'No identificado'
                     END AS NombreCompleto
@@ -2429,7 +2429,7 @@ class VentaController extends Controller
                         ELSE 'Documento no disponible'
                     END AS DocumentoCompleto
                 "),
-                    DB::raw("COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"),
+                    DB::raw("COALESCE(CONCAT(paciente.Apellidos, ' ', paciente.Nombres), '') AS NombrePaciente"),
                     DB::raw("COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"),
                     'tdvREF.Nombre as DocReferencia',
                     'docRef.Serie as SerieReferencia',
@@ -2538,7 +2538,7 @@ class VentaController extends Controller
                     DB::raw('DATE(dv.Fecha) as Fecha'),
                     DB::raw("
                     CASE 
-                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                         WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
                         ELSE 'No identificado'
                     END AS NombreCompleto
@@ -2559,9 +2559,9 @@ class VentaController extends Controller
                     END AS CodTipoDoc
                 "),
                     'dv.CodigoMedico',
-                    DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) AS NombreMedico"),
+                    DB::raw("CONCAT(medico.Apellidos, ' ', medico.Nombres) AS NombreMedico"),
                     DB::raw('COALESCE(dv.CodigoPaciente, 0) AS CodigoPaciente'),
-                    DB::raw("COALESCE(CONCAT(paciente.Nombres, ' ', paciente.Apellidos), '') AS NombrePaciente"),
+                    DB::raw("COALESCE(CONCAT(paciente.Apellidos, ' ', paciente.Nombres), '') AS NombrePaciente"),
                     DB::raw("COALESCE(CONCAT(tdPaciente.Siglas, ': ', paciente.NumeroDocumento), '') AS DocumentoPaciente"),
                     'dv.CodigoTipoDocumentoVenta',
                     'tdv.Nombre as TipoDocumentoVenta',
@@ -2714,7 +2714,7 @@ class VentaController extends Controller
                     's.Nombre AS sede',
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as cliente"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as cliente"),
                     'td.Siglas as documentoIdentidad',
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
@@ -2724,7 +2724,7 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
-                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
@@ -2797,7 +2797,7 @@ class VentaController extends Controller
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
                     DB::raw("CASE
-                                WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(pEmp.Nombres, ' ', pEmp.Apellidos)
+                                WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(pEmp.Apellidos, ' ', pEmp.Nombres)
                                 WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN e.RazonSocial
                                 ELSE 'N/A'
                             END AS cliente"),
@@ -2818,7 +2818,7 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
-                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
@@ -2894,7 +2894,7 @@ class VentaController extends Controller
                     DB::raw("
                             CASE 
                                 WHEN dv.CodigoPersona IS NULL THEN ce.RazonSocial 
-                                WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(clienteN.Nombres, ' ', clienteN.Apellidos) 
+                                WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(clienteN.Apellidos, ' ', clienteN.Nombres) 
                             END AS cliente
                         "),
                     DB::raw("
@@ -2921,7 +2921,7 @@ class VentaController extends Controller
                     DB::raw('ABS(dv.MontoTotal) AS totalPagar'),
                     DB::raw('ABS(dv.IGVTotal) AS igv'),
                     DB::raw('ABS(dv.TotalGravado) AS opGravadas'),
-                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) AS vendedor"),
+                    DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) AS vendedor"),
                     'venta.Serie AS docRefSerie',
                     DB::raw("LPAD(venta.Numero, 8, '0') AS docRefNumero"),
                     'venta.Fecha AS docRefFecha',
@@ -2997,7 +2997,7 @@ class VentaController extends Controller
                     's.Nombre AS sede',
                     'dv.Serie AS serie',
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as cliente"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as cliente"),
                     'td.Siglas as documentoIdentidad',
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
@@ -3007,7 +3007,7 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
-                    DB::raw("CONCAT(vendedor.Nombres, ' ', vendedor.Apellidos) as vendedor"),
+                    DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)

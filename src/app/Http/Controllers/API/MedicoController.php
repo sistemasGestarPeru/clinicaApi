@@ -108,11 +108,11 @@ class MedicoController extends Controller
 
     public function listarMedicos($tipo)
     {
-        try{
+        try {
             $medicos = DB::table('medicos')
                 ->select(
                     'id',
-                    DB::raw("CONCAT(nombre, ' ', apellidoPaterno, ' ', apellidoMaterno) as nombres"),
+                    DB::raw("CONCAT(apellidoPaterno, ' ', apellidoMaterno, ' ',nombre) as nombres"),
                     'genero',
                     'imagen',
                     'vigente'
@@ -120,8 +120,7 @@ class MedicoController extends Controller
                 ->where('tipo', $tipo)
                 ->get();
             return response()->json($medicos, 200);
-
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al listar los médicos',
                 'error' => $e->getMessage()
@@ -129,7 +128,8 @@ class MedicoController extends Controller
         }
     }
 
-    public function consultarMedico($id){
+    public function consultarMedico($id)
+    {
         try {
 
             $medico = Medico::findOrFail($id);
@@ -139,7 +139,6 @@ class MedicoController extends Controller
                 ], 404);
             }
             return response()->json($medico, 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al consultar los médicos',
@@ -177,7 +176,7 @@ class MedicoController extends Controller
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
-            $medico->CPSP = $request->input('CPSP'); 
+            $medico->CPSP = $request->input('CPSP');
             $medico->tipo = $request->input('tipo');
             $medico->sede_id = $request->input('sede_id');
 
@@ -342,7 +341,7 @@ class MedicoController extends Controller
 
     public function listarGinecologosVigentes()
     {
-        try{
+        try {
 
             $medicos = DB::table('medicos')
                 ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
@@ -363,8 +362,7 @@ class MedicoController extends Controller
                 ->get();
 
             return response()->json($medicos, 200);
-            
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al listar los ginecólogos',
                 'error' => $e->getMessage()
@@ -374,7 +372,7 @@ class MedicoController extends Controller
 
     public function listarBiologosVigentes()
     {
-        try{
+        try {
 
             $medicos = DB::table('medicos')
                 ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
@@ -396,8 +394,7 @@ class MedicoController extends Controller
                 ->get();
 
             return response()->json($medicos, 200);
-            
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al listar los biólogos',
                 'error' => $e->getMessage()
@@ -405,8 +402,9 @@ class MedicoController extends Controller
         }
     }
 
-    public function listarPsicologosVigentes(){
-        try{
+    public function listarPsicologosVigentes()
+    {
+        try {
             $medicos = DB::table('medicos')
                 ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
                 ->select(
@@ -427,8 +425,7 @@ class MedicoController extends Controller
                 ->get();
 
             return response()->json($medicos, 200);
-            
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al listar los psicólogos',
                 'error' => $e->getMessage()

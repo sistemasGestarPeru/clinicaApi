@@ -238,7 +238,7 @@ class ContratoProductoeController extends Controller
                     DB::raw("DATE(cp.Fecha) as Fecha"),
                     'cp.Total as Total',
                     'cp.TotalPagado as TotalPagado',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombrePaciente"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as NombrePaciente"),
                     'cp.Vigente as Vigente'
                 )
                 ->get();
@@ -366,9 +366,9 @@ class ContratoProductoeController extends Controller
                     'cp.CodigoMedico',
                     'cp.CodigoPaciente',
                     'cp.CodigoPaciente02',
-                    DB::raw("CONCAT(pPac.Nombres, ' ', pPac.Apellidos) AS Nombre"),
+                    DB::raw("CONCAT(pPac.Apellidos, ' ', pPac.Nombres) AS Nombre"),
                     DB::raw("CONCAT(td.Nombre, ': ', pPac.NumeroDocumento) AS Documento"),
-                    DB::raw("CONCAT(pPac2.Nombres, ' ', pPac2.Apellidos) AS nombreSegundo"),
+                    DB::raw("CONCAT(pPac2.Apellidos, ' ', pPac2.Nombres) AS nombreSegundo"),
                     DB::raw("CONCAT(td2.Nombre, ': ', pPac2.NumeroDocumento) AS numDocumentoSegundo"),
                     'cp.Total'
                 )
@@ -509,13 +509,13 @@ class ContratoProductoeController extends Controller
                     DB::raw("'Chiclayo' as distrito"),
                     's.Nombre as sede',
                     DB::raw("LPAD(c.NumContrato, 8, '0') AS numero"),
-                    DB::raw("CONCAT(cliente.Nombres, ' ', cliente.Apellidos) as cliente"),
+                    DB::raw("CONCAT(cliente.Apellidos, ' ', cliente.Nombres) as cliente"),
                     'td.Nombre as documentoIdentidad',
                     'cliente.NumeroDocumento as numDocumento',
                     'cliente.Direccion as clienteDireccion',
                     DB::raw("DATE(c.Fecha) AS fechaEmision"),
                     DB::raw("'Soles' as moneda"),
-                    DB::raw("CONCAT(medico.Nombres, ' ', medico.Apellidos) as medico")
+                    DB::raw("CONCAT(medico.Apellidos, ' ', medico.Nombres) as medico")
                 )
                 ->where('c.Codigo', $contrato)
                 ->first();

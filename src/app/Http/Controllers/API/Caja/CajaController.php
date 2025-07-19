@@ -160,7 +160,7 @@ class CajaController extends Controller
                     DB::raw("DATE_FORMAT(c.FechaFin, '%d/%m/%Y') as FechaFin"),
                     DB::raw("TIME(c.FechaInicio) as HoraInicio"),
                     DB::raw("TIME(c.FechaFin) as HoraFin"),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Trabajador")
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Trabajador")
                 )
                 ->where('c.Codigo', $caja)
                 ->first();
@@ -671,7 +671,7 @@ class CajaController extends Controller
                 })
                 ->select(
                     't.Codigo as Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombre")
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombre")
                 )
                 ->get();
 
@@ -718,7 +718,7 @@ class CajaController extends Controller
                     'e.Codigo AS CodigoEgreso',
                     'p.Codigo AS CodigoEmisor',
                     'e.Monto',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS Emisor")
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) AS Emisor")
                 )
                 ->get();
             // Log de éxito
@@ -756,7 +756,7 @@ class CajaController extends Controller
             $query1 = DB::table('pago as p')
                 ->selectRaw("
                     CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
-                    CONCAT(pa.Nombres, ' ', pa.Apellidos) AS Paciente,
+                    CONCAT(pa.Apellidos, ' ', pa.Nombres) AS Paciente,
                     mp.Nombre AS MedioPago,
                     CONCAT(DATE_FORMAT(p.Fecha, '%d/%m/%Y'), ' ', TIME(p.Fecha)) AS FechaPago,
                     p.Monto AS MontoPagado,

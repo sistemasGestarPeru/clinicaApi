@@ -254,7 +254,7 @@ class PagoDonanteController extends Controller
             $resultados = DB::table('pagodonante as pd')
                 ->select(
                     'e.Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Donante"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Donante"),
                     DB::raw('DATE(e.Fecha) as Fecha'),
                     'e.Monto as Monto',
                     'e.Vigente as Vigente'

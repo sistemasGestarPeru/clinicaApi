@@ -24,7 +24,7 @@ class UserController extends Controller
                 ->select([
                     'u.id',
                     'p.Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as NombreCompleto"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as NombreCompleto"),
                     'u.name as Usuario',
                     DB::raw("DATE(u.created_at) as FechaCreacion"),
                     'u.Vigente'

@@ -880,7 +880,7 @@ class ControladorGeneralController extends Controller
             $personas = DB::table('personas')
                 ->select(
                     'Codigo',
-                    DB::raw("CONCAT(Nombres, ' ', Apellidos) as Nombres")
+                    DB::raw("CONCAT(Apellidos, ' ', Nombres) as Nombres")
                 )
                 ->where('Vigente', 1)
                 ->get();

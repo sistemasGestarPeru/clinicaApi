@@ -144,7 +144,7 @@ class GuiaSalidaController extends Controller
                     DB::raw("LPAD(dv.Numero, 4, '0') as Numero"),
                     DB::raw("DATE(dv.Fecha) as Fecha"),
                     DB::raw("CASE 
-                            WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(p.Nombres, ' ', p.Apellidos)
+                            WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                             ELSE ce.RazonSocial
                         END AS Cliente")
                 ])

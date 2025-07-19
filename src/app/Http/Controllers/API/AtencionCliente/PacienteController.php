@@ -64,7 +64,7 @@ class PacienteController extends Controller
                 ->select(
                     'pa.Codigo',
                     'pa.FechaRegistro',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Paciente"),
                     'pa.EstadoCivil',
                     'pa.Peso',
                     'pa.Altura',

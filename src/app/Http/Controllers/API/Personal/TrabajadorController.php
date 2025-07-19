@@ -866,7 +866,7 @@ class TrabajadorController extends Controller
                 ->where('t.Vigente', 1)
                 ->select([
                     't.Codigo',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS NombreCompleto"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) AS NombreCompleto"),
                     't.CorreoCoorporativo',
                     'p.NumeroDocumento',
                     DB::raw("LOWER(CONCAT(LEFT(p.Nombres, 1), 

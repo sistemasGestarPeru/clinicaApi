@@ -328,7 +328,7 @@ class PagoComisionController extends Controller
                 ->select(
                     'c.Codigo',
                     DB::raw('p.Codigo AS CodigoMedico'),
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
                     'c.TipoDocumento as TipoDocumento',
                     'c.Monto',
                     'c.Serie',
@@ -392,7 +392,7 @@ class PagoComisionController extends Controller
                 ->select(
                     'c.Codigo',
                     'e.Codigo as Egreso',
-                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"),
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
                     DB::raw("CASE 
                             WHEN c.TipoDocumento = 'R' THEN 'Recibo por Honorario' 
                             ELSE 'Nota de Pago' 
@@ -470,8 +470,8 @@ class PagoComisionController extends Controller
                 ->leftJoin('personas as pCON', 'pCON.Codigo', '=', 'cp.CodigoPaciente')
                 ->selectRaw("
                     CASE 
-                        WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(pDV.Nombres, ' ', pDV.Apellidos)
-                        WHEN cp.CodigoPaciente IS NOT NULL THEN CONCAT(pCON.Nombres, ' ', pCON.Apellidos)
+                        WHEN dv.CodigoPaciente IS NOT NULL THEN CONCAT(pDV.Apellidos, ' ', pDV.Nombres)
+                        WHEN cp.CodigoPaciente IS NOT NULL THEN CONCAT(pCON.Apellidos, ' ', pCON.Nombres)
                         ELSE 'No encontrado'
                     END AS Paciente,
                     CASE 
@@ -711,7 +711,7 @@ class PagoComisionController extends Controller
                     ->select([
                         'cp.Codigo as Codigo',
                         DB::raw("LPAD(cp.NumContrato, 5, '0') AS Documento"),
-                        DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                        DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Paciente"),
                         DB::raw("DATE(cp.Fecha) as Fecha")
                     ])
                     ->where('cp.CodigoMedico', $medico)
@@ -742,7 +742,7 @@ class PagoComisionController extends Controller
                     ->select([
                         'dv.Codigo as Codigo',
                         DB::raw("CONCAT(dv.Serie,' - ',LPAD(dv.Numero, 5, '0')) as Documento"),
-                        DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                        DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Paciente"),
                         DB::raw("DATE(dv.Fecha) as Fecha")
                     ])
                     ->where('dv.CodigoMedico', $medico)
