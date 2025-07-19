@@ -69,7 +69,7 @@ class ActualizarRequest extends FormRequest
             'NumeroDocumento.min' => 'El número de documento debe tener al menos 8 dígitos.',
             'NumeroDocumento.unique' => 'El tipo y número de documento ya se encuentra registrado.',
             'CodigoNacionalidad.required' => 'Debe seleccionar una nacionalidad.',
-            'CodigoDepartamento.required' => 'Debe seleccionar un departamento.',
+
         ];
     }
 }

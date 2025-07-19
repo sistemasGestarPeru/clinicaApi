@@ -220,6 +220,7 @@ class ControladorGeneralController extends Controller
                         });
                 })
                 ->where('s.CodigoEmpresa', $codigoEmpresa)
+                ->where('s.Vigente', 1)
                 ->whereNull('ass.Codigo')
                 ->get();
 
@@ -763,6 +764,7 @@ class ControladorGeneralController extends Controller
                 })
                 ->where('ags.CodigoSede', $sede)
                 ->where('t.Tipo', 'M')
+                ->orderBy('p.Apellidos', 'asc')
                 ->get();
             Log::info('Médicos listados correctamente', [
                 'Controlador' => 'ControladorGeneralController',

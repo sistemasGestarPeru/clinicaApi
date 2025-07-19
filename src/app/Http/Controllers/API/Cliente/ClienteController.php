@@ -314,7 +314,6 @@ class ClienteController extends Controller
                         'NumeroDocumento',
                         'CodigoTipoDocumento',
                         'CodigoNacionalidad',
-                        'CodigoDepartamento',
                         'Vigente'
                     )
                     ->where('Codigo', '=', $id)
@@ -339,7 +338,6 @@ class ClienteController extends Controller
                         'RazonSocial',
                         'RUC',
                         'Direccion',
-                        'CodigoDepartamento',
                         'Vigente'
                     )
                     ->where('Codigo', '=', $id)

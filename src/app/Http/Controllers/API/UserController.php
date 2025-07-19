@@ -426,7 +426,7 @@ class UserController extends Controller
 
             // Log de éxito
             Log::info('Consulta Perfil', [
-                'Codigo' => ($perfil->Codigo),
+                'Codigo' => $codigo,
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 

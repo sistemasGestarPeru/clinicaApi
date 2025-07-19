@@ -44,8 +44,7 @@ class RegistrarRequest extends FormRequest
                             ->where('vigente', 1);
                     }),
             ],
-            'CodigoNacionalidad' => 'required|integer|min:1',
-            'CodigoDepartamento' => 'required|integer|min:1',
+            'CodigoNacionalidad' => 'required|integer|min:1'
         ];
     }
 
@@ -68,8 +67,7 @@ class RegistrarRequest extends FormRequest
             'NumeroDocumento.unique' => 'El tipo y número de documento ya se encuentra registrado.',
             'CodigoNacionalidad.required' => 'Debe seleccionar una nacionalidad.',
             'CodigoNacionalidad.min' => 'Debe seleccionar una nacionalidad.',
-            'CodigoDepartamento.required' => 'Debe seleccionar un departamento.',
-            
+
         ];
     }
 }

@@ -367,7 +367,7 @@ class TrabajadorController extends Controller
                 ->join('sedesrec as s', 's.Codigo', '=', 'ase.CodigoSede')
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->where('t.Codigo', $codTrab)
-                ->where('s.Vigente', 1)
+                //->where('s.Vigente', 1)
                 // ->where('ase.Vigente', 1)
                 ->where('e.Vigente', 1)
                 ->where('e.Codigo', $codEmpresa)
@@ -377,6 +377,12 @@ class TrabajadorController extends Controller
                     'ase.FechaInicio',
                     'ase.FechaFin',
                     'ase.Vigente',
+
+                    DB::raw("CASE 
+                                WHEN s.Vigente = 0 THEN 0 
+                                ELSE ase.Vigente 
+                            END as Vigente"),
+
                     DB::raw("CASE 
                                 WHEN ase.FechaFin IS NULL OR ase.FechaFin >= ? THEN 1 
                                 ELSE 0 

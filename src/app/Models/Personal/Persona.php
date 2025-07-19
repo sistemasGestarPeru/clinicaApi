@@ -25,7 +25,6 @@ class Persona extends Model
         'NumeroDocumento',
         'CodigoTipoDocumento',
         'CodigoNacionalidad',
-        'CodigoDepartamento',
         'Vigente'
     ];
 
