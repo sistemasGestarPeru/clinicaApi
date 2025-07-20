@@ -88,10 +88,10 @@ class SedeController extends Controller
         try {
             $sede = DB::table('sedesrec as s')
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
-                ->join('departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
+                // ->join('departamentos as d', 'd.Codigo', '=', 's.CodigoDepartamento')
                 ->select(
                     's.Codigo',
-                    'd.Nombre as Departamento',
+                    // 'd.Nombre as Departamento',
                     'e.Nombre as Empresa',
                     's.Nombre as Sede',
                     's.Direccion',

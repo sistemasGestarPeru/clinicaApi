@@ -24,7 +24,7 @@ class Cliente extends JsonResource
             'NumeroDocumento' => $this->NumeroDocumento,
             'CodigoTipoDocumento' => $this->CodigoTipoDocumento,
             'CodigoNacionalidad' => $this->CodigoNacionalidad,
-            'CodigoDepartamento' => $this->CodigoDepartamento
+            // 'CodigoDepartamento' => $this->CodigoDepartamento
         ];
     }
 }

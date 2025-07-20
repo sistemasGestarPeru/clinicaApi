@@ -19,7 +19,7 @@ class ClienteEmpresa extends JsonResource
             'RazonSocial' => $this->RazonSocial,
             'RUC' => $this->RUC,
             'Direccion' => $this->Direccion,
-            'CodigoDepartamento' => $this->CodigoDepartamento,
+            // 'CodigoDepartamento' => $this->CodigoDepartamento,
             'Vigente' => $this->Vigente
         ];
     }

@@ -806,7 +806,7 @@ class TrabajadorController extends Controller
         try {
             $personas = DB::table('personas as p')
                 ->join('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
-                ->Join('trabajadors as t', 'p.Codigo', '=', 't.Codigo')
+                ->join('trabajadors as t', 'p.Codigo', '=', 't.Codigo')
                 ->select(
                     'p.Codigo',
                     'p.Nombres',
@@ -819,11 +819,15 @@ class TrabajadorController extends Controller
                     'p.Vigente as pVigente'
                 )
                 ->where('p.NumeroDocumento', 'like', $numDocumento . '%')
-                ->where('p.Nombres', 'like', $nombre . '%')
+                ->where(function ($query) use ($nombre) {
+                    $query->where('p.Nombres', 'like', $nombre . '%')
+                        ->orWhere('p.Apellidos', 'like', $nombre . '%');
+                })
                 ->where('t.Tipo', 'like', $tipo . '%')
                 // ->where('p.Vigente', '=', 1)
                 ->orderBy('p.Nombres', 'asc')
                 ->get();
+
 
             //log info
             Log::info('Buscar Personas', [
@@ -1008,7 +1012,7 @@ class TrabajadorController extends Controller
                     'NumeroDocumento',
                     'CodigoTipoDocumento',
                     'CodigoNacionalidad',
-                    'CodigoDepartamento',
+                    // 'CodigoDepartamento',
 
                 )
                 ->where('Codigo', '=', $Codigo)

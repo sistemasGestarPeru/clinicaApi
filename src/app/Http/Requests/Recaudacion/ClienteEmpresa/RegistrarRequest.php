@@ -34,7 +34,7 @@ class RegistrarRequest extends FormRequest
                     }),
             ],
             'Direccion' => 'required|string',
-            'CodigoDepartamento' => 'required|integer'
+            // 'CodigoDepartamento' => 'required|integer'
         ];
     }
 
@@ -46,7 +46,7 @@ class RegistrarRequest extends FormRequest
             'RUC.size' => 'El RUC debe contener 11 dígitos.',
             'RUC.unique' => 'El RUC ya se encuentra registrado.',
             'Direccion.required' => 'La Dirección es obligatoria.',
-            'CodigoDepartamento.required' => 'El Departamento es obligatorio.'
+            // 'CodigoDepartamento.required' => 'El Departamento es obligatorio.'
         ];
     }
 }

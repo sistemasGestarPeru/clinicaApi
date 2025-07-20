@@ -16,7 +16,7 @@ class Sede extends Model
         'Direccion',
         'Telefono',
         'CodigoEmpresa',
-        'CodigoDepartamento',
+        // 'CodigoDepartamento',
         'Vigente'
     ];
 }

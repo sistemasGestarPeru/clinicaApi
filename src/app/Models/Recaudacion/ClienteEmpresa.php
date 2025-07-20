@@ -16,7 +16,7 @@ class ClienteEmpresa extends Model
         'RazonSocial',
         'RUC',
         'Direccion',
-        'CodigoDepartamento',
+        // 'CodigoDepartamento',
         'Vigente'
     ];
 }
