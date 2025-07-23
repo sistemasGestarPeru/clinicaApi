@@ -199,10 +199,15 @@ class PagoComisionController extends Controller
 
     public function registrarPagoComision(Request $request)
     {
+        //fecha actual en yyyy-mm-dd
+        $fechaActual = Carbon::now()->toDateString();
+
         $egreso = $request->input('egreso');
         $pagoComision = $request->input('pagoComision');
         $comision = $request->input('comision');
         $detalleComision = $request->input('detalleComision');
+
+        $comision['FechaCreacion'] = $fechaActual; // Asignar fecha de creación
 
         if ($egreso) {
             //Validar Egreso
@@ -382,6 +387,7 @@ class PagoComisionController extends Controller
         $data = $request->input('data');
         $sede = $data['CodigoSede'];
         $trabajador = $data['CodigoTrabajador'];
+        $fecha = $data['fecha'];
 
         try {
 
@@ -402,6 +408,7 @@ class PagoComisionController extends Controller
                     'c.Monto',
                     DB::raw("CONCAT(c.Serie, ' - ', c.Numero) as Documento"),
                     DB::raw("DATE(e.Fecha) as FechaPago"),
+                    DB::raw("DATE(c.FechaCreacion) as FechaRegistro"),
                     DB::raw("CASE 
                         WHEN e.Codigo IS NULL THEN c.Vigente
                                             ELSE e.Vigente
@@ -412,6 +419,12 @@ class PagoComisionController extends Controller
                         ->orWhere('dv.CodigoSede', $sede);
                 })
                 ->where('c.CodigoTrabajador', $trabajador)
+                ->when(!empty($data['fecha']), function ($query) use ($data) {
+                    $query->where(function ($sub) use ($data) {
+                        $sub->whereDate('c.FechaCreacion', '=', $data['fecha'])
+                            ->orWhereNull('c.FechaCreacion');
+                    });
+                })
                 ->get();
 
             //log info

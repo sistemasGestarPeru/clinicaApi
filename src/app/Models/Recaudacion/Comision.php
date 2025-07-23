@@ -25,6 +25,7 @@ class Comision extends Model
         'Vigente',
         'CodigoMedico',
         'Comentario',
-        'CodigoTrabajador'
+        'CodigoTrabajador',
+        'FechaCreacion',
     ];
 }

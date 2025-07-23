@@ -14,7 +14,9 @@ class Sede extends Model
     protected $fillable = [
         'Nombre',
         'Direccion',
-        'Telefono',
+        'Telefono1',
+        'Telefono2',
+        'Telefono3',
         'CodigoEmpresa',
         // 'CodigoDepartamento',
         'Vigente'

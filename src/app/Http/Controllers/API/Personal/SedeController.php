@@ -95,7 +95,9 @@ class SedeController extends Controller
                     'e.Nombre as Empresa',
                     's.Nombre as Sede',
                     's.Direccion',
-                    's.Telefono',
+                    's.Telefono1 as Telefono',
+                    's.Telefono2',
+                    's.Telefono3',
                     's.Vigente'
                 )
                 ->get();
