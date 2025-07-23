@@ -692,7 +692,10 @@ class ControladorGeneralController extends Controller
                 ->where('p.Vigente', 1)
                 ->where('ass.Vigente', 1)
                 ->where('ass.CodigoSede', $sede)
-                ->where('ass.FechaFin', '>=', $fecha)
+                ->where(function ($query) {
+                    $query->whereNull('ass.FechaFin')
+                        ->orWhere('ass.FechaFin', '>=', '2025-07-22');
+                })
                 ->get();
 
             Log::info('Personal listado correctamente', [

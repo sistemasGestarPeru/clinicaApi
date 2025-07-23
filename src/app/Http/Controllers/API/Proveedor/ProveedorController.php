@@ -110,7 +110,7 @@ class ProveedorController extends Controller
     public function registrarProveedor(Request $request)
     {
         try {
-            Proveedor::create($request->all());
+            $codProve = Proveedor::create($request->all())->Codigo;
 
             //log info
             Log::info('Registrar Proveedor', [
@@ -119,7 +119,7 @@ class ProveedorController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
-            return response()->json(['message' => 'Proveedor registrado correctamente'], 200);
+            return response()->json(['message' => 'Proveedor registrado correctamente', 'codigo' => $codProve], 200);
         } catch (QueryException $e) {
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {

@@ -381,6 +381,8 @@ class PagoComisionController extends Controller
     {
         $data = $request->input('data');
         $sede = $data['CodigoSede'];
+        $trabajador = $data['CodigoTrabajador'];
+
         try {
 
             $resultados = DB::table('comision as c')
@@ -409,6 +411,7 @@ class PagoComisionController extends Controller
                     $query->where('cp.CodigoSede', $sede)
                         ->orWhere('dv.CodigoSede', $sede);
                 })
+                ->where('c.CodigoTrabajador', $trabajador)
                 ->get();
 
             //log info

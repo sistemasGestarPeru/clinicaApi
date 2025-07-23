@@ -1194,6 +1194,14 @@ class VentaController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $numero = DB::table('documentoventa')
+                ->where('Serie', $ventaData['Serie'])
+                ->where('CodigoSede', $ventaData['CodigoSede'])
+                ->max('Numero');
+
+            $ventaData['Numero'] = $numero ? $numero + 1 : 1;
+
             $ventaCreada = Venta::create($ventaData);
 
             $ventaData['TotalDescuento'] = 0;
@@ -1484,6 +1492,8 @@ class VentaController extends Controller
             $detalle = DB::table('producto as P')
                 ->joinSub(
                     DB::table('detallecontrato as DC')
+                        ->join('contratoproducto as CONTRATO', 'CONTRATO.Codigo', '=', 'DC.CodigoContrato') // ⬅️ Agregado
+
                         ->leftJoinSub(
                             DB::table('documentoventa as DV')
                                 ->join('detalledocumentoventa as DDV', 'DV.Codigo', '=', 'DDV.CodigoVenta')
@@ -1503,12 +1513,13 @@ class VentaController extends Controller
                             }
                         )
                         ->where('DC.CodigoContrato', $idContrato)
-                        ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo', 'DC.Descuento')
+                        ->groupBy('DC.CodigoProducto', 'DC.Descripcion', 'DC.Codigo', 'DC.Descuento', 'CONTRATO.CodigoSede') // ⬅️ Agregado
                         ->select(
                             'DC.CodigoProducto',
                             'DC.Descripcion',
                             'DC.Codigo',
                             'DC.Descuento',
+                            'CONTRATO.CodigoSede', // ⬅️ Agregado
                             DB::raw('SUM(DC.Cantidad) - COALESCE(SUM(Bol.CantidadBoleteada), 0) AS Cantidad'),
                             DB::raw('SUM(DC.MontoTotal) - COALESCE(SUM(Bol.MontoBoleteado), 0) AS Monto')
                         ),
@@ -1517,7 +1528,10 @@ class VentaController extends Controller
                     '=',
                     'S.CodigoProducto'
                 )
-                ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
+                ->join('sedeproducto as SP', function ($join) {
+                    $join->on('SP.CodigoProducto', '=', 'P.Codigo')
+                        ->on('SP.CodigoSede', '=', 'S.CodigoSede');
+                })
                 ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
                 ->where('S.Monto', '>', 0)
                 ->orderBy('S.Descripcion')
@@ -1534,6 +1548,7 @@ class VentaController extends Controller
                     'TG.Codigo AS CodigoTipoGravado'
                 )
                 ->get();
+
 
             //log info
             Log::info('Consulta de Contrato Producto realizada correctamente.', [

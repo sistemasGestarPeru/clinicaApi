@@ -103,36 +103,39 @@ class GuiaIngresoController extends Controller
     {
 
         try {
+            $entregado = DB::table('guiaingreso as gi')
+                ->join('detalleguiaingreso as dgi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->select(
+                    'gi.CodigoCompra',
+                    'dgi.CodigoProducto',
+                    DB::raw('SUM(dgi.Cantidad) as Cantidad')
+                )
+                ->where('gi.Vigente', 1)
+                ->groupBy('gi.CodigoCompra', 'dgi.CodigoProducto');
+
             $compras = DB::table('compra as c')
                 ->select([
                     'c.Codigo',
                     'c.Serie',
-                    DB::raw("LPAD(c.Numero, 4, '0') as Numero"),
+                    DB::raw("LPAD(c.Numero, 6, '0') as Numero"),
                     'c.Fecha',
                 ])
                 ->where('c.CodigoSede', $sede)
                 ->where('c.Vigente', 1)
-                ->whereExists(function ($query) {
+                ->whereExists(function ($query) use ($entregado) {
                     $query->select(DB::raw(1))
                         ->from('detallecompra as dc')
                         ->join('producto as p', 'p.Codigo', '=', 'dc.CodigoProducto')
-                        ->leftJoinSub(
-                            DB::table('guiaingreso as gi')
-                                ->join('detalleguiaingreso as dgi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
-                                ->select('dgi.CodigoProducto', DB::raw('SUM(dgi.Cantidad) as Cantidad'))
-                                ->where('gi.Vigente', 1)
-                                ->whereColumn('gi.CodigoCompra', 'c.Codigo')  // Equivalente a gi.CodigoCompra = c.Codigo
-                                ->groupBy('dgi.CodigoProducto'),
-                            'Entregado',
-                            'Entregado.CodigoProducto',
-                            '=',
-                            'dc.CodigoProducto'
-                        )
-                        ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                        ->leftJoinSub($entregado, 'Entregado', function ($join) {
+                            $join->on('Entregado.CodigoProducto', '=', 'dc.CodigoProducto')
+                                ->on('Entregado.CodigoCompra', '=', 'dc.CodigoCompra');
+                        })
+                        ->whereColumn('dc.CodigoCompra', 'c.Codigo')  // Ahora sí es válido en este nivel
                         ->whereRaw('(dc.Cantidad - COALESCE(Entregado.Cantidad, 0)) > 0')
                         ->where('p.Tipo', 'B');
                 })
                 ->get();
+
 
             Log::info('Listado de Compras', [
                 'Controlador' => 'GuiaIngresoController',
@@ -177,12 +180,12 @@ class GuiaIngresoController extends Controller
                     'dc.CodigoProducto'
                 )
                 ->where('dc.CodigoCompra', $compra)
-                ->whereRaw('(DC.Cantidad - COALESCE(Entregado.Cantidad, 0)) > 0')
+                ->whereRaw('(dc.Cantidad - COALESCE(Entregado.Cantidad, 0)) > 0')
                 ->select([
-                    DB::raw('DC.Cantidad - COALESCE(Entregado.Cantidad, 0) as Cantidad'),
-                    'DC.CodigoProducto',
-                    'DC.Descripcion',
-                    DB::raw('((DC.MontoTotal - DC.MontoIGV))/(DC.Cantidad - COALESCE(Entregado.Cantidad, 0)) AS Costo'),
+                    DB::raw('dc.Cantidad - COALESCE(Entregado.Cantidad, 0) as Cantidad'),
+                    'dc.CodigoProducto',
+                    'dc.Descripcion',
+                    DB::raw('((dc.MontoTotal - dc.MontoIGV))/(dc.Cantidad - COALESCE(Entregado.Cantidad, 0)) AS Costo'),
                 ])
                 ->get();
 
