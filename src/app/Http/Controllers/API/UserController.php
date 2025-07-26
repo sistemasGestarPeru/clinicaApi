@@ -325,7 +325,7 @@ class UserController extends Controller
                 ->where('p.Codigo', '=', $user->CodigoPersona)
                 ->first();
 
-            $expiresAt = now()->addHour(5); // Fecha de vencimiento a 10 minutos en el futuro
+            $expiresAt = now()->addHour(8); // Fecha de vencimiento 8 horas
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
             $menus = DB::table('perfil_menu as pm')
