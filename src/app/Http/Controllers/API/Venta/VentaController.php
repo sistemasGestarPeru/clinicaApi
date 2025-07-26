@@ -154,7 +154,8 @@ class VentaController extends Controller
                         'p.NumeroDocumento',
                         DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Nombres"),
                         'td.CodigoSUNAT',
-                        'p.Direccion'
+                        'p.Direccion',
+                        'p.Correo'
                     )
                     ->first();
             } elseif ($ventaData['CodigoClienteEmpresa'] != null) {
@@ -164,8 +165,7 @@ class VentaController extends Controller
                         'RUC as NumeroDocumento',
                         'RazonSocial as Nombres',
                         DB::raw("6 as CodigoSUNAT"), // Asumiendo que 6 es el código SUNAT para RUC
-                        'Direccion',
-                        'Correo'
+                        'Direccion'
                     )
                     ->first();
             }
@@ -2736,6 +2736,11 @@ class VentaController extends Controller
                     'td.Siglas as documentoIdentidad',
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
+
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'p.Lote',
+                    'p.Referencia',
+
                     'p.Direccion as clienteDireccion',
                     'dv.Fecha as fechaEmision',
                     DB::raw("'Soles' as moneda"),
@@ -2829,6 +2834,9 @@ class VentaController extends Controller
                                 ELSE 'N/A'
                             END AS numDocumento"),
                     'mp.Nombre as FormaPago',
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'p.Lote',
+                    'p.Referencia',
                     DB::raw("CASE
                                 WHEN dv.CodigoPersona IS NOT NULL THEN pEmp.Direccion
                                 WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN ce.Direccion
@@ -2940,6 +2948,9 @@ class VentaController extends Controller
                             END AS clienteDireccion
                         "),
                     'mp.Nombre AS FormaPago',
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'p.Lote',
+                    'p.Referencia',
                     'dv.Fecha AS fechaEmision',
                     DB::raw("'Soles' AS moneda"),
                     DB::raw('ABS(dv.MontoTotal) AS totalPagar'),

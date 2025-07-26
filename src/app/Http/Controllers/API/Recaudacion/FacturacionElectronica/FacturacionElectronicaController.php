@@ -209,29 +209,36 @@ class FacturacionElectronicaController extends Controller
                 ->leftJoin('documentoventa as dv', 'e.CodigoDocumentoVenta', '=', 'dv.Codigo')
                 ->leftJoin('anulacion as a', 'e.CodigoAnulacion', '=', 'a.Codigo')
                 ->leftJoin('documentoventa as da', 'a.CodigoDocumentoVenta', '=', 'da.Codigo')
-                ->whereIn('e.Estado', ['N', 'R'])
                 ->select([
                     DB::raw('MAX(e.Codigo) as Codigo'),
                     'e.Tipo',
                     DB::raw("
-                    CASE
-                        WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
-                        WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
-                        ELSE 'Desconocido'
-                    END AS Documento
-                "),
+                        CASE
+                            WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
+                            WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
+                            ELSE 'Desconocido'
+                        END AS Documento
+                    "),
+                    DB::raw("
+                        MAX(CASE WHEN e.Estado = 'A' THEN e.Codigo ELSE NULL END) AS CodigoEstadoA
+                    ")
                 ])
-                ->groupBy('e.Tipo', DB::raw("
-                CASE
-                    WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
-                    WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
-                    ELSE 'Desconocido'
-                END
-            "));
+                ->groupBy(
+                    'e.Tipo',
+                    DB::raw("
+                        CASE
+                            WHEN e.CodigoDocumentoVenta IS NULL THEN CONCAT(da.Serie, '-', da.Numero)
+                            WHEN e.CodigoAnulacion IS NULL THEN CONCAT(dv.Serie, '-', dv.Numero)
+                            ELSE 'Desconocido'
+                        END
+                    ")
+                )
+                ->havingRaw('MAX(CASE WHEN e.Estado = "A" THEN e.Codigo ELSE NULL END) IS NULL');
 
-            // Consulta principal uniendo con la tabla original para obtener los demás campos
+
+            // Consulta principal
             $result = DB::table(DB::raw("({$subquery->toSql()}) as ultimos"))
-                ->mergeBindings($subquery) // Importante para evitar error de bindings
+                ->mergeBindings($subquery)
                 ->join('enviofacturacion as e', 'e.Codigo', '=', 'ultimos.Codigo')
                 ->select('e.Codigo', 'e.Tipo', 'ultimos.Documento', 'e.Fecha', 'e.Mensaje')
                 ->where('e.CodigoSede', $request->Sede)
@@ -239,6 +246,7 @@ class FacturacionElectronicaController extends Controller
                 ->when($request->Tipo, function ($query) use ($request) {
                     return $query->where('e.Tipo', $request->Tipo);
                 })
+
                 ->when($request->Fecha, function ($query) use ($request) {
                     return $query->whereDate('e.Fecha', '=', $request->Fecha);
                 })
@@ -247,7 +255,7 @@ class FacturacionElectronicaController extends Controller
                     return $query->where('ultimos.Documento', 'like', $request->Referencia . '%');
                 })
 
-                ->orderBy('e.Codigo', 'desc')
+                ->orderByDesc('e.Codigo')
                 ->get();
 
             Log::info('Listar Envios Fallidos', [
