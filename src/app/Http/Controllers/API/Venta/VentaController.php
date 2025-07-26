@@ -2819,7 +2819,7 @@ class VentaController extends Controller
                     DB::raw("LPAD(dv.Numero, 8, '0') AS numero"),
                     DB::raw("CASE
                                 WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(pEmp.Apellidos, ' ', pEmp.Nombres)
-                                WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN e.RazonSocial
+                                WHEN dv.CodigoClienteEmpresa IS NOT NULL THEN ce.RazonSocial
                                 ELSE 'N/A'
                             END AS cliente"),
                     DB::raw("'RUC' AS documentoIdentidad"),
