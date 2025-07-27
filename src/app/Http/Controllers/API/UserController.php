@@ -328,14 +328,34 @@ class UserController extends Controller
             $expiresAt = now()->addHour(8); // Fecha de vencimiento 8 horas
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
-            $menus = DB::table('perfil_menu as pm')
+            // Subconsulta 1: GUIDs de menús accesibles
+            $subQueryMenus = DB::table('perfil_menu as pm')
                 ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
                 ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
                 ->where('up.CodigoPersona', $user->CodigoPersona)
                 ->where('m.Vigente', 1)
                 ->where('pm.Vigente', 1)
-                ->orderBy('pm.Codigo')
-                ->get(['m.GUID']) // Obtener los GUIDs como un array de objetos
+                ->select('m.GUID');
+
+            // Subconsulta 2: GUIDs de menús padre de los accesos
+            $subQueryPadres = DB::table('menu as mp')
+                ->distinct()
+                ->whereIn('mp.Codigo', function ($q) use ($user) {
+                    $q->select('m.MenuPadre')
+                        ->from('perfil_menu as pm')
+                        ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
+                        ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
+                        ->where('up.CodigoPersona', $user->CodigoPersona)
+                        ->where('m.Vigente', 1)
+                        ->where('pm.Vigente', 1)
+                        ->whereNotNull('m.MenuPadre');
+                })
+                ->select('mp.GUID');
+
+            // Unir y obtener GUIDs como array plano
+            $menus = $subQueryMenus
+                ->union($subQueryPadres)
+                ->get()
                 ->map(function ($item) {
                     return ['GUID' => $item->GUID];
                 });

@@ -425,6 +425,7 @@ class PagoComisionController extends Controller
                             ->orWhereNull('c.FechaCreacion');
                     });
                 })
+                ->orderBy('c.Codigo', 'desc')
                 ->get();
 
             //log info
