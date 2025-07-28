@@ -801,7 +801,6 @@ class PagoComisionController extends Controller
                 $query = DB::table('documentoventa as dv')
                     ->distinct()
                     ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPaciente')
-                    ->leftJoin('comision as c', 'dv.Codigo', '=', 'c.CodigoDocumentoVenta')
                     ->select([
                         'dv.Codigo as Codigo',
                         DB::raw("CONCAT(dv.Serie,' - ',LPAD(dv.Numero, 5, '0')) as Documento"),
@@ -813,10 +812,6 @@ class PagoComisionController extends Controller
                     ->where('dv.CodigoSede', $sede)
                     ->whereNull('dv.CodigoMotivoNotaCredito')
                     ->whereNull('dv.CodigoContratoProducto')
-                    ->where(function ($q) {
-                        $q->whereNull('c.Codigo')
-                            ->orWhere('c.Vigente', 0);
-                    })
                     ->where(function ($query) use ($termino) {
                         $query->where('p.Nombres', 'LIKE', "{$termino}%")
                             ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
@@ -824,10 +819,17 @@ class PagoComisionController extends Controller
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
                             ->from('detalledocumentoventa as ddv')
-                            ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
+                            ->join('producto as pr', 'ddv.CodigoProducto', '=', 'pr.Codigo')
                             ->whereRaw('ddv.CodigoVenta = dv.Codigo')
-                            ->where('p.Tipo', 'S');
+                            ->where('pr.Tipo', 'S');
+                    })
+                    ->whereNotExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('comision as c')
+                            ->whereRaw('c.CodigoDocumentoVenta = dv.Codigo')
+                            ->where('c.Vigente', 1);
                     });
+
             }
             //log info
             Log::info('Listar Documentos para Comisiones', [
@@ -867,7 +869,7 @@ class PagoComisionController extends Controller
                     ->where('p.Tipo', 'S')
                     ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
             } else {
-                $detalles = DB::table('documentoVenta as dv')
+                $detalles = DB::table('documentoventa as dv')
                     ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                     ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
                     ->where('dv.Codigo', $codigo)
