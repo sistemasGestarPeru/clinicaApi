@@ -2737,7 +2737,7 @@ class VentaController extends Controller
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
 
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'pg.Lote',
                     'pg.Referencia',
 
@@ -2834,7 +2834,7 @@ class VentaController extends Controller
                                 ELSE 'N/A'
                             END AS numDocumento"),
                     'mp.Nombre as FormaPago',
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'pg.Lote',
                     'pg.Referencia',
                     DB::raw("CASE
@@ -2948,7 +2948,7 @@ class VentaController extends Controller
                             END AS clienteDireccion
                         "),
                     'mp.Nombre AS FormaPago',
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'eg.Lote',
                     'eg.Referencia',
                     'dv.Fecha AS fechaEmision',
