@@ -194,7 +194,6 @@ class CompraController extends Controller
 
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
-                ->join('detallecompra as dc', 'dc.CodigoCompra', '=', 'c.Codigo')
                 ->select(
                     'c.Codigo',
                     'c.Serie',
@@ -207,13 +206,24 @@ class CompraController extends Controller
                 ->where('c.CodigoSede', $filtro['sede'])
                 ->where(function ($query) use ($filtro) {
                     if ($filtro['tipo'] == 1) {
-                        $query->whereNotNull('dc.CodigoProducto'); // Si tipo = 1, solo productos NO NULL
+                        $query->whereExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('detallecompra as dc')
+                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                                ->whereNotNull('dc.CodigoProducto');
+                        });
                     } elseif ($filtro['tipo'] == 0) {
-                        $query->whereNull('dc.CodigoProducto'); // Si tipo = 0, solo productos NULL
+                        $query->whereExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('detallecompra as dc')
+                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                                ->whereNull('dc.CodigoProducto');
+                        });
                     }
                 })
-                ->orderBy('c.Codigo', 'desc')
+                ->orderByDesc('c.Codigo')
                 ->get();
+
 
             // Log de éxito
             Log::info('Compras listadas correctamente', [
