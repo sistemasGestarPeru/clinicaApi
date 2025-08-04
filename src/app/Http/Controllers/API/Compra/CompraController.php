@@ -193,37 +193,95 @@ class CompraController extends Controller
         try {
 
             $compra = DB::table('compra as c')
-                ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
-                ->select(
-                    'c.Codigo',
-                    'c.Serie',
-                    'c.Numero',
-                    'c.Fecha',
-                    'p.RazonSocial',
-                    'p.Codigo as CodigoProveedor',
-                    'c.Vigente'
-                )
-                ->where('c.CodigoSede', $filtro['sede'])
-                ->where(function ($query) use ($filtro) {
-                    if ($filtro['tipo'] == 1) {
-                        $query->whereExists(function ($q) {
-                            $q->select(DB::raw(1))
-                                ->from('detallecompra as dc')
-                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                                ->whereNotNull('dc.CodigoProducto');
-                        });
-                    } elseif ($filtro['tipo'] == 0) {
-                        $query->whereExists(function ($q) {
-                            $q->select(DB::raw(1))
-                                ->from('detallecompra as dc')
-                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                                ->whereNull('dc.CodigoProducto');
-                        });
-                    }
-                })
-                ->orderByDesc('c.Codigo')
-                ->get();
+            ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
 
+            // LEFT JOIN con subconsulta de cuotas (MontoPagar)
+            ->leftJoinSub(
+                DB::table('cuota')
+                    ->select('CodigoCompra', DB::raw('SUM(Monto) as MontoPagar'), 'TipoMoneda')
+                    ->groupBy('CodigoCompra', 'TipoMoneda'),
+                'cuotas',
+                'cuotas.CodigoCompra',
+                '=',
+                'c.Codigo'
+            )
+
+            // LEFT JOIN con subconsulta de pagos (MontoPagado)
+            ->leftJoinSub(
+                DB::table('cuota as cu')
+                    ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                    ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                    ->leftJoin('tipomoneda as m', 'cu.TipoMoneda', '=', 'm.Codigo')
+                    ->select(
+                        'cu.CodigoCompra',
+                        DB::raw("SUM(CASE 
+                                    WHEN m.Siglas = 'PEN' THEN e.Monto 
+                                    ELSE pp.MontoMonedaExtranjera 
+                                END) AS MontoPagado")
+                    )
+                    ->groupBy('cu.CodigoCompra'),
+                'pagos',
+                'pagos.CodigoCompra',
+                '=',
+                'c.Codigo'
+            )
+
+            // LEFT JOIN con subconsulta de vencimiento (FechaVencimiento)
+            ->leftJoinSub(
+                DB::table('cuota as cu')
+                    ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                    ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                    ->select('cu.CodigoCompra', DB::raw('MIN(cu.Fecha) as FechaVencimiento'))
+                    ->whereRaw('(e.Codigo IS NULL OR e.Monto < cu.Monto)')
+                    ->groupBy('cu.CodigoCompra'),
+                'vencimiento',
+                'vencimiento.CodigoCompra',
+                '=',
+                'c.Codigo'
+            )
+
+            ->leftJoin('tipomoneda as m', 'm.Codigo', '=', 'cuotas.TipoMoneda')
+
+            // Campos que deseas recuperar
+            ->select(
+                'c.Codigo',
+                'c.Serie',
+                'c.Numero',
+                'c.Fecha',
+                'p.RazonSocial',
+                'p.Codigo as CodigoProveedor',
+                'c.Vigente',
+                'cuotas.TipoMoneda',
+                DB::raw('IFNULL(cuotas.MontoPagar, 0) as MontoPagar'),
+                DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
+                DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
+                DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda')
+            )
+
+            // Filtro por sede
+            ->where('c.CodigoSede', $filtro['sede'])
+
+            // Filtro por tipo
+            ->where(function ($query) use ($filtro) {
+                if ($filtro['tipo'] == 1) {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('detallecompra as dc')
+                            ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                            ->whereNotNull('dc.CodigoProducto');
+                    });
+                } elseif ($filtro['tipo'] == 0) {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('detallecompra as dc')
+                            ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                            ->whereNull('dc.CodigoProducto');
+                    });
+                }
+            })
+
+            ->orderByDesc('c.Codigo')
+            ->get();
 
             // Log de éxito
             Log::info('Compras listadas correctamente', [
