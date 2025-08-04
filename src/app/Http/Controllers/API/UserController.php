@@ -338,19 +338,15 @@ class UserController extends Controller
                 ->select('m.GUID');
 
             // Subconsulta 2: GUIDs de menús padre de los accesos
-            $subQueryPadres = DB::table('menu as mp')
-                ->distinct()
-                ->whereIn('mp.Codigo', function ($q) use ($user) {
-                    $q->select('m.MenuPadre')
-                        ->from('perfil_menu as pm')
-                        ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
-                        ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
-                        ->where('up.CodigoPersona', $user->CodigoPersona)
-                        ->where('m.Vigente', 1)
-                        ->where('pm.Vigente', 1)
-                        ->whereNotNull('m.MenuPadre');
-                })
-                ->select('mp.GUID');
+                $subQueryPadres = DB::table('perfil_menu as pm')
+                    ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
+                    ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
+                    ->where('up.CodigoPersona', $user->CodigoPersona)
+                    ->where('m.Vigente', 1)
+                    ->where('pm.Vigente', 1)
+                    ->whereNotNull('m.MenuPadre')
+                    ->distinct()
+                    ->select('m.GUID');
 
             // Unir y obtener GUIDs como array plano
             $menus = $subQueryMenus
