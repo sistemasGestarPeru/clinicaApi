@@ -43,6 +43,21 @@ class CajaController extends Controller
         $cajaData['Estado'] = 'A';
 
         try {
+
+            $estado = DB::table('caja')
+                ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
+                ->orderByDesc('Codigo')
+                ->value('Estado');
+
+            if($estado === 'A') {
+                Log::warning('Intento de apertura de caja cuando ya existe una abierta', [
+                    'Controlador' => 'CajaController',
+                    'Metodo' => 'store',
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+                return response()->json(['validacion' => true], 200);
+            }
+
             DB::beginTransaction();
             $totalEfectivo = DB::table('caja')
                 ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])

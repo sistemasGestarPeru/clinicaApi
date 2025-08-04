@@ -40,6 +40,7 @@ class Venta extends Model
         'CodigoMedico',
         'CodigoPaciente',
         'CodigoMotivoNotaCredito',
-        'Vigente'
+        'Vigente',
+        'TipoVenta'
     ];
 }

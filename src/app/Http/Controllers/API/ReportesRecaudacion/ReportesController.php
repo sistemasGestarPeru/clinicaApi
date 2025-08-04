@@ -353,6 +353,9 @@ class ReportesController extends Controller
                 ->join('personas as pa', 'pa.Codigo', '=', 'dv.CodigoPaciente')
                 ->join('mediopago as mp', 'mp.Codigo', '=', 'p.CodigoMedioPago')
                 ->whereNull('dv.CodigoMotivoNotaCredito') // Equivalente a `IS NULL`
+                ->where('p.Vigente', 1)
+                ->where('pdv.Vigente', 1)
+                ->where('dv.Vigente', 1)
                 ->when($fecha, function ($query) use ($fecha) {
                     return $query->whereRaw("DATE(p.Fecha) = ?", [$fecha]);
                 })
@@ -377,6 +380,7 @@ class ReportesController extends Controller
                         '008' AS CodigoSUNAT
                     ")
                 ->join('caja as c', 'c.Codigo', '=', 'i.CodigoCaja')
+                ->where('i.Vigente', 1)
                 ->when($trabajador, function ($query) use ($trabajador) {
                     return $query->where('c.CodigoTrabajador', $trabajador);
                 })

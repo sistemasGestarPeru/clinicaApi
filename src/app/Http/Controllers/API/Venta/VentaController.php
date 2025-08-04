@@ -1709,72 +1709,109 @@ class VentaController extends Controller
 
     public function buscarVenta(Request $request)
     {
-        try {
-            date_default_timezone_set('America/Lima');
-            $fechaActual = date('Y-m-d');
 
-            $fecha = $request->input('fecha');
-            $codigoSede = $request->input('codigoSede');
-            $nombre = $request->input('nombre');
-            $documento = $request->input('documento');
-            $docVenta = $request->input('docVenta');
+        date_default_timezone_set('America/Lima');
+        $fechaActual = date('Y-m-d');
+        $fecha = $request->input('fecha');
+        $fechaFin = $request->input('fechaFin');
+        $estadoPago = $request->input('estadoPago');
+        $codigoSede = $request->input('codigoSede');
+        $nombre = $request->input('nombre');
+        $documento = $request->input('documento');
+        $docVenta = $request->input('docVenta');
+        $tipoVenta = $request->input('tipoVenta'); // Normal o Corporativa ( N - C)
+        try {
+
             $venta = DB::table('documentoventa as dv')
                 ->selectRaw("
-                dv.Vigente,
-                dv.Codigo,
-                dv.CodigoTipoDocumentoVenta AS TipoDoc,
-                CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
-                DATE(dv.Fecha) AS Fecha,
-                ABS(dv.MontoTotal) as MontoTotal,
-                ABS(dv.MontoPagado) as MontoPagado,
-                CASE 
-                    WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
-                    WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
-                    ELSE 'No identificado'
-                END AS NombreCliente,
-                CASE 
-                    WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NULL) THEN 'V'
-                    WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NOT NULL) THEN 'C'
-		            WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NOT NULL) THEN 'N'
-                    WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NULL) THEN 'D' 
-                END AS TipoVenta,
-                CASE 
-                    WHEN tdv.CodigoSUNAT IS NOT NULL THEN true
-                    ELSE false
-                END AS Canje,
-                COALESCE((
-                    SELECT dv.MontoTotal + SUM(nc.MontoTotal)
-                    FROM documentoventa AS nc 
-                    WHERE nc.CodigoMotivoNotaCredito IS NOT NULL 
-                    AND nc.CodigoDocumentoReferencia = dv.Codigo
-                ), dv.MontoTotal) AS SaldoFinal,
-                tdv.CodigoSUNAT AS CodigoSUNAT,
-                CASE 
-                    WHEN tdv.CodigoSUNAT = '03' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 7 THEN '1'
-                    WHEN tdv.CodigoSUNAT = '01' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 3 THEN '1'
-                    WHEN tdv.CodigoSUNAT = null THEN '1'
-                    ELSE '0'
-                END AS Anular
-            ", [$fechaActual, $fechaActual])
+                    dv.Vigente,
+                    dv.Codigo,
+                    dv.CodigoTipoDocumentoVenta AS TipoDoc,
+                    CONCAT(tdv.Siglas, ' ', dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) AS Documento,
+                    DATE(dv.Fecha) AS Fecha,
+                    ABS(dv.MontoTotal) as MontoTotal,
+                    ABS(dv.MontoPagado) as MontoPagado,
+                    CASE 
+                        WHEN p.Codigo IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
+                        WHEN ce.Codigo IS NOT NULL THEN ce.RazonSocial
+                        ELSE 'No identificado'
+                    END AS NombreCliente,
+                    CASE 
+                        WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NULL) THEN 'V'
+                        WHEN (dv.CodigoMotivoNotaCredito IS NULL AND dv.CodigoContratoProducto IS NOT NULL) THEN 'C'
+                        WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NOT NULL) THEN 'N'
+                        WHEN (dv.CodigoMotivoNotaCredito IS NOT NULL AND tdv.CodigoSUNAT IS NULL) THEN 'D' 
+                    END AS TipoVenta,
+                    CASE 
+                        WHEN tdv.CodigoSUNAT IS NOT NULL THEN true
+                        ELSE false
+                    END AS Canje,
+                    COALESCE((
+                        SELECT dv.MontoTotal + SUM(nc.MontoTotal)
+                        FROM documentoventa AS nc 
+                        WHERE nc.CodigoMotivoNotaCredito IS NOT NULL 
+                        AND nc.CodigoDocumentoReferencia = dv.Codigo
+                    ), dv.MontoTotal) AS SaldoFinal,
+                    tdv.CodigoSUNAT AS CodigoSUNAT,
+                    CASE 
+                        WHEN tdv.CodigoSUNAT = '03' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 7 THEN '1'
+                        WHEN tdv.CodigoSUNAT = '01' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 3 THEN '1'
+                        WHEN tdv.CodigoSUNAT IS NULL THEN '1'
+                        ELSE '0'
+                    END AS Anular
+                ", [$fechaActual, $fechaActual])
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
                 ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
                 ->leftJoin('clienteempresa as ce', 'ce.Codigo', '=', 'dv.CodigoClienteEmpresa')
                 ->where('dv.CodigoSede', $codigoSede)
-                ->when($fecha, fn($query) => $query->whereDate('dv.Fecha', $fecha))
+                //Filtro por tipo de venta traer todo incluyendo Null
+                ->when($tipoVenta, function ($query) use ($tipoVenta) {
+                    if ($tipoVenta === 'N') {
+                        $query->where(function ($q) {
+                            $q->where('dv.TipoVenta', 'N')
+                            ->orWhereNull('dv.TipoVenta');
+                        });
+                    } else {
+                        $query->where('dv.TipoVenta', $tipoVenta);
+                    }
+                })
+                // Filtro por fecha o rango
+                ->when($fecha, function ($query) use ($fecha, $fechaFin) {
+                    if (empty($fechaFin)) {
+                        $query->whereDate('dv.Fecha', $fecha);
+                    } else {
+                        $query->whereBetween('dv.Fecha', [$fecha, $fechaFin]);
+                    }
+                })
+
+                // Filtro por tipo de documento de venta
                 ->when($docVenta != 0, fn($query) => $query->where('dv.CodigoTipoDocumentoVenta', $docVenta))
+
+                // Filtro por nombre del cliente
                 ->when($nombre, function ($query) use ($nombre) {
                     $query->where(function ($q) use ($nombre) {
                         $q->where('p.Nombres', 'LIKE', "%$nombre%")
-                            ->orWhere('p.Apellidos', 'LIKE', "%$nombre%")
-                            ->orWhere('ce.RazonSocial', 'LIKE', "%$nombre%");
+                        ->orWhere('p.Apellidos', 'LIKE', "%$nombre%")
+                        ->orWhere('ce.RazonSocial', 'LIKE', "%$nombre%");
                     });
                 })
+
+                // Filtro por documento de identidad o RUC
                 ->when($documento, function ($queryD) use ($documento) {
                     $queryD->where(function ($q) use ($documento) {
                         $q->where('p.NumeroDocumento', 'LIKE', "$documento%")
-                            ->orWhere('ce.RUC', 'LIKE', "$documento%");
+                        ->orWhere('ce.RUC', 'LIKE', "$documento%");
                     });
                 })
+
+                // Filtro por estado de pago
+                ->when($estadoPago == 1, function ($query) {
+                    $query->whereColumn('dv.MontoTotal', '=', 'dv.MontoPagado');
+                })
+                ->when($estadoPago == 2, function ($query) {
+                    $query->whereColumn('dv.MontoTotal', '!=', 'dv.MontoPagado');
+                })
+
                 ->orderByDesc('dv.Codigo')
                 ->get();
 
