@@ -553,16 +553,13 @@ class PagoComisionController extends Controller
 
     public function actualizarPagoComision(Request $request)
     {
-        //revisar todo
         $egreso = $request->input('egreso');
         $comision = $request->input('comision');
 
         DB::beginTransaction();
 
         try {
-
             $comisionData = Comision::find($comision['Codigo']);
-            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
 
             if (!$comisionData) {
                 Log::warning('Comisión no encontrada', [
@@ -576,18 +573,7 @@ class PagoComisionController extends Controller
                 ], 404);
             }
 
-            if ($estadoCaja->Estado == 'C') {
-                Log::warning('Error al actualizar el pago de comisión', [
-                    'Controlador' => 'PagoComisionController',
-                    'Metodo' => 'actualizarPagoComision',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'mensaje' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios'])
-                ]);
-                return response()->json([
-                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
-                ], 400);
-            }
-
+            // Validar que la comisión esté vigente para poder actualizarla
             if ($comisionData['Vigente'] == 0) {
                 Log::warning('Error al actualizar el pago de comisión', [
                     'Controlador' => 'PagoComisionController',
@@ -600,104 +586,164 @@ class PagoComisionController extends Controller
                 ], 400);
             }
 
-            if (isset($egreso['Codigo']) && $egreso['Codigo'] != 0) {
-
-                if ($comision['Vigente'] == 0) {
-
-                    $egresoData = Egreso::find($egreso['Codigo']);
-                    $egresoData->update(['Vigente' => 0]);
-
-                    $comisionData->update(['Vigente' => 0]);
-                }
-            } else if (isset($egreso) && !isset($egreso['Codigo']) && $comision['Vigente'] == 1) {
-
-                //Validar Egreso
-                $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
-                $egresoValidator->validate();
-
-                if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
-                    $egreso['CodigoCuentaOrigen'] = null;
-                }
-
-                if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
-                    $egreso['CodigoBilleteraDigital'] = null;
-                }
-
-                $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
-                $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
-                $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString(); // Convertir el string a Carbon
-
-                if ($fechaCajaVal < $fechaVentaVal) {
-                    Log::warning('Error al actualizar el pago de comisión', [
-                        'Controlador' => 'PagoComisionController',
-                        'Metodo' => 'actualizarPagoComision',
-                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                        'mensaje' => __('mensajes.error_fecha_pago')
-                    ]);
-                    return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
-                }
-
-                if ($egreso['CodigoSUNAT'] == '008') {
-                    $egreso['CodigoCuentaOrigen'] = null;
-                    $egreso['CodigoBilleteraDigital'] = null;
-                    $egreso['Lote'] = null;
-                    $egreso['Referencia'] = null;
-                    $egreso['NumeroOperacion'] = null;
-
-                    $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
-
-                    if ($egreso['Monto'] > $total) {
+            // Verificar si el egreso existe y tiene datos válidos
+            $egresoExiste = !empty($egreso) && is_array($egreso) && count($egreso) > 0;
+            
+            if ($egresoExiste) {
+                // Validar estado de caja si el egreso tiene CodigoCaja
+                if (isset($egreso['CodigoCaja'])) {
+                    $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+                    
+                    if ($estadoCaja->Estado == 'C') {
                         Log::warning('Error al actualizar el pago de comisión', [
                             'Controlador' => 'PagoComisionController',
                             'Metodo' => 'actualizarPagoComision',
                             'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                            'mensaje' => __('mensajes.error_sin_efectivo', ['total' => $total]),
-                            'Disponible' => $total
+                            'mensaje' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios'])
                         ]);
-                        return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
+                        return response()->json([
+                            'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
+                        ], 400);
                     }
-                } else if ($egreso['CodigoSUNAT'] == '003') {
-                    $egreso['Lote'] = null;
-                    $egreso['Referencia'] = null;
-                } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
-                    $egreso['CodigoCuentaBancaria'] = null;
-                    $egreso['CodigoBilleteraDigital'] = null;
                 }
 
-                $egreso = Egreso::create($egreso);
-                $pagoComision['CodigoMedico'] = $comisionData['CodigoMedico'];
-                $pagoComision['Codigo'] = $egreso->Codigo;
-                PagoComision::create($pagoComision);
-                $comision['CodigoPagoComision'] = $egreso->Codigo;
+                // Caso 1: Egreso existente que se quiere anular
+                if (isset($egreso['Codigo']) && $egreso['Codigo'] != 0) {
+                    if ($comision['Vigente'] == 0) {
+                        $egresoData = Egreso::find($egreso['Codigo']);
+                        if ($egresoData) {
+                            $egresoData->update(['Vigente' => 0]);
+                        }
+                        $comisionData->update(['Vigente' => 0]);
+                    }
+                }
+                // Caso 2: Crear nuevo egreso
+                else if (!isset($egreso['Codigo']) && $comision['Vigente'] == 1) {
+                    // Validar datos del egreso
+                    $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
+                    $egresoValidator->validate();
 
-                $comisionData->update([
-                    'CodigoPagoComision' => $comision['CodigoPagoComision'],
-                    'TipoDocumento' => $comision['TipoDocumento'],
-                    'Serie' => $comision['Serie'],
-                    'Numero' => $comision['Numero'],
-                    'Comentario' => $comision['Comentario'],
-                ]);
-            } else if (!isset($egreso['Codigo']) && $comision['Vigente'] == 0) {
-                $comisionData->update(['Vigente' => 0]);
+                    // Limpiar campos opcionales
+                    if (isset($egreso['CodigoCuentaOrigen']) && $egreso['CodigoCuentaOrigen'] == 0) {
+                        $egreso['CodigoCuentaOrigen'] = null;
+                    }
+
+                    if (isset($egreso['CodigoBilleteraDigital']) && $egreso['CodigoBilleteraDigital'] == 0) {
+                        $egreso['CodigoBilleteraDigital'] = null;
+                    }
+
+                    // Validar fecha
+                    if (isset($egreso['CodigoCaja']) && isset($egreso['Fecha'])) {
+                        $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+                        $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString();
+                        $fechaVentaVal = Carbon::parse($egreso['Fecha'])->toDateString();
+
+                        if ($fechaCajaVal < $fechaVentaVal) {
+                            Log::warning('Error al actualizar el pago de comisión', [
+                                'Controlador' => 'PagoComisionController',
+                                'Metodo' => 'actualizarPagoComision',
+                                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                                'mensaje' => __('mensajes.error_fecha_pago')
+                            ]);
+                            return response()->json(['error' => __('mensajes.error_fecha_pago')], 400);
+                        }
+                    }
+
+                    // Validaciones específicas por tipo de pago
+                    if (isset($egreso['CodigoSUNAT'])) {
+                        if ($egreso['CodigoSUNAT'] == '008') {
+                            $egreso['CodigoCuentaOrigen'] = null;
+                            $egreso['CodigoBilleteraDigital'] = null;
+                            $egreso['Lote'] = null;
+                            $egreso['Referencia'] = null;
+                            $egreso['NumeroOperacion'] = null;
+
+                            if (isset($egreso['CodigoCaja']) && isset($egreso['Monto'])) {
+                                $total = MontoCaja::obtenerTotalCaja($egreso['CodigoCaja']);
+
+                                if ($egreso['Monto'] > $total) {
+                                    Log::warning('Error al actualizar el pago de comisión', [
+                                        'Controlador' => 'PagoComisionController',
+                                        'Metodo' => 'actualizarPagoComision',
+                                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                                        'mensaje' => __('mensajes.error_sin_efectivo', ['total' => $total]),
+                                        'Disponible' => $total
+                                    ]);
+                                    return response()->json(['error' => __('mensajes.error_sin_efectivo', ['total' => $total]), 'Disponible' => $total], 500);
+                                }
+                            }
+                        } else if ($egreso['CodigoSUNAT'] == '003') {
+                            $egreso['Lote'] = null;
+                            $egreso['Referencia'] = null;
+                        } else if ($egreso['CodigoSUNAT'] == '005' || $egreso['CodigoSUNAT'] == '006') {
+                            $egreso['CodigoCuentaBancaria'] = null;
+                            $egreso['CodigoBilleteraDigital'] = null;
+                        }
+                    }
+
+                    // Crear egreso y pago comisión
+                    $egresoCreado = Egreso::create($egreso);
+                    $pagoComision = [
+                        'CodigoMedico' => $comisionData['CodigoMedico'],
+                        'Codigo' => $egresoCreado->Codigo
+                    ];
+                    PagoComision::create($pagoComision);
+
+                    // Actualizar comisión con referencia al egreso
+                    $comisionData->update([
+                        'CodigoPagoComision' => $egresoCreado->Codigo,
+                        'TipoDocumento' => $comision['TipoDocumento'] ?? $comisionData->TipoDocumento,
+                        'Serie' => $comision['Serie'] ?? $comisionData->Serie,
+                        'Numero' => $comision['Numero'] ?? $comisionData->Numero,
+                        'Comentario' => $comision['Comentario'] ?? $comisionData->Comentario,
+                    ]);
+                }
+            } else {
+                // Caso 3: Solo actualizar comisión sin egreso
+                $updateData = [];
+                
+                if (isset($comision['TipoDocumento'])) {
+                    $updateData['TipoDocumento'] = $comision['TipoDocumento'];
+                }
+                if (isset($comision['Serie'])) {
+                    $updateData['Serie'] = $comision['Serie'];
+                }
+                if (isset($comision['Numero'])) {
+                    $updateData['Numero'] = $comision['Numero'];
+                }
+                if (isset($comision['Comentario'])) {
+                    $updateData['Comentario'] = $comision['Comentario'];
+                }
+                if (isset($comision['Vigente'])) {
+                    $updateData['Vigente'] = $comision['Vigente'];
+                }
+
+                if (!empty($updateData)) {
+                    $comisionData->update($updateData);
+                }
             }
 
             DB::commit();
+            
             Log::info('Pago de Comisión actualizado correctamente', [
                 'Controlador' => 'PagoComisionController',
                 'Metodo' => 'actualizarPagoComision',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'codigo' => $comision['Codigo']
+                'codigo' => $comision['Codigo'],
+                'egreso_procesado' => $egresoExiste
             ]);
+
             return response()->json([
                 'message' => 'Pago Comisión actualizado correctamente.'
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al actualizar el pago de comisión', [
                 'Controlador' => 'PagoComisionController',
                 'Metodo' => 'actualizarPagoComision',
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'codigo' => $comision['Codigo'],
+                'codigo' => $comision['Codigo'] ?? 'no proporcionado',
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile()
@@ -755,7 +801,6 @@ class PagoComisionController extends Controller
                 $query = DB::table('documentoventa as dv')
                     ->distinct()
                     ->join('personas as p', 'p.Codigo', '=', 'dv.CodigoPaciente')
-                    ->leftJoin('comision as c', 'dv.Codigo', '=', 'c.CodigoDocumentoVenta')
                     ->select([
                         'dv.Codigo as Codigo',
                         DB::raw("CONCAT(dv.Serie,' - ',LPAD(dv.Numero, 5, '0')) as Documento"),
@@ -767,10 +812,6 @@ class PagoComisionController extends Controller
                     ->where('dv.CodigoSede', $sede)
                     ->whereNull('dv.CodigoMotivoNotaCredito')
                     ->whereNull('dv.CodigoContratoProducto')
-                    ->where(function ($q) {
-                        $q->whereNull('c.Codigo')
-                            ->orWhere('c.Vigente', 0);
-                    })
                     ->where(function ($query) use ($termino) {
                         $query->where('p.Nombres', 'LIKE', "{$termino}%")
                             ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
@@ -778,10 +819,17 @@ class PagoComisionController extends Controller
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
                             ->from('detalledocumentoventa as ddv')
-                            ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
+                            ->join('producto as pr', 'ddv.CodigoProducto', '=', 'pr.Codigo')
                             ->whereRaw('ddv.CodigoVenta = dv.Codigo')
-                            ->where('p.Tipo', 'S');
+                            ->where('pr.Tipo', 'S');
+                    })
+                    ->whereNotExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('comision as c')
+                            ->whereRaw('c.CodigoDocumentoVenta = dv.Codigo')
+                            ->where('c.Vigente', 1);
                     });
+
             }
             //log info
             Log::info('Listar Documentos para Comisiones', [
@@ -821,7 +869,7 @@ class PagoComisionController extends Controller
                     ->where('p.Tipo', 'S')
                     ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
             } else {
-                $detalles = DB::table('documentoVenta as dv')
+                $detalles = DB::table('documentoventa as dv')
                     ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                     ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
                     ->where('dv.Codigo', $codigo)

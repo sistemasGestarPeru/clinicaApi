@@ -2737,7 +2737,7 @@ class VentaController extends Controller
                     'p.NumeroDocumento as numDocumento',
                     'mp.Nombre as FormaPago',
 
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'pg.Lote',
                     'pg.Referencia',
 
@@ -2834,7 +2834,7 @@ class VentaController extends Controller
                                 ELSE 'N/A'
                             END AS numDocumento"),
                     'mp.Nombre as FormaPago',
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'pg.Lote',
                     'pg.Referencia',
                     DB::raw("CASE
@@ -2948,7 +2948,7 @@ class VentaController extends Controller
                             END AS clienteDireccion
                         "),
                     'mp.Nombre AS FormaPago',
-                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' and mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
                     'eg.Lote',
                     'eg.Referencia',
                     'dv.Fecha AS fechaEmision',
@@ -3087,6 +3087,127 @@ class VentaController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
             ]);
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function consultarComprobantePorDatos(Request $request){
+
+        $tipoDocumentoVenta = $request->input('tipoDocumentoVenta');
+        $fecha = $request->input('fechaEmision');
+        $serie = $request->input('serie');
+        $numero = $request->input('numero');
+        $documento = $request->input('numeroDocumentoCliente');
+
+        try{
+            $registro = DB::table('documentoventa as dv')
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+                ->leftJoin('tipodocumentoventa as tdv', 'dv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                ->where('dv.Serie', $serie)
+                ->where('dv.Numero', intval($numero))
+                ->whereDate('dv.Fecha', $fecha)
+                ->where('dv.CodigoTipoDocumentoVenta', $tipoDocumentoVenta)
+                ->where(function ($query) use ($documento) {
+                    $query->where(function ($q) use ($documento) {
+                            $q->where('tdv.CodigoSUNAT', '01')
+                            ->where('ce.RUC', $documento);
+                        })
+                        ->orWhere(function ($q) use ($documento) {
+                            $q->where('tdv.CodigoSUNAT', '<>', '01')
+                            ->where('p.NumeroDocumento', $documento);
+                        });
+                })
+                ->select('dv.Codigo')
+                ->first();
+
+            // Validar si existe
+            if ($registro) {        
+                return response()->json(['venta' => $registro->Codigo, 'encontrado' => true], 200);
+            } else {
+                Log::info('No se encontró el registro de comprobante por datos.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'consultarComprobantePorDatos',
+                    'Data' => $request->all(),
+                    'Mensaje' => 'No se encontró el registro'
+                ]);
+                return response()->json(['mensaje' => 'No se encontró el registro', 'encontrado' => false], 200);
+            }
+
+        }catch(\Exception $e){
+            //log error
+            Log::error('Error al consultar comprobante por datos.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarComprobantePorDatos',
+                'Data' => $request->all(),
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+            return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Error al consultar comprobante por datos', 'encontrado' => false], 500);
+        }
+    }
+
+    public function detalleComprobantePorDatos($venta){
+
+        try{
+            $venta = DB::table('documentoventa as dv')
+             ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+             ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
+             ->leftJoin('tipodocumentoventa as tdv', 'dv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+             ->leftJoin('tipo_documentos as td', 'p.CodigoTipoDocumento', '=', 'td.Codigo')
+             ->leftJoin('sedesrec as s', 'dv.CodigoSede', '=', 's.Codigo')
+             ->leftJoin('pagodocumentoventa as pdv', 'dv.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+             ->leftJoin('pago as pag', 'pdv.CodigoPago', '=', 'pag.Codigo')
+            ->leftJoin('mediopago as mp', 'pag.CodigoMedioPago', '=', 'mp.Codigo')
+             ->where('dv.Codigo', $venta)
+             ->select([
+                 'dv.Codigo',
+                 DB::raw("CONCAT(dv.Serie, ' - ', LPAD(dv.Numero, 5, '0')) as Serie"),
+                 DB::raw("DATE(dv.Fecha) as Fecha"),
+                 DB::raw("CASE 
+                             WHEN ce.RUC IS NOT NULL THEN ce.RazonSocial
+                             ELSE CONCAT(p.Nombres, ' ', p.Apellidos)
+                         END AS Cliente"),
+                 DB::raw("CASE 
+                             WHEN ce.RUC IS NOT NULL THEN ce.RUC
+                             ELSE CONCAT(td.Siglas, ' ', p.NumeroDocumento)
+                         END AS Documento"),
+                 DB::raw("CASE 
+                             WHEN ce.RUC IS NOT NULL THEN ce.Direccion
+                             ELSE p.Direccion
+                         END AS Direccion"),
+                 DB::raw("CONCAT(s.Nombre, ' - ', s.Direccion) as Sede"),
+                 'dv.Vigente',
+                 'dv.MontoTotal',
+                 'tdv.Nombre as TipoDocumentoVenta',
+                 'tdv.CodigoSUNAT as CodigoSUNAT',
+                 'mp.Nombre as MedioPago',
+                
+             ])
+             ->first();
+
+                Log::info('Consulta de comprobante por datos realizada correctamente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'consultarComprobantePorDatos',
+                    'Data' => $venta,
+                    'Mensaje' => 'Registro encontrado',
+                ]);
+                
+                return response()->json(['venta' => $venta, 'encontrado' => true], 200);
+
+
+        }catch(\Exception $e){
+            //log error
+            Log::error('Error al consultar comprobante por datos.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarComprobantePorDatos',
+                'Data' => $venta,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+            return response()->json(['error' => $e->getMessage(), 'mensaje' => 'Error al consultar comprobante por datos', 'encontrado' => false], 500);
         }
     }
 }

@@ -97,6 +97,14 @@ Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']
 Route::get('portadas/listarActivos/{id}/{condicion}', [PortadaController::class, 'listarVigentes']);
 Route::get('promocion/listarSedes', [PortadaController::class, 'listarSedes']);
 
+Route::post('venta/consultarComprobantePorDatos', [VentaController::class, 'consultarComprobantePorDatos']);
+Route::get('venta/detalleComprobantePorDatos/{venta}', [VentaController::class, 'detalleComprobantePorDatos']);
+Route::get('tiposDocVenta/listarTipoDocumentoVenta', [TipoDocumentoVentaController::class, 'listarTipoDocumentoVenta']);
+Route::get('venta/boletaVentaPDF/{venta}', [VentaController::class, 'boletaVentaPDF']);
+Route::get('venta/facturaVentaPDF/{venta}', [VentaController::class, 'facturaVentaPDF']);
+Route::get('venta/notaCreditoPDF/{venta}', [VentaController::class, 'notaCreditoPDF']);
+Route::get('venta/notaVentaPDF/{venta}', [VentaController::class, 'notaVentaPDF']);
+
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
@@ -249,12 +257,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('venta/consultarTipoProducto', [VentaController::class, 'consultarTipoProducto']);
     Route::post('venta/buscarProductos', [VentaController::class, 'buscarProductos']);
     Route::get('venta/cuentaDetraccion/{empresa}', [VentaController::class, 'cuentaDetraccion']);
-    Route::get('venta/boletaVentaPDF/{venta}', [VentaController::class, 'boletaVentaPDF']);
-    Route::get('venta/facturaVentaPDF/{venta}', [VentaController::class, 'facturaVentaPDF']);
-    Route::get('venta/notaCreditoPDF/{venta}', [VentaController::class, 'notaCreditoPDF']);
-    Route::get('venta/notaVentaPDF/{venta}', [VentaController::class, 'notaVentaPDF']);
     Route::get('venta/listarPagosAsociados/{venta}', [VentaController::class, 'listarPagosAsociados']);
     Route::get('venta/anularPago/{venta}/{pago}', [VentaController::class, 'anularPago']);
+
 
     /********************************* PAGOS *********************************/
     Route::post('pago/registrarPago', [PagoController::class, 'registrarPago']);
@@ -309,7 +314,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::get('pagoComision/listarComisionesPagar/{sede}/{medico}', [PagoComisionController::class, 'listarComisionesPagar']);
     Route::get('pagoComision/listarMedicosPendientesP/{sede}', [PagoComisionController::class, 'listarMedicosPendientesP']);
-
 
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
     Route::get('pagoComision/consultarDetalleDocumento/{codigo}/{tipo}', [PagoComisionController::class, 'consultarDetalleDocumento']);
@@ -366,7 +370,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('tipoDocIdentidad/consultarTipoDocumento/{codigo}', [TipoDocumentoController::class, 'consultarTipoDocumento']);
 
     /********************************** TIPOS DOCUMENTOS VENTA ************************************************************/
-    Route::get('tiposDocVenta/listarTipoDocumentoVenta', [TipoDocumentoVentaController::class, 'listarTipoDocumentoVenta']);
+    
     Route::post('tiposDocVenta/registrarDocVenta', [TipoDocumentoVentaController::class, 'registrarDocVenta']);
     Route::post('tiposDocVenta/actualizarDocVenta', [TipoDocumentoVentaController::class, 'actualizarDocVenta']);
     Route::get('tiposDocVenta/consultarDocVenta/{codigo}', [TipoDocumentoVentaController::class, 'consultarDocVenta']);
