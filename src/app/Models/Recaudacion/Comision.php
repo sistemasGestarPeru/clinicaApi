@@ -27,5 +27,6 @@ class Comision extends Model
         'Comentario',
         'CodigoTrabajador',
         'FechaCreacion',
+        'CodigoComisionReferencia'
     ];
 }

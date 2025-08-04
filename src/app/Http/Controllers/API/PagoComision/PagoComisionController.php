@@ -271,6 +271,7 @@ class PagoComisionController extends Controller
 
             $comision['CodigoDocumentoVenta'] = $comision['CodigoDocumentoVenta'] == 0 ? null : $comision['CodigoDocumentoVenta'];
             $comision['CodigoContrato'] = $comision['CodigoContrato'] == 0 ? null : $comision['CodigoContrato'];
+            $comision['CodigoComisionReferencia'] = $comision['CodigoComisionReferencia'] == 0 ? null : $comision['CodigoComisionReferencia'];
 
             if ($egreso && $pagoComision) {
                 $egreso = Egreso::create($egreso);
@@ -281,16 +282,19 @@ class PagoComisionController extends Controller
 
             $codigoComision = Comision::create($comision)->Codigo;
 
-            foreach ($detalleComision as $detalle) {
-                $detalle['CodigoComision'] = $codigoComision;
-                if (isset($detalle['CodigoDetalleVenta'])) {
-                    $detalle['CodigoDetalleVenta'] = $detalle['CodigoDetalleVenta'] == 0 ? null : $detalle['CodigoDetalleVenta'];
+            if (isset($detalleComision) && is_array($detalleComision) && count($detalleComision) > 0) {
+                foreach ($detalleComision as $detalle) {
+                    $detalle['CodigoComision'] = $codigoComision;
+                    if (isset($detalle['CodigoDetalleVenta'])) {
+                        $detalle['CodigoDetalleVenta'] = $detalle['CodigoDetalleVenta'] == 0 ? null : $detalle['CodigoDetalleVenta'];
+                    }
+                    if (isset($detalle['CodigoDetalleContrato'])) {
+                        $detalle['CodigoDetalleContrato'] = $detalle['CodigoDetalleContrato'] == 0 ? null : $detalle['CodigoDetalleContrato'];
+                    }
+                    DetalleComision::create($detalle);
                 }
-                if (isset($detalle['CodigoDetalleContrato'])) {
-                    $detalle['CodigoDetalleContrato'] = $detalle['CodigoDetalleContrato'] == 0 ? null : $detalle['CodigoDetalleContrato'];
-                }
-                DetalleComision::create($detalle);
             }
+
 
             DB::commit();
 
@@ -399,6 +403,9 @@ class PagoComisionController extends Controller
                 ->leftJoin('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
                 ->select(
                     'c.Codigo',
+                    'c.CodigoComisionReferencia',
+                    'c.CodigoDocumentoVenta',
+                    'c.CodigoContrato',
                     'e.Codigo as Egreso',
                     DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
                     DB::raw("CASE 
@@ -900,6 +907,56 @@ class PagoComisionController extends Controller
             ]);
             return response()->json([
                 'error' => 'Error al consultar el documento',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function consultarComisionReferencia($codigo){
+
+        try{
+
+            $datos = DB::table('comision as c')
+            ->join('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
+            ->select(
+                'c.Codigo',
+                'c.FechaCreacion',
+                DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
+                DB::raw("CONCAT(c.Serie, '-', c.Numero) as Documento"),
+                'c.Monto',
+                DB::raw("
+                    CASE
+                        WHEN c.CodigoPagoComision IS NULL THEN 'No Pagado'
+                        ELSE 'Pagado'
+                    END as Condicion
+                ")
+            )
+            ->where('c.CodigoComisionReferencia', $codigo)
+            ->get();
+
+            //log info
+            Log::info('Consulta de Comisión de Referencia', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'consultarComisionReferencia',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codigo,
+                'Cantidad' => $datos->count()
+            ]);
+
+            return response()->json($datos, 200);
+
+        }catch (\Exception $e) {
+            Log::error('Error al consultar la comisión de referencia', [
+                'Controlador' => 'PagoComisionController',
+                'Metodo' => 'consultarComisionReferencia',
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'codigo' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+            return response()->json([
+                'error' => 'Error al consultar la comisión de referencia',
                 'message' => $e->getMessage()
             ], 500);
         }

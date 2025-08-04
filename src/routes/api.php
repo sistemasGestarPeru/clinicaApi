@@ -318,6 +318,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
     Route::get('pagoComision/consultarDetalleDocumento/{codigo}/{tipo}', [PagoComisionController::class, 'consultarDetalleDocumento']);
     Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
+    Route::get('pagoComision/consultarComisionReferencia/{codigo}', [PagoComisionController::class, 'consultarComisionReferencia']);
+
+
+
     /********************************** PAGOS VARIOS **********************************/
     Route::post('pagosVarios/registrarPagoVarios', [PagosVariosController::class, 'registrarPagoVarios']);
     Route::post('pagosVarios/actualizarPagoVarios', [PagosVariosController::class, 'actualizarPagoVarios']);

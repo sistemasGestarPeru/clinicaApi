@@ -165,7 +165,8 @@ class VentaController extends Controller
                         'RUC as NumeroDocumento',
                         'RazonSocial as Nombres',
                         DB::raw("6 as CodigoSUNAT"), // Asumiendo que 6 es el código SUNAT para RUC
-                        'Direccion'
+                        'Direccion',
+                        DB::raw("'' as Correo")
                     )
                     ->first();
             }
@@ -1658,7 +1659,7 @@ class VentaController extends Controller
                 ->where('sp.Vigente', 1)
                 ->where('p.Vigente', 1)
                 ->where('tg.Vigente', 1)
-                ->where('p.Nombre', 'LIKE', "{$nombreProducto}%")
+                ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%")
                 ->where(function ($query) use ($tipo) {
                     $query->where('p.Tipo', $tipo)
                         ->orWhereNotExists(function ($subquery) use ($tipo) {
