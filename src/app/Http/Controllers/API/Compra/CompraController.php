@@ -122,6 +122,7 @@ class CompraController extends Controller
                 // ->where('RazonSocial', 'like', '%'.$nombre.'%')
                 // ->where('RUC', 'like', '%'.$ruc.'%')
                 ->select('Codigo', 'RazonSocial', 'RUC')
+                ->orderBy('RazonSocial', 'asc')
                 ->get();
 
             // Log de éxito
@@ -164,7 +165,8 @@ class CompraController extends Controller
                 ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
                 ->where('p.Vigente', 1) // Filtro por Vigente en producto
                 ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
-                ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
+                ->where('p.Nombre', 'LIKE', "%{$nombre}%") // Filtro por Nombre
+                ->orderBy('p.Nombre', 'asc') // Ordenar por Nombre
                 ->get();
 
             // Log de éxito
@@ -465,53 +467,7 @@ class CompraController extends Controller
         DB::beginTransaction();
         try {
 
-            // $compra = Compra::find($compra['Codigo']);
-            // $compra->update($request->input('compra'));
-
-            // Que no tenga pago activos
-            $existePagoActivo = DB::table('cuota as cu')
-                ->join('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
-                ->join('egreso as e', 'pp.Codigo', '=', 'e.Codigo')
-                ->where('cu.CodigoCompra', $compra['Codigo'])
-                ->where('e.Vigente', 1)
-                ->exists();
-
-            if ($existePagoActivo) {
-                // Log del error específico
-                Log::warning('No se puede actualizar la compra porque tiene pagos activos', [
-                    'Controlador' => 'CompraController',
-                    'Metodo' => 'actualizarCompra',
-                    'CodigoCompra' => $compra['Codigo'],
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
-                ]);
-                return response()->json(['error' => 'No se puede actualizar la compra porque tiene pagos activos.'], 400);
-            }
-
-            // Verificar si la compra tiene guia ingreso
-
-            $guiaActiva = DB::table('compra as c')
-                ->join('guiaingreso as g', 'c.Codigo', '=', 'g.CodigoCompra')
-                ->where('g.Vigente', 1)
-                ->where('c.Codigo', $compra['Codigo'])
-                ->where('c.Vigente', 1)
-                ->exists();
-
-            if ($guiaActiva) {
-                // Log del error específico
-                Log::warning(
-                    'No se puede actualizar la compra porque tiene una guía de ingreso activa',
-                    [
-                        'Controlador' => 'CompraController',
-                        'Metodo' => 'actualizarCompra',
-                        'CodigoCompra' => $compra['Codigo'],
-                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
-                    ]
-                );
-                return response()->json(['error' => 'No se puede actualizar la compra porque tiene una guía de ingreso activa.'], 400);
-            }
-
             // Verificar si la compra existe
-
             $compraEncontrada = Compra::find($compra['Codigo']);
             if (!$compraEncontrada) {
                 // Log del error específico
@@ -525,12 +481,7 @@ class CompraController extends Controller
             }
 
             // Actualizar la compra
-            if ($compraEncontrada['Vigente'] == 1) {
-                $compraEncontrada->update(['Vigente' => $compra['Vigente']]);
-                DB::table('cuota')
-                    ->where('CodigoCompra', $compra['Codigo'])
-                    ->update(['Vigente' => 0]);
-            } else {
+            if ($compraEncontrada['Vigente'] == 0) {
                 // Log del error específico
                 Log::warning('Compra no puede ser actualizada porque ya no está vigente', [
                     'Controlador' => 'CompraController',
@@ -541,8 +492,66 @@ class CompraController extends Controller
                 return response()->json([
                     'error' => __('mensajes.error_act_compra')
                 ], 400);
-            }
+            } 
 
+            if($compra['Vigente'] == 0) {
+                // Que no tenga pago activos
+                $existePagoActivo = DB::table('cuota as cu')
+                    ->join('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                    ->join('egreso as e', 'pp.Codigo', '=', 'e.Codigo')
+                    ->where('cu.CodigoCompra', $compra['Codigo'])
+                    ->where('e.Vigente', 1)
+                    ->exists();
+
+                if ($existePagoActivo) {
+                    // Log del error específico
+                    Log::warning('No se puede actualizar la compra porque tiene pagos activos', [
+                        'Controlador' => 'CompraController',
+                        'Metodo' => 'actualizarCompra',
+                        'CodigoCompra' => $compra['Codigo'],
+                        'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                    ]);
+                    return response()->json(['error' => 'No se puede actualizar la compra porque tiene pagos activos.'], 400);
+                }
+
+                // Verificar si la compra tiene guia ingreso
+
+                $guiaActiva = DB::table('compra as c')
+                    ->join('guiaingreso as g', 'c.Codigo', '=', 'g.CodigoCompra')
+                    ->where('g.Vigente', 1)
+                    ->where('c.Codigo', $compra['Codigo'])
+                    ->where('c.Vigente', 1)
+                    ->exists();
+
+                if ($guiaActiva) {
+                    // Log del error específico
+                    Log::warning(
+                        'No se puede actualizar la compra porque tiene una guía de ingreso activa',
+                        [
+                            'Controlador' => 'CompraController',
+                            'Metodo' => 'actualizarCompra',
+                            'CodigoCompra' => $compra['Codigo'],
+                            'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                        ]
+                    );
+                    return response()->json(['error' => 'No se puede actualizar la compra porque tiene una guía de ingreso activa.'], 400);
+                }
+
+                $compraEncontrada->update(['Vigente' => $compra['Vigente']]);
+                DB::table('cuota')
+                    ->where('CodigoCompra', $compra['Codigo'])
+                    ->update(['Vigente' => 0]);
+
+            }else{
+                $compraEncontrada->update(
+                    ['Fecha' => $compra['Fecha'], 
+                    'CodigoTipoDocumentoVenta' => $compra['CodigoTipoDocumentoVenta'],
+                    'Serie' => $compra['Serie'],
+                    'Numero' => $compra['Numero']]
+                );
+            }
+            
+        
             DB::commit();
             // Log de éxito
             Log::info('Compra actualizada correctamente', [
@@ -551,7 +560,9 @@ class CompraController extends Controller
                 'CodigoCompra' => $compra['Codigo'],
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
+
             return response()->json(['message' => 'Compra actualizada correctamente'], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             // Log del error general
