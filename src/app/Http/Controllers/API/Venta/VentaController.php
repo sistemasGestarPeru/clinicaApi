@@ -1753,6 +1753,11 @@ class VentaController extends Controller
                         AND nc.CodigoDocumentoReferencia = dv.Codigo
                     ), dv.MontoTotal) AS SaldoFinal,
                     tdv.CodigoSUNAT AS CodigoSUNAT,
+                    EXISTS (
+                        SELECT 1 
+                        FROM comision c 
+                        WHERE c.CodigoDocumentoVenta = dv.Codigo AND c.Vigente = 1
+                    ) AS comision,
                     CASE 
                         WHEN tdv.CodigoSUNAT = '03' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 7 THEN '1'
                         WHEN tdv.CodigoSUNAT = '01' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 3 THEN '1'
@@ -2738,6 +2743,102 @@ class VentaController extends Controller
         }
     }
 
+
+    public function consultarMedicoVenta($codigo){
+
+        try{
+            $medico = DB::table('documentoventa as dv')
+                ->leftJoin('personas as p', 'dv.CodigoMedico', '=', 'p.Codigo')
+                ->where('dv.Codigo', $codigo)
+                ->select('dv.CodigoMedico', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Nombres"))
+                ->first();
+
+            if (!$medico) {
+                //log warning
+                Log::warning('No se encontró el médico de la venta.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'consultarMedicoVenta',
+                    'query' => ['codigo' => $codigo],
+                ]);
+            }
+
+            //log info
+            Log::info('Consulta de Médico de Venta realizada correctamente.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarMedicoVenta',
+                'query' => ['codigo' => $codigo],
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+            return response()->json($medico, 200);
+
+        }catch(\Exception $e){
+            //log error
+            Log::error('Error al consultar Médico de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'consultarMedicoVenta',
+                'query' => ['codigo' => $codigo],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+        }
+    }
+
+
+    public function actualizarMedicoVenta(Request $request){
+
+        $venta = $request->input('Venta');
+        $medico = $request->input('Medico');
+
+        try{
+
+        $existe = DB::table('comision')
+            ->where('CodigoDocumentoVenta', $venta)
+            ->where('Vigente', 1)
+            ->exists();
+
+            if (!$existe) {
+                DB::table('documentoventa')
+                    ->where('Codigo', $venta)
+                    ->update(['CodigoMedico' => $medico]);
+
+                //log info
+                Log::info('Médico de Venta actualizado correctamente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'actualizarMedicoVenta',
+                    'query' => ['venta' => $venta, 'medico' => $medico],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
+                return response()->json(['message' => 'Médico de Venta actualizado correctamente.'], 200);
+            
+            }else{
+                //log warning
+                Log::warning('No se puede actualizar el Médico de Venta porque ya existe una comisión vigente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'actualizarMedicoVenta',
+                    'query' => ['venta' => $venta, 'medico' => $medico],
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+
+                return response()->json(['message' => 'No se puede actualizar el Médico de Venta porque ya existe una comisión vigente.'], 400);
+            }
+
+        }catch(\Exception $e){
+            //log error
+            Log::error('Error al actualizar Médico de Venta.', [
+                'Controlador' => 'VentaController',
+                'Metodo' => 'actualizarMedicoVenta',
+                'query' => ['venta' => $venta, 'medico' => $medico],
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+            ]);
+            return response()->json(['message' => 'Error al actualizar Médico de Venta.', 'error' => $e->getMessage()], 500);
+        }
+    }
 
 
 

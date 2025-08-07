@@ -259,7 +259,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('venta/cuentaDetraccion/{empresa}', [VentaController::class, 'cuentaDetraccion']);
     Route::get('venta/listarPagosAsociados/{venta}', [VentaController::class, 'listarPagosAsociados']);
     Route::get('venta/anularPago/{venta}/{pago}', [VentaController::class, 'anularPago']);
-
+    Route::get('venta/consultarMedicoVenta/{codigo}', [VentaController::class, 'consultarMedicoVenta']);
+    Route::post('venta/actualizarMedicoVenta', [VentaController::class, 'actualizarMedicoVenta']);
 
     /********************************* PAGOS *********************************/
     Route::post('pago/registrarPago', [PagoController::class, 'registrarPago']);
