@@ -1207,8 +1207,10 @@ class VentaController extends Controller
 
             $ventaData['TotalDescuento'] = 0;
 
-            foreach ($detallesVentaData as $detalle) {
+            foreach ($detallesVentaData as $i => $detalle) {
+                $detalle['Numero'] = $i + 1; 
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
+                
                 if (!isset($detalle['Descuento'])) {
                     $detalle['Descuento'] = 0;
                 }
@@ -1753,11 +1755,15 @@ class VentaController extends Controller
                         AND nc.CodigoDocumentoReferencia = dv.Codigo
                     ), dv.MontoTotal) AS SaldoFinal,
                     tdv.CodigoSUNAT AS CodigoSUNAT,
-                    EXISTS (
-                        SELECT 1 
-                        FROM comision c 
-                        WHERE c.CodigoDocumentoVenta = dv.Codigo AND c.Vigente = 1
-                    ) AS comision,
+                    CASE 
+                        WHEN dv.CodigoMedico IS NULL THEN 1
+                        WHEN EXISTS (
+                            SELECT 1 
+                            FROM comision c 
+                            WHERE c.CodigoDocumentoVenta = dv.Codigo AND c.Vigente = 1
+                        ) THEN 1
+                        ELSE 0
+                    END AS comision,
                     CASE 
                         WHEN tdv.CodigoSUNAT = '03' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 7 THEN '1'
                         WHEN tdv.CodigoSUNAT = '01' AND DATEDIFF(DATE(?), DATE(dv.Fecha)) <= 3 THEN '1'
@@ -1809,12 +1815,11 @@ class VentaController extends Controller
                     });
                 })
 
-                // Filtro por estado de pago
                 ->when($estadoPago == 1, function ($query) {
-                    $query->whereColumn('dv.MontoTotal', '=', 'dv.MontoPagado');
+                    $query->whereRaw('IFNULL(dv.MontoTotal, 0) = IFNULL(dv.MontoPagado, 0)');
                 })
                 ->when($estadoPago == 2, function ($query) {
-                    $query->whereColumn('dv.MontoTotal', '!=', 'dv.MontoPagado');
+                    $query->whereRaw('IFNULL(dv.MontoTotal, 0) != IFNULL(dv.MontoPagado, 0)');
                 })
 
                 ->orderByDesc('dv.Codigo')
@@ -2067,6 +2072,11 @@ class VentaController extends Controller
         DB::beginTransaction();
         try {
 
+            $codigoSunat = DB::table('documentoventa as dv')
+            ->join('tipodocumentoventa as tdv', 'dv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+            ->where('dv.Codigo', $codigoVenta)
+            ->value('tdv.CodigoSUNAT');
+
             $anulacionCreada = Anulacion::create($anulacionData);
 
             if ($anularPago == 1) {
@@ -2125,41 +2135,43 @@ class VentaController extends Controller
             DB::commit();
             // cerrar el catch y abrir otro
             //Obtener la sede de la venta
+            $respEnvio = null;
+            if($codigoSunat) {
+                $sede_venta = DB::table('documentoventa')
+                    ->where('Codigo', $codigoVenta)
+                    ->value('CodigoSede');
 
-            $sede_venta = DB::table('documentoventa')
-                ->where('Codigo', $codigoVenta)
-                ->value('CodigoSede');
-
-            // Generar JSON para anulacion electrónica con los datos que ya tenemos
-            $dataFactura = $this->anularFacturacionElectronica($codigoVenta, $anulacionData, $anulacionCreada->Codigo);
-            //Generar insert de la tabla del envio de la anulacion electronica
-            $dataEnvio['Tipo'] = 'B';
-            $dataEnvio['JSON'] = json_encode($dataFactura['JSON']);
-            $dataEnvio['URL'] = env('PSE_API_URL');
-            $dataEnvio['Fecha'] = $anulacionData['Fecha'];
-            $dataEnvio['CodigoTrabajador'] = $anulacionData['CodigoTrabajador'];
-            $dataEnvio['Estado'] = $dataFactura['Estado'];
-            $dataEnvio['CodigoAnulacion'] = $anulacionCreada->Codigo;
-            $dataEnvio['Mensaje'] = $dataFactura['Mensaje'];
-            $dataEnvio['CodigoSede'] = $sede_venta;
-            $respEnvio = $this->registrarEnvio($dataEnvio);
+                // Generar JSON para anulacion electrónica con los datos que ya tenemos
+                $dataFactura = $this->anularFacturacionElectronica($codigoVenta, $anulacionData, $anulacionCreada->Codigo);
+                //Generar insert de la tabla del envio de la anulacion electronica
+                $dataEnvio['Tipo'] = 'B';
+                $dataEnvio['JSON'] = json_encode($dataFactura['JSON']);
+                $dataEnvio['URL'] = env('PSE_API_URL');
+                $dataEnvio['Fecha'] = $anulacionData['Fecha'];
+                $dataEnvio['CodigoTrabajador'] = $anulacionData['CodigoTrabajador'];
+                $dataEnvio['Estado'] = $dataFactura['Estado'];
+                $dataEnvio['CodigoAnulacion'] = $anulacionCreada->Codigo;
+                $dataEnvio['Mensaje'] = $dataFactura['Mensaje'];
+                $dataEnvio['CodigoSede'] = $sede_venta;
+                $respEnvio = $this->registrarEnvio($dataEnvio);
 
 
-            //log info
-            Log::info('Venta anulada correctamente.', [
-                'Controlador' => 'VentaController',
-                'Metodo' => 'anularVenta',
-                'Data' => $request->all(),
-                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-            ]);
+                //log info
+                Log::info('Venta anulada correctamente.', [
+                    'Controlador' => 'VentaController',
+                    'Metodo' => 'anularVenta',
+                    'Data' => $request->all(),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                ]);
+            }
 
             return response()->json([
                 'message' => 'Venta anulada correctamente.',
                 'facturacion' => [
-                    'success' => $dataFactura['success'],
-                    'Mensaje' => $dataFactura['Mensaje'],
+                    'success' => $dataFactura['success'] ?? true,
+                    'Mensaje' => $dataFactura['Mensaje'] ?? 'Anulación procesada correctamente',
                 ],
-                'envio' => $respEnvio,
+                'envio' => $respEnvio ? $respEnvio : null,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();

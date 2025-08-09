@@ -126,7 +126,7 @@ class CompraController extends Controller
                 ->get();
 
             // Log de éxito
-            Log::info('Compras listadas correctamente', [
+            Log::info('Proveedores listados correctamente', [
                 'Controlador' => 'CompraController',
                 'Metodo' => 'listarProveedor',
                 'cantidad' => count($proveedores),
@@ -191,7 +191,11 @@ class CompraController extends Controller
     public function listarCompras(Request $request)
     {
         $filtro = $request->all();
-
+        $mes = $filtro['mes'];
+        $anio = $filtro['anio'];
+        $estadoPago = $filtro['estadoPago'];
+        $serie = $filtro['serie'];
+        $numero = $filtro['numero'];
         try {
 
             $compra = DB::table('compra as c')
@@ -243,12 +247,14 @@ class CompraController extends Controller
             )
 
             ->leftJoin('tipomoneda as m', 'm.Codigo', '=', 'cuotas.TipoMoneda')
+            ->leftJoin('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
 
             // Campos que deseas recuperar
             ->select(
                 'c.Codigo',
                 'c.Serie',
                 'c.Numero',
+                'tdv.Siglas as TipoDocumento',
                 'c.Fecha',
                 'p.RazonSocial',
                 'p.Codigo as CodigoProveedor',
@@ -262,6 +268,33 @@ class CompraController extends Controller
 
             // Filtro por sede
             ->where('c.CodigoSede', $filtro['sede'])
+
+            // Filtro por fecha o rango
+            ->when($anio, function ($query) use ($mes, $anio) {
+                if (empty($mes)) {
+                    $query->whereYear('c.Fecha', $anio); //buscar por año
+                } else {
+                    $query->whereYear('c.Fecha', $anio)->whereMonth('c.Fecha', $mes); //mes y año
+                }
+            })
+
+            //Serie 
+            ->when($serie, function ($query) use ($serie) {
+                $query->where('c.Serie', 'like', "{$serie}%");
+            })
+
+            //Numero
+            ->when($numero, function ($query) use ($numero) {
+                $query->where('c.Numero', 'like', "{$numero}%");
+            })
+
+            // Filtro por estado de pago
+            ->when($estadoPago == 1, function ($query) {
+                $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) = IFNULL(pagos.MontoPagado, 0)');
+            })
+            ->when($estadoPago == 2, function ($query) {
+                $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) != IFNULL(pagos.MontoPagado, 0)');
+            })
 
             // Filtro por tipo
             ->where(function ($query) use ($filtro) {
