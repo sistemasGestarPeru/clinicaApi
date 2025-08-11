@@ -3104,7 +3104,7 @@ class VentaController extends Controller
                         "),
                     'mp.Nombre AS FormaPago',
                     DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
-                    'pg.NumeroOperacion as Operacion',
+                    'eg.NumeroOperacion as Operacion',
                     'eg.Lote',
                     'eg.Referencia',
                     'dv.Fecha AS fechaEmision',
