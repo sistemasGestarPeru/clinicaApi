@@ -2605,6 +2605,7 @@ class VentaController extends Controller
             $venta = DB::table('documentoventa as dv')
                 ->select(
                     'dv.Codigo',
+                    'dv.CodigoSede',
                     DB::raw('DATE(dv.Fecha) as Fecha'),
                     DB::raw("
                     CASE 
@@ -2718,6 +2719,7 @@ class VentaController extends Controller
                 ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
                 ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
                 ->where('S.Monto', '>', 0)
+                ->where('SP.CodigoSede', $venta->CodigoSede)
                 ->orderBy('S.Descripcion')
                 ->selectRaw('
                 S.CodigoProducto, 
@@ -2889,6 +2891,7 @@ class VentaController extends Controller
                     'mp.Nombre as FormaPago',
 
                     DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'pg.NumeroOperacion as Operacion',
                     'pg.Lote',
                     'pg.Referencia',
 
@@ -2986,6 +2989,7 @@ class VentaController extends Controller
                             END AS numDocumento"),
                     'mp.Nombre as FormaPago',
                     DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'pg.NumeroOperacion as Operacion',
                     'pg.Lote',
                     'pg.Referencia',
                     DB::raw("CASE
@@ -3100,6 +3104,7 @@ class VentaController extends Controller
                         "),
                     'mp.Nombre AS FormaPago',
                     DB::raw("CASE WHEN mp.CodigoSUNAT = '005' or mp.CodigoSUNAT = '006' THEN 1 ELSE 0 END as Tarjeta"),
+                    'pg.NumeroOperacion as Operacion',
                     'eg.Lote',
                     'eg.Referencia',
                     'dv.Fecha AS fechaEmision',
