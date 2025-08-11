@@ -610,4 +610,67 @@ class CompraController extends Controller
             return response()->json(['error' => 'Error al actualizar la compra', 'bd' => $e->getMessage()], 500);
         }
     }
+
+    public function consultarDetalleComprasNC($codigo){ //para nota de credito
+
+        try{
+
+            // Primer query
+            $compra = DB::table('compra as c')
+                ->join('proveedor as p', 'c.CodigoProveedor', '=', 'p.Codigo')
+                ->join('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                ->select(
+                    'c.Codigo',
+                    'c.Serie',
+                    'c.Numero',
+                    'c.Fecha',
+                    DB::raw("CONCAT(p.RazonSocial,' ', p.RUC) as Proveedor"),
+                    'tdv.Nombre as Documento'
+                )
+                ->where('c.Codigo', $codigo)
+                ->first();
+
+            // Segundo query
+            $detalleCompra = DB::table('detallecompra')
+                ->select(
+                    'Codigo',
+                    'Descripcion',
+                    'MontoTotal',
+                    'MontoIGV',
+                    'Cantidad',
+                    'TipoGravado',
+                    'CodigoProducto',
+                    DB::raw('MontoTotal / Cantidad as MontoUnitario'),
+                    DB::raw('((MontoTotal / Cantidad) - MontoIGV) AS ValorUnitario'),
+                    DB::raw('18 AS Porcentaje')
+                )
+                ->where('CodigoCompra', $codigo)
+                ->get();
+
+            // Log de éxito
+            Log::info('Detalles de compra consultados correctamente', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'consultaDetallesCompra',
+                'CodigoCompra' => $codigo,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json([
+                'compra' => $compra,
+                'detalleCompra' => $detalleCompra
+            ]);
+
+        }catch(\Exception $e){
+            Log::error('Error al consultar los detalles de la compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'consultaDetallesCompra',
+                'CodigoCompra' => $codigo,
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['error' => 'Error al consultar los detalles de la compra', 'bd' => $e->getMessage()], 500);
+        }
+    }
 }

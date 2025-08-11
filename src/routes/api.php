@@ -288,7 +288,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('compra/consultarCompra/{codigo}', [CompraController::class, 'consultarCompra']);
     Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
     Route::post('compra/actualizarCompra', [CompraController::class, 'actualizarCompra']);
-
+    Route::get('compra/consultarDetalleComprasNC/{codigo}', [CompraController::class, 'consultarDetalleComprasNC']); //para nota de credito
     /********************************** PAGO PROVEEDOR **********************************/
 
     Route::post('pagoProveedor/registrarPago', [PagoProveedorController::class, 'registrarPago']);
