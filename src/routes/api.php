@@ -311,11 +311,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pagoComision/registrarPagoComision', [PagoComisionController::class, 'registrarPagoComision']);
     Route::post('pagoComision/actualizarPagoComision', [PagoComisionController::class, 'actualizarPagoComision']);
     Route::post('pagoComision/registrarComisionPendiente', [PagoComisionController::class, 'registrarComisionPendiente']);
-
     Route::post('pagoComision/listarPagosComisiones', [PagoComisionController::class, 'listarPagosComisiones']);
     Route::get('pagoComision/listarComisionesPagar/{sede}/{medico}', [PagoComisionController::class, 'listarComisionesPagar']);
     Route::get('pagoComision/listarMedicosPendientesP/{sede}', [PagoComisionController::class, 'listarMedicosPendientesP']);
-
+    
+    Route::post('pagoComision/listarDocumentosSinReferencia', [PagoComisionController::class, 'listarDocumentosSinReferencia']);
     Route::post('pagoComision/listarDocumentos', [PagoComisionController::class, 'listarDocumentos']);
     Route::get('pagoComision/consultarDetalleDocumento/{codigo}/{tipo}', [PagoComisionController::class, 'consultarDetalleDocumento']);
     Route::get('pagoComision/consultarPagoComision/{codigo}', [PagoComisionController::class, 'consultarPagoComision']);
@@ -375,7 +375,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('tipoDocIdentidad/consultarTipoDocumento/{codigo}', [TipoDocumentoController::class, 'consultarTipoDocumento']);
 
     /********************************** TIPOS DOCUMENTOS VENTA ************************************************************/
-    
+
     Route::post('tiposDocVenta/registrarDocVenta', [TipoDocumentoVentaController::class, 'registrarDocVenta']);
     Route::post('tiposDocVenta/actualizarDocVenta', [TipoDocumentoVentaController::class, 'actualizarDocVenta']);
     Route::get('tiposDocVenta/consultarDocVenta/{codigo}', [TipoDocumentoVentaController::class, 'consultarDocVenta']);
@@ -641,5 +641,4 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /*********************************************************** Horario ***********************************************************/
     Route::post('horario/registrarHorario', [HorarioController::class, 'registrarHorario']);
     Route::post('horario/listarHorarios', [HorarioController::class, 'listarHorarios']);
-
 });
