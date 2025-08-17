@@ -595,12 +595,12 @@ class PagoComisionController extends Controller
 
             // Verificar si el egreso existe y tiene datos válidos
             $egresoExiste = !empty($egreso) && is_array($egreso) && count($egreso) > 0;
-            
+
             if ($egresoExiste) {
                 // Validar estado de caja si el egreso tiene CodigoCaja
                 if (isset($egreso['CodigoCaja'])) {
                     $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
-                    
+
                     if ($estadoCaja->Estado == 'C') {
                         Log::warning('Error al actualizar el pago de comisión', [
                             'Controlador' => 'PagoComisionController',
@@ -708,7 +708,7 @@ class PagoComisionController extends Controller
             } else {
                 // Caso 3: Solo actualizar comisión sin egreso
                 $updateData = [];
-                
+
                 if (isset($comision['TipoDocumento'])) {
                     $updateData['TipoDocumento'] = $comision['TipoDocumento'];
                 }
@@ -731,7 +731,7 @@ class PagoComisionController extends Controller
             }
 
             DB::commit();
-            
+
             Log::info('Pago de Comisión actualizado correctamente', [
                 'Controlador' => 'PagoComisionController',
                 'Metodo' => 'actualizarPagoComision',
@@ -743,7 +743,6 @@ class PagoComisionController extends Controller
             return response()->json([
                 'message' => 'Pago Comisión actualizado correctamente.'
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al actualizar el pago de comisión', [
@@ -836,7 +835,6 @@ class PagoComisionController extends Controller
                             ->whereRaw('c.CodigoDocumentoVenta = dv.Codigo')
                             ->where('c.Vigente', 1);
                     });
-
             }
             //log info
             Log::info('Listar Documentos para Comisiones', [
@@ -912,27 +910,28 @@ class PagoComisionController extends Controller
         }
     }
 
-    public function consultarComisionReferencia($codigo){
+    public function consultarComisionReferencia($codigo)
+    {
 
-        try{
+        try {
 
             $datos = DB::table('comision as c')
-            ->join('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
-            ->select(
-                'c.Codigo',
-                'c.FechaCreacion',
-                DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
-                DB::raw("CONCAT(c.Serie, '-', c.Numero) as Documento"),
-                'c.Monto',
-                DB::raw("
+                ->join('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
+                ->select(
+                    'c.Codigo',
+                    'c.FechaCreacion',
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
+                    DB::raw("CONCAT(c.Serie, '-', c.Numero) as Documento"),
+                    'c.Monto',
+                    DB::raw("
                     CASE
                         WHEN c.CodigoPagoComision IS NULL THEN 'No Pagado'
                         ELSE 'Pagado'
                     END as Condicion
                 ")
-            )
-            ->where('c.CodigoComisionReferencia', $codigo)
-            ->get();
+                )
+                ->where('c.CodigoComisionReferencia', $codigo)
+                ->get();
 
             //log info
             Log::info('Consulta de Comisión de Referencia', [
@@ -944,8 +943,7 @@ class PagoComisionController extends Controller
             ]);
 
             return response()->json($datos, 200);
-
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error al consultar la comisión de referencia', [
                 'Controlador' => 'PagoComisionController',
                 'Metodo' => 'consultarComisionReferencia',
@@ -989,7 +987,8 @@ class PagoComisionController extends Controller
                     ->when($termino, function ($query) use ($termino) {
                         return $query->where(function ($q) use ($termino) {
                             $q->where('p.Nombres', 'LIKE', "{$termino}%")
-                                ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
+                                ->orWhere('p.Apellidos', 'LIKE', "{$termino}%")
+                                ->orWhere('cp.NumContrato', 'LIKE', "{$termino}%");
                         });
                     })
                     ->whereExists(function ($query) {
@@ -1015,7 +1014,9 @@ class PagoComisionController extends Controller
                     ->whereNull('dv.CodigoContratoProducto')
                     ->where(function ($query) use ($termino) {
                         $query->where('p.Nombres', 'LIKE', "{$termino}%")
-                            ->orWhere('p.Apellidos', 'LIKE', "{$termino}%");
+                            ->orWhere('p.Apellidos', 'LIKE', "{$termino}%")
+                            ->orWhere('dv.Serie', 'LIKE', "{$termino}%")
+                            ->orWhere('dv.Numero', 'LIKE', "{$termino}%");
                     })
                     ->whereExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -1024,7 +1025,6 @@ class PagoComisionController extends Controller
                             ->whereRaw('ddv.CodigoVenta = dv.Codigo')
                             ->where('pr.Tipo', 'S');
                     });
-
             }
             //log info
             Log::info('Listar Documentos para Comisiones', [
