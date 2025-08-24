@@ -357,7 +357,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('producto/listarTemporales/{codigo}', [ProductoController::class, 'listarTemporales']);
     /********************************** SEDE PRODUCTO ************************************************************/
     Route::get('sedeProducto/listarSedeProducto/{sede}/{codProd}', [SedeProductoController::class, 'listarSedeProducto']);
-    Route::get('sedeProducto/listarProductosNoAsignados', [SedeProductoController::class, 'listarProductosNoAsignados']);
+    Route::get('sedeProducto/listarProductosNoAsignados/{sede}', [SedeProductoController::class, 'listarProductosNoAsignados']);
     Route::post('sedeProducto/registrarProductoSede', [SedeProductoController::class, 'registrarProductoSede']);
     Route::get('sedeProducto/consultarProductoSede/{codigo}', [SedeProductoController::class, 'consultarProductoSede']);
     Route::post('sedeProducto/actualizarProductoSede', [SedeProductoController::class, 'actualizarProductoSede']);

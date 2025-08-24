@@ -67,6 +67,11 @@ class VentaController extends Controller
         //
     }
 
+    private function formato4($numero)
+    {
+        return number_format((float)$numero, 4, '.', '');
+    }
+
     public function registrarEnvio(array $data)
     {
         // $fechaActual = date('Y-m-d');
@@ -194,21 +199,19 @@ class VentaController extends Controller
                     ])
                     ->first();
 
-                $detallesFormateados[] = [
-                    'num_lin_item' => $detalle['Numero'],
-                    'cod_unid_item' => $datosProductoSede->unidadMedida,
-                    'cant_unid_item' => $detalle['Cantidad'] ?? 0,
-                    'val_vta_item' => round(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)), 4),
-                    'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
-                    'prc_vta_unit_item' => round(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1)), 4),
-                    'mnt_dscto_item' => round(abs($detalle['Descuento'] ?? 0), 4),
-                    'mnt_igv_item' => round(abs($detalle['MontoIGV'] ?? 0), 4),
-                    'txt_descr_item' => $detalle['Descripcion'] ?? 'Producto sin descripción',
-                    // 'cod_prod_sunat' => $detalle['CodigoSunat'] ?? '00000000', //Ni idea de que es
-                    //'cod_item' => $detalle['CodigoProducto'] ?? '00000', //Ni idea de que es
-                    'val_unit_item'       => round(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1)), 4),
-                    'importe_total_item'  => round(abs($detalle['MontoTotal'] ?? 0), 4),
-                ];
+                    $detallesFormateados[] = [
+                        'num_lin_item'        => $detalle['Numero'],
+                        'cod_unid_item'       => $datosProductoSede->unidadMedida,
+                        'cant_unid_item'      => $this->formato4($detalle['Cantidad'] ?? 0),
+                        'val_vta_item'        => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
+                        'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
+                        'prc_vta_unit_item'   => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
+                        'mnt_dscto_item'      => $this->formato4(abs($detalle['Descuento'] ?? 0)),
+                        'mnt_igv_item'        => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
+                        'txt_descr_item'      => $detalle['Descripcion'] ?? 'Producto sin descripción',
+                        'val_unit_item'       => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
+                        'importe_total_item'  => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
+                    ];
             }
 
             switch ($tipoDocumentoVenta->CodigoSUNAT) {
@@ -281,7 +284,7 @@ class VentaController extends Controller
                     'mnt_tot_inafectas'    => round(abs($ventaData['TotalInafecto'] ?? 0), 4),
                     'mnt_tot_exoneradas'   => round(abs($ventaData['TotalExonerado'] ?? 0), 4),
                     'mnt_tot_gratuitas'    => round(abs($ventaData['TotalGratis'] ?? 0), 4),
-                    'mnt_tot_desc_global'  => round(abs($ventaData['TotalDescuento'] ?? 0), 4),
+                    'mnt_tot_desc_global'  => 0.00,
                     'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
                     'mnt_tot'              => round(abs($ventaData['MontoTotal'] ?? 0), 4),
                     'mnt_tot_base_imponible' => 0.00,
@@ -1026,30 +1029,40 @@ class VentaController extends Controller
         }
 
         // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
-        try {
-            $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
 
-            $dataEnvio = [
-                'Tipo' => 'C',
-                'JSON' => is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'],
-                'URL' => env('PSE_API_URL'),
-                'Fecha' => $ventaData['Fecha'],
-                'CodigoTrabajador' => $ventaData['CodigoTrabajador'],
-                'Estado' => $data['Estado'],
-                'CodigoDocumentoVenta' => $ventaCreada->Codigo,
-                'Mensaje' => $data['Mensaje'],
-                'CodigoSede' => $ventaData['CodigoSede']
-            ];
+        $notaVenta = DB::table('tipodocumentoventa')
+            ->where('Codigo', $ventaData['CodigoTipoDocumentoVenta'])
+            ->selectRaw('CodigoSUNAT IS NOT NULL AS Existe')
+            ->value('Existe');
 
-            $registroEnvio = $this->registrarEnvio($dataEnvio);
-        } catch (\Exception $fe) {
-            // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
-            $data = [
-                'success' => false,
-                'Mensaje' => 'Error en la facturación electrónica.',
-                'error' => $fe->getMessage()
-            ];
-            $registroEnvio = null;
+        if ($notaVenta != 0) {
+
+            try {
+
+                $data = $this->detallesFacturacionElectronica($ventaData, $detallesVentaData, $ventaCreada->Codigo);
+
+                $dataEnvio = [
+                    'Tipo' => 'C',
+                    'JSON' => is_array($data['JSON']) ? json_encode($data['JSON']) : $data['JSON'],
+                    'URL' => env('PSE_API_URL'),
+                    'Fecha' => $ventaData['Fecha'],
+                    'CodigoTrabajador' => $ventaData['CodigoTrabajador'],
+                    'Estado' => $data['Estado'],
+                    'CodigoDocumentoVenta' => $ventaCreada->Codigo,
+                    'Mensaje' => $data['Mensaje'],
+                    'CodigoSede' => $ventaData['CodigoSede']
+                ];
+
+                $registroEnvio = $this->registrarEnvio($dataEnvio);
+            } catch (\Exception $fe) {
+                // ⚠️ Aquí NO cortamos el flujo, solo registramos error de facturación
+                $data = [
+                    'success' => false,
+                    'Mensaje' => 'Error en la facturación electrónica.',
+                    'error' => $fe->getMessage()
+                ];
+                $registroEnvio = null;
+            }
         }
 
         //log info
