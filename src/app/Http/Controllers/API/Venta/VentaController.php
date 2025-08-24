@@ -199,19 +199,19 @@ class VentaController extends Controller
                     ])
                     ->first();
 
-                    $detallesFormateados[] = [
-                        'num_lin_item'        => $detalle['Numero'],
-                        'cod_unid_item'       => $datosProductoSede->unidadMedida,
-                        'cant_unid_item'      => $this->formato4($detalle['Cantidad'] ?? 0),
-                        'val_vta_item'        => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
-                        'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
-                        'prc_vta_unit_item'   => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
-                        'mnt_dscto_item'      => $this->formato4(abs($detalle['Descuento'] ?? 0)),
-                        'mnt_igv_item'        => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
-                        'txt_descr_item'      => $detalle['Descripcion'] ?? 'Producto sin descripción',
-                        'val_unit_item'       => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
-                        'importe_total_item'  => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
-                    ];
+                $detallesFormateados[] = [
+                    'num_lin_item'        => $detalle['Numero'],
+                    'cod_unid_item'       => $datosProductoSede->unidadMedida,
+                    'cant_unid_item'      => $this->formato4($detalle['Cantidad'] ?? 0),
+                    'val_vta_item'        => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
+                    'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
+                    'prc_vta_unit_item'   => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
+                    'mnt_dscto_item'      => $this->formato4(abs($detalle['Descuento'] ?? 0)),
+                    'mnt_igv_item'        => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
+                    'txt_descr_item'      => $detalle['Descripcion'] ?? 'Producto sin descripción',
+                    'val_unit_item'       => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
+                    'importe_total_item'  => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
+                ];
             }
 
             switch ($tipoDocumentoVenta->CodigoSUNAT) {
@@ -526,7 +526,15 @@ class VentaController extends Controller
             $resultados = DB::table('cuentabancaria as cb')
                 ->join('entidadbancaria as eb', 'cb.CodigoEntidadBancaria', '=', 'eb.Codigo')
                 ->join('empresas as e', 'e.Codigo', '=', 'cb.CodigoEmpresa')
-                ->select('cb.Codigo', 'eb.Nombre', 'eb.Siglas', 'cb.Numero', 'cb.CCI', 'e.PorcentajeDetraccion')
+                ->select(
+                    'cb.Codigo',
+                    'eb.Nombre',
+                    'eb.Siglas',
+                    'cb.Numero',
+                    'cb.CCI',
+                    'e.PorcentajeDetraccion',
+                    DB::raw('1 AS bool')
+                )
                 ->where('cb.CodigoEmpresa', $empresa)
                 ->where('cb.Detraccion', 1)
                 ->where('e.Vigente', 1)
@@ -544,7 +552,7 @@ class VentaController extends Controller
                     'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
                 ]);
 
-                return response()->json(['error' => 'No se encontraron cuentas de detracción para la empresa especificada.', 'bool' => false], 200);
+                return response()->json(['error' => 'No se encontraron cuentas de detracción para la empresa especificada.', 'bool' => 0], 200);
             }
 
             //log info
@@ -969,10 +977,20 @@ class VentaController extends Controller
 
 
         try {
+
+            $numero = DB::table('documentoventa')
+                ->where('Serie', $ventaData['Serie'])
+                ->where('CodigoSede', $ventaData['CodigoSede'])
+                ->where('CodigoTipoDocumentoVenta', $ventaData['CodigoTipoDocumentoVenta'])
+                ->max('Numero');
+
+            $ventaData['Numero'] = $numero ? $numero + 1 : 1;
+
             $ventaCreada = Venta::create($ventaData);
 
             $ventaData['TotalDescuento'] = 0;
-            foreach ($detallesVentaData as $detalle) {
+            foreach ($detallesVentaData as $i => $detalle) {
+                $detalle['Numero'] = $i + 1;
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
                 $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
                 $detalle['MontoIGV'] = $detalle['MontoIGV'] * -1;
@@ -1212,6 +1230,7 @@ class VentaController extends Controller
             $numero = DB::table('documentoventa')
                 ->where('Serie', $ventaData['Serie'])
                 ->where('CodigoSede', $ventaData['CodigoSede'])
+                ->where('CodigoTipoDocumentoVenta', $ventaData['CodigoTipoDocumentoVenta'])
                 ->max('Numero');
 
             $ventaData['Numero'] = $numero ? $numero + 1 : 1;
