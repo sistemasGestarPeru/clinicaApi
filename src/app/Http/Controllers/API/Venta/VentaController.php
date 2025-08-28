@@ -185,7 +185,7 @@ class VentaController extends Controller
             // Procesar detalles
             $detallesFormateados = [];
 
-            foreach ($detallesVenta as $detalle) {
+            foreach ($detallesVenta as $i => $detalle) {
 
                 $datosProductoSede = DB::table('sedeproducto as sp')
                     ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
@@ -195,12 +195,14 @@ class VentaController extends Controller
                     ->where('sp.CodigoSede', $ventaData['CodigoSede'])
                     ->select([
                         'um.CodigoSUNAT as unidadMedida',
-                        'tg.CodigoSUNAT as tipoGravado'
+                        'tg.CodigoSUNAT as tipoGravado',
+                        'p.Tipo',
+                        'p.Codigo'
                     ])
                     ->first();
 
                     $detallesFormateados[] = [
-                        'num_lin_item'        => $detalle['Numero'],
+                        'num_lin_item'        => $i + 1,
                         'cod_unid_item'       => $datosProductoSede->unidadMedida,
                         'cant_unid_item'      => $this->formato4($detalle['Cantidad'] ?? 0),
                         'val_vta_item'        => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
@@ -211,6 +213,7 @@ class VentaController extends Controller
                         'txt_descr_item'      => $detalle['Descripcion'] ?? 'Producto sin descripción',
                         'val_unit_item'       => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
                         'importe_total_item'  => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
+                        'cod_item' => $datosProductoSede->Tipo . str_pad($detalle['CodigoProducto'], 5, '0', STR_PAD_LEFT),
                     ];
             }
 
@@ -302,12 +305,12 @@ class VentaController extends Controller
                     'detalles' => $detallesFormateados
                 ],
                 in_array($tipoDocumentoVenta->CodigoSUNAT, ['07', '08']) ? [ // Si es NC o ND
-                    'cod_tip_nc_nd_ref' => $debito_credito_nota->DocumentoCodigo, // Código del tipo de documento de referencia
+                    'cod_tip_nc_nd_ref' => $debito_credito_nota->MotivoCodigo, // Código del tipo de documento de referencia
                     'txt_serie_ref' => $debito_credito_nota->Serie, // Serie del comprobante de referencia
                     'txt_correlativo_cpe_ref' => $debito_credito_nota->Numero, // Correlativo del comprobante de referencia
                     'fec_emis_ref' => $debito_credito_nota->Fecha, // Fecha de emisión del comprobante de referencia
-                    'cod_cpe_ref' => $debito_credito_nota->MotivoCodigo, // Código SUNAT del comprobante de referencia
-                    'txt_sustento' => $debito_credito_nota->Motivo // Sustento de la nota
+                    'cod_cpe_ref' => $debito_credito_nota->DocumentoCodigo, // Código SUNAT del comprobante de referencia
+                    'txt_sustento' => $debito_credito_nota->Motivo // Motivo de la nota
                 ] : []
             );
 
@@ -2974,7 +2977,9 @@ class VentaController extends Controller
                 ->leftJoin('pagodocumentoventa as pdv', 'pdv.CodigoDocumentoVenta', '=', 'dv.Codigo')
                 ->leftJoin('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
                 ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
+                ->join('personas as paciente', 'paciente.Codigo', '=', 'dv.CodigoPaciente')
                 ->join('personas as vendedor', 'vendedor.Codigo', '=', 'dv.CodigoTrabajador')
+                ->join('tipo_documentos as tipoDocPaciente', 'tipoDocPaciente.Codigo', '=', 'paciente.CodigoTipoDocumento')
                 ->select(
                     'dv.Vigente',
                     'e.Nombre as empresaNombre',
@@ -3016,7 +3021,10 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
-                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
+                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal"),
+                    DB::raw("CONCAT(paciente.Apellidos, ' ', paciente.Nombres) as NombrePaciente"),
+                    'paciente.NumeroDocumento as DocumentoPaciente',
+                    'tipoDocPaciente.Siglas as docIdentidadPaciente'
                 )
                 ->where('dv.Codigo', $venta)
                 ->distinct()
