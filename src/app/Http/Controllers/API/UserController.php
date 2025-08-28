@@ -328,28 +328,34 @@ class UserController extends Controller
             $expiresAt = now()->addHour(8); // Fecha de vencimiento 8 horas
             $token = $user->createToken($user->name, ['*'], $expiresAt)->plainTextToken;
 
-            // Subconsulta 1: GUIDs de menús accesibles
-            $subQueryMenus = DB::table('perfil_menu as pm')
+            // Subconsulta 1: accesos directos
+            $subQueryAccesos = DB::table('perfil_menu as pm')
                 ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
                 ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
                 ->where('up.CodigoPersona', $user->CodigoPersona)
                 ->where('m.Vigente', 1)
                 ->where('pm.Vigente', 1)
+                ->distinct()
                 ->select('m.GUID');
 
-            // Subconsulta 2: GUIDs de menús padre de los accesos
-                $subQueryPadres = DB::table('perfil_menu as pm')
-                    ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
-                    ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
-                    ->where('up.CodigoPersona', $user->CodigoPersona)
-                    ->where('m.Vigente', 1)
-                    ->where('pm.Vigente', 1)
-                    ->whereNotNull('m.MenuPadre')
-                    ->distinct()
-                    ->select('m.GUID');
+            // Subconsulta 2: padres de esos accesos
+            $subQueryPadres = DB::table('menu as m2')
+                ->whereIn('m2.Codigo', function($query) use ($user) {
+                    $query->select('m.MenuPadre')
+                        ->from('perfil_menu as pm')
+                        ->join('menu as m', 'm.Codigo', '=', 'pm.CodigoMenu')
+                        ->join('usuario_perfil as up', 'up.CodigoRol', '=', 'pm.CodigoRol')
+                        ->where('up.CodigoPersona', $user->CodigoPersona)
+                        ->where('m.Vigente', 1)
+                        ->where('pm.Vigente', 1)
+                        ->whereNotNull('m.MenuPadre')
+                        ->distinct();
+                })
+                ->distinct()
+                ->select('m2.GUID');
 
             // Unir y obtener GUIDs como array plano
-            $menus = $subQueryMenus
+            $menus = $subQueryAccesos
                 ->union($subQueryPadres)
                 ->get()
                 ->map(function ($item) {

@@ -499,6 +499,8 @@ class ContratoProductoeController extends Controller
                 ->join('empresas as e', 'e.Codigo', '=', 's.CodigoEmpresa')
                 ->join('personas as cliente', 'cliente.Codigo', '=', 'c.CodigoPaciente')
                 ->join('personas as medico', 'medico.Codigo', '=', 'c.CodigoMedico')
+                ->leftjoin('personas as cliente2', 'cliente2.Codigo', '=', 'c.CodigoPaciente02')
+                ->leftjoin('tipo_documentos as td2', 'td2.Codigo', '=', 'cliente2.CodigoTipoDocumento')
                 ->join('tipo_documentos as td', 'td.Codigo', '=', 'cliente.CodigoTipoDocumento')
                 ->select(
                     'e.Nombre as empresaNombre',
@@ -513,6 +515,12 @@ class ContratoProductoeController extends Controller
                     'td.Nombre as documentoIdentidad',
                     'cliente.NumeroDocumento as numDocumento',
                     'cliente.Direccion as clienteDireccion',
+
+                    DB::raw("CONCAT(cliente2.Apellidos, ' ', cliente2.Nombres) as cliente2"),
+                    'td2.Nombre as documentoIdentidad2',
+                    'cliente2.NumeroDocumento as numDocumento2',
+
+
                     DB::raw("DATE(c.Fecha) AS fechaEmision"),
                     DB::raw("'Soles' as moneda"),
                     DB::raw("CONCAT(medico.Apellidos, ' ', medico.Nombres) as medico")

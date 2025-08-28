@@ -422,6 +422,7 @@ class ReportesController extends Controller
                 // Aplicar filtros opcionales
                 ->where('mp.CodigoSUNAT', '008')
                 ->where('e.Vigente', 1)
+                
                 ->when($trabajador, fn($query) => $query->where('e.CodigoTrabajador', $trabajador))
                 ->when($fecha, fn($query) => $query->whereRaw("DATE(e.Fecha) = ?", [$fecha]))
                 ->when($sede, fn($query) => $query->where('c.CodigoSede', $sede))
@@ -489,9 +490,22 @@ class ReportesController extends Controller
                         WHEN dv.CodigoClienteEmpresa IS NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
                         ELSE ce.RazonSocial
                     END AS Cliente,
-                    dv.TotalGravado as BaseTributaria,
-                    dv.IGVTotal as IGV,
-                    dv.MontoTotal as Monto,
+
+                    CASE 
+                        WHEN dv.Vigente = 1 THEN dv.TotalGravado
+                        ELSE 0
+                    END AS BaseTributaria,
+
+                    CASE 
+                        WHEN dv.Vigente = 1 THEN dv.IGVTotal
+                        ELSE 0
+                    END AS IGV,
+
+                    CASE 
+                        WHEN dv.Vigente = 1 THEN dv.MontoTotal
+                        ELSE 0
+                    END AS Monto,
+
                     dv.Vigente as Vigente
                 ")
                 ->join('tipodocumentoventa as tdv', 'dv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')

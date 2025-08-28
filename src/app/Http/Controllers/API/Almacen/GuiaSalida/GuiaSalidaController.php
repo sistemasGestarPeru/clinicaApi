@@ -91,14 +91,14 @@ class GuiaSalidaController extends Controller
         $filtros = $request->all();
         try {
 
-            $guiaSalida = DB::table('guiaSalida')
+            $guiaSalida = DB::table('guiasalida')
                 ->select(
                     'Codigo',
                     DB::raw("
                     CASE 
-                        WHEN TipoDocumento = 'G' THEN 'Guia de remisión'
-                        WHEN TipoDocumento = 'N' THEN 'Nota de salida'
-                        WHEN TipoDocumento = 'T' THEN 'Transformación'
+                        WHEN TipoDocumento = 'GR' THEN 'Guia de remisión'
+                        WHEN TipoDocumento = 'F' THEN 'Factura'
+                        WHEN TipoDocumento = 'B' THEN 'Boleta'
                         ELSE 'Desconocido'
                     END AS TipoDocumento
                 "),
@@ -152,6 +152,7 @@ class GuiaSalidaController extends Controller
                 ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
                 ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
                 ->where('dv.Vigente', 1)
+                ->whereDate('dv.Fecha', '>=', '2025-07-21')
                 ->where('dv.CodigoSede', $sede)
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -226,18 +227,18 @@ class GuiaSalidaController extends Controller
                 FROM (
                     -- Productos individuales (Tipo = 'B')
                     SELECT P.Codigo, DDV.Cantidad, P.Nombre
-                    FROM DetalleDocumentoVenta DDV
-                    JOIN Producto P ON P.Codigo = DDV.CodigoProducto
+                    FROM detalledocumentoventa DDV
+                    JOIN producto P ON P.Codigo = DDV.CodigoProducto
                     WHERE DDV.CodigoVenta = ? AND P.Tipo = 'B'
 
                     UNION
 
                     -- Productos dentro de combos (Tipo = 'C' desglosado)
                     SELECT P.Codigo, DDV.Cantidad * PC.Cantidad AS Cantidad, P.Nombre
-                    FROM DetalleDocumentoVenta DDV
-                    JOIN Producto Co ON Co.Codigo = DDV.CodigoProducto
-                    JOIN ProductoCombo PC ON PC.CodigoCombo = Co.Codigo
-                    JOIN Producto P ON P.Codigo = PC.CodigoProducto
+                    FROM detalledocumentoventa DDV
+                    JOIN producto Co ON Co.Codigo = DDV.CodigoProducto
+                    JOIN productocombo PC ON PC.CodigoCombo = Co.Codigo
+                    JOIN producto P ON P.Codigo = PC.CodigoProducto
                     WHERE DDV.CodigoVenta = ? AND Co.Tipo = 'C' AND P.Tipo = 'B'
                 ) AS PrVe
                 LEFT JOIN (
