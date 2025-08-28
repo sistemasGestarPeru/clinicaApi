@@ -543,8 +543,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::get('transformacion/listarProductosDisponibles/{sede}', [TransformacionController::class, 'listarProductosDisponibles']);
     Route::post('transformacion/registrarTransformacion', [TransformacionController::class, 'registrarTransformacion']);
-
-
+    Route::post('transformacion/listarTransformaciones', [TransformacionController::class, 'listarTransformaciones']);
 
     //USUARIOS
     Route::post('seguridad/registro', [UserController::class, 'registro']);

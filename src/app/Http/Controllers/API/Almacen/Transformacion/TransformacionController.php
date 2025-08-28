@@ -55,6 +55,52 @@ class TransformacionController extends Controller
         //
     }
 
+    public function listarTransformaciones(Request $request){
+
+        try{
+            $lotes = DB::table('guiaingreso as gi')
+                ->select([
+                    'l.FechaCaducidad',
+                    'p.Nombre AS ProductoDestino',
+                    'l.Cantidad AS CantidadDestino',
+                    'l.Stock as StockDestino',
+                    'gi.Fecha as Creacion',
+                ])
+                ->join('detalleguiaingreso as dgi', 'gi.Codigo', '=', 'dgi.CodigoGuiaRemision')
+                ->join('lote as l', 'dgi.Codigo', '=', 'l.CodigoDetalleIngreso')
+                ->join('producto as p', 'dgi.CodigoProducto', '=', 'p.Codigo')
+                ->where('gi.TipoDocumento', 'T')
+                ->where('gi.CodigoSede', $request->input('Sede'))
+                ->where('gi.Vigente', 1)
+                ->get();
+
+                // Log de éxito
+                Log::info('Transformaciones listadas correctamente', [
+                    'Controlador' => 'TransformacionController',
+                    'Metodo' => 'listarTransformaciones',
+                    'cantidad' => count($lotes),
+                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+                ]);
+
+                return response()->json($lotes, 200);
+
+        }catch(\Exception $e){
+            // Log del error
+            Log::error('Error al listar transformaciones', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'listarTransformaciones',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+
+            return response()->json([
+                'error' => 'Error al listar las transformaciones',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function listarProductosDisponibles($sede)
     {
         try {
@@ -64,7 +110,9 @@ class TransformacionController extends Controller
                 ->where('p.Tipo', 'B')
                 // ->where('sp.Stock', '>', 0)
                 ->where('sp.Vigente', 1)
+                ->where('p.Vigente', 1)
                 ->where('sp.CodigoSede', $sede)
+                ->orderBy('p.Nombre', 'asc')
                 ->get();
 
             // Log de éxito
@@ -122,8 +170,8 @@ class TransformacionController extends Controller
             $guiaSalida['CodigoSede'] = $transformacion['CodigoSede'];
             $guiaSalida['CodigoTrabajador'] = $transformacion['CodigoTrabajador'];
             $guiaSalida['TipoDocumento'] = 'T';
-            $guiaSalida['Serie'] = 'S123'; // CAMBIAR
-            $guiaSalida['Numero'] = 123; // CAMBIAR
+            $guiaSalida['Serie'] = 'T'; // CAMBIAR
+            $guiaSalida['Numero'] = $lote['Codigo']; // CAMBIAR
             $guiaSalida['Fecha'] = $fecha;
             $guiaSalida['Motivo'] = 'T';
 
