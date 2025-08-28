@@ -46,10 +46,11 @@ class CajaController extends Controller
 
             $estado = DB::table('caja')
                 ->where('CodigoTrabajador', $cajaData['CodigoTrabajador'])
+                ->where('CodigoSede', $cajaData['CodigoSede'])
                 ->orderByDesc('Codigo')
                 ->value('Estado');
 
-            if($estado === 'A') {
+            if ($estado === 'A') {
                 Log::warning('Intento de apertura de caja cuando ya existe una abierta', [
                     'Controlador' => 'CajaController',
                     'Metodo' => 'store',
