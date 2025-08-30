@@ -55,9 +55,10 @@ class TransformacionController extends Controller
         //
     }
 
-    public function listarTransformaciones(Request $request){
+    public function listarTransformaciones(Request $request)
+    {
 
-        try{
+        try {
             $lotes = DB::table('guiaingreso as gi')
                 ->select([
                     'l.FechaCaducidad',
@@ -74,17 +75,16 @@ class TransformacionController extends Controller
                 ->where('gi.Vigente', 1)
                 ->get();
 
-                // Log de éxito
-                Log::info('Transformaciones listadas correctamente', [
-                    'Controlador' => 'TransformacionController',
-                    'Metodo' => 'listarTransformaciones',
-                    'cantidad' => count($lotes),
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
-                ]);
+            // Log de éxito
+            Log::info('Transformaciones listadas correctamente', [
+                'Controlador' => 'TransformacionController',
+                'Metodo' => 'listarTransformaciones',
+                'cantidad' => count($lotes),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
 
-                return response()->json($lotes, 200);
-
-        }catch(\Exception $e){
+            return response()->json($lotes, 200);
+        } catch (\Exception $e) {
             // Log del error
             Log::error('Error al listar transformaciones', [
                 'Controlador' => 'TransformacionController',
@@ -148,6 +148,7 @@ class TransformacionController extends Controller
         $fecha = date('Y-m-d');
         $transformacion = $request->input('transformacion');
         $lote = $request->input('lote');
+        $fechaActual = date('Y-m-d H:i:s');
 
         DB::beginTransaction();
         try {
@@ -189,7 +190,7 @@ class TransformacionController extends Controller
             $movimientoLoteOrigen['CodigoDetalleSalida'] = $detalleGuiaSalida->Codigo;
             $movimientoLoteOrigen['CodigoLote'] = $lote['Codigo'];
             $movimientoLoteOrigen['TipoOperacion'] = 'O';
-            $movimientoLoteOrigen['Fecha'] = $fecha;
+            $movimientoLoteOrigen['Fecha'] = $fechaActual;
             $movimientoLoteOrigen['Cantidad'] = $nuevoStockOrigen;
             $movimientoLoteOrigen['CostoPromedio'] = $costoSedeOrigen;
 
@@ -255,7 +256,7 @@ class TransformacionController extends Controller
             $movimientoLoteDestino['Cantidad'] = $transformacion['CantidadDestino'];
             $movimientoLoteDestino['Stock'] = $transformacion['CantidadDestino'];
             $movimientoLoteDestino['CostoPromedio'] = $nuevoCostoDestino;
-            $movimientoLoteDestino['Fecha'] = $fecha;
+            $movimientoLoteDestino['Fecha'] = $fechaActual;
             $movimientoLoteDestino['TipoOperacion'] = 'D';
 
             MovimientoLote::create($movimientoLoteDestino);
