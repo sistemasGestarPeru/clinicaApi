@@ -107,6 +107,7 @@ class GuiaSalidaController extends Controller
                     'Vigente'
                 )
                 ->where('CodigoSede', $filtros['CodigoSede'])
+                ->where('TipoDocumento', '!=', 'T')
                 ->get();
 
             // Log de éxito
@@ -141,7 +142,7 @@ class GuiaSalidaController extends Controller
                     'dv.Codigo',
                     'dv.Serie',
                     'td.Siglas',
-                    DB::raw("LPAD(dv.Numero, 4, '0') as Numero"),
+                    'dv.Numero',
                     DB::raw("DATE(dv.Fecha) as Fecha"),
                     DB::raw("CASE 
                             WHEN dv.CodigoPersona IS NOT NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)

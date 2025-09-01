@@ -63,7 +63,7 @@ class GuiaIngresoController extends Controller
                         WHEN TipoDocumento = 'G' THEN 'Guia de remisión'
                         WHEN TipoDocumento = 'N' THEN 'Nota de salida'
                         WHEN TipoDocumento = 'T' THEN 'Transformación'
-                        WHEN TipoDocumento = 'D' THEN 'Documento compra'
+                        WHEN TipoDocumento = 'C' THEN 'Documento compra'
                         ELSE 'Desconocido'
                     END AS TipoDocumento
                 "),
@@ -72,8 +72,8 @@ class GuiaIngresoController extends Controller
                     'Vigente'
                 )
                 ->where('CodigoSede', $filtros['CodigoSede'])
+                ->where('TipoDocumento', '!=', 'T')
                 ->get();
-
 
             // Log de éxito
             Log::info('Usuarios listados correctamente', [

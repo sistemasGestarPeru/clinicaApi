@@ -606,25 +606,70 @@ class ReportesController extends Controller
         $sede = request()->input('sede'); // Opcional
 
         try {
-            $datos = DB::table('movimientolote AS ml')
-                ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
-                ->select(
-                    'l.Serie',
-                    'ml.Fecha',
-                    DB::raw("
+
+            $datos = DB::table(DB::raw('(
+                SELECT
+                t.*,
+                @stock := IF(@p_prod = t.CodigoProducto AND @p_sede = t.CodigoSede,
+                            @stock + t.Movimiento,   -- acumula con la fila anterior
+                            t.Movimiento             -- primera fila del grupo
+                ) AS StockCalculado,
+                @p_prod := t.CodigoProducto AS _pp,
+                @p_sede := t.CodigoSede     AS _ps
+                FROM (
+                    SELECT
+                    CONCAT(gi.TipoDocumento, " ", gi.Serie, " - ", gi.Numero) as DocIngreso, 
+                    CONCAT(gs.TipoDocumento, " ", gs.Serie, " - ", gs.Numero) as DocSalida, 
+                    l.CodigoProducto,
+                    l.CodigoSede,
+                    ml.Codigo,
+                    ml.Fecha,
+                    CASE 
+                        WHEN ml.TipoOperacion = "S" THEN "SALIDA"
+                        WHEN ml.TipoOperacion = "I" THEN "INGRESO"
+                        WHEN ml.TipoOperacion = "O" THEN "TRANSFORMACION SALIDA"
+                        WHEN ml.TipoOperacion = "D" THEN "TRANSFORMACION ORIGEN"
+                    END AS TipoOperacion,
+                    l.Serie,
+                    COALESCE(dgi.Cantidad, 0) AS CantidadIngreso,
+                    COALESCE(dgs.Cantidad, 0) AS CantidadSalida,
                     CASE
-                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
-                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
-                        ELSE 'Otros'
-                    END AS TipoOperacion
-                "),
-                    'l.Cantidad',
-                    'ml.Stock'
-                )
-                ->where('l.CodigoProducto', $codigoProducto)
-                ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
-                ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
-                ->get();
+                        WHEN ml.TipoOperacion IN ("I", "D") THEN COALESCE(dgi.Cantidad, 0)
+                        WHEN ml.TipoOperacion IN ("S", "O") THEN -COALESCE(dgs.Cantidad, 0)
+                        ELSE 0
+                    END AS Movimiento
+                    FROM movimientolote AS ml
+                    INNER JOIN lote AS l ON l.Codigo = ml.CodigoLote
+                    LEFT JOIN detalleguiaingreso AS dgi ON ml.CodigoDetalleIngreso = dgi.Codigo
+                    LEFT JOIN guiaingreso AS gi ON dgi.CodigoGuiaRemision = gi.Codigo
+                    LEFT JOIN detalleguiasalida AS dgs ON ml.CodigoDetalleSalida = dgs.Codigo
+                    LEFT JOIN guiasalida AS gs ON dgs.CodigoGuiaSalida = gs.Codigo
+                    WHERE l.CodigoProducto = :codigoProducto
+                    AND l.CodigoSede = :sede
+                    AND DATE(ml.Fecha) BETWEEN :fechaInicio AND :fechaFin
+                    ORDER BY ml.Fecha asc
+                ) AS t
+                CROSS JOIN (SELECT @p_prod := NULL, @p_sede := NULL, @stock := 0) AS vars
+            ) AS x'))
+            ->mergeBindings(DB::table('movimientolote')) // asegura que Laravel pase los parámetros
+            ->select(
+                'x.Codigo',
+                'x.Fecha',
+                'x.TipoOperacion',
+                'x.Serie',
+                'x.CantidadIngreso',
+                'x.CantidadSalida',
+                'x.Movimiento',
+                'x.StockCalculado'
+            )
+            ->setBindings([
+                'codigoProducto' => $codigoProducto,
+                'sede' => $sede,
+                'fechaInicio' => $fechaIncio,
+                'fechaFin' => $fechaFin
+            ])
+            ->orderBy('x.Codigo')
+            ->get();
 
             //log info
             Log::info('Reporte Kardex Simple', [
@@ -737,6 +782,7 @@ class ReportesController extends Controller
                 ->join('categoriaproducto as cp', 'p.CodigoCategoria', '=', 'cp.Codigo')
                 ->select('p.Nombre as Producto', 'cp.Nombre as Categoria', 'sp.Stock')
                 ->where('p.Tipo', 'B')
+                ->where('p.Vigente', 1)
                 ->when($sede, fn($query) => $query->where('sp.CodigoSede', $sede))
                 ->when($categoria, fn($query) => $query->where('cp.Codigo', $categoria))
                 ->when($nombre, fn($query) => $query->where('p.Nombre', 'LIKE', "{$nombre}%"))
