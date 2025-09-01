@@ -276,6 +276,8 @@ class LoteController extends Controller
         $nuevoCosto = 0;
         $nuevaInversion = 0;
 
+        $fechaActual = date('Y-m-d H:i:s');
+
         try {
 
             foreach ($data as $lote) {
@@ -305,7 +307,7 @@ class LoteController extends Controller
                 $movimientoLote['Cantidad'] = $lote['Cantidad'];
                 $movimientoLote['Stock'] = $lote['Cantidad'];
                 $movimientoLote['CostoPromedio'] = $nuevoCosto;
-                $movimientoLote['Fecha'] = $lote['Fecha'];
+                $movimientoLote['Fecha'] = $fechaActual;
                 $movimientoLote['TipoOperacion'] = 'I';
                 MovimientoLote::create($movimientoLote);
 

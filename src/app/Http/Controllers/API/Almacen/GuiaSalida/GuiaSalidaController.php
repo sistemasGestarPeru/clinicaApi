@@ -282,6 +282,7 @@ class GuiaSalidaController extends Controller
     {
         $guiaData = $request->input('guiaSalida');
         $detalleGuia = $request->input('detalleGuiaSalida');
+        $fechaActual = date('Y-m-d H:i:s');
         DB::beginTransaction();
         try {
 
@@ -316,7 +317,7 @@ class GuiaSalidaController extends Controller
                     $movimientoLote['CodigoDetalleSalida'] = $CodigoDetalle->Codigo;
                     $movimientoLote['CodigoLote'] = $lote['Codigo'];
                     $movimientoLote['TipoOperacion'] = 'S';
-                    $movimientoLote['Fecha'] = $guiaData['Fecha'];
+                    $movimientoLote['Fecha'] = $fechaActual;
                     $movimientoLote['Cantidad'] = $nuevoStock;
                     $movimientoLote['CostoPromedio'] = $costoSede;
 
