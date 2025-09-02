@@ -300,25 +300,26 @@ class GuiaSalidaController extends Controller
                 $stockSede = $producto->Stock ?? 0;
                 $costoSede = $producto->CostoCompraPromedio ?? 0;
 
-
                 //Crear el Detalle Guia Salida
                 $detalle['CodigoGuiaSalida'] = $guiaSalida->Codigo;
                 $detalle['Costo'] = $costoSede;
                 $CodigoDetalle = DetalleGuiaSalida::create($detalle);
 
                 foreach ($detalle['lote'] as $lote) {
-
+                    
                     //Actualizar el stock del lote
                     DB::table('lote')->where('Codigo', $lote['Codigo'])->decrement('Stock', $lote['Cantidad']);
 
-                    $nuevoStock = $stockSede - $lote['Cantidad'];
+                    // Calcular nuevo stock localmente
+                    $stockSede -= $lote['Cantidad']; 
 
                     //PARA GENERAR MOVIMIENTO LOTE
                     $movimientoLote['CodigoDetalleSalida'] = $CodigoDetalle->Codigo;
                     $movimientoLote['CodigoLote'] = $lote['Codigo'];
                     $movimientoLote['TipoOperacion'] = 'S';
                     $movimientoLote['Fecha'] = $fechaActual;
-                    $movimientoLote['Cantidad'] = $nuevoStock;
+                    $movimientoLote['Stock'] = $stockSede;
+                    $movimientoLote['Cantidad'] = $lote['Cantidad']; // cantidad de salida
                     $movimientoLote['CostoPromedio'] = $costoSede;
 
                     MovimientoLote::create($movimientoLote);

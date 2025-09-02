@@ -262,8 +262,6 @@ class LoteController extends Controller
     public function registrarLote(Request $request)
     {
         $data = $request->all();
-        DB::beginTransaction();
-
         $inversionLote = 0;
 
         //Consultar Sede
@@ -277,6 +275,7 @@ class LoteController extends Controller
         $nuevaInversion = 0;
 
         $fechaActual = date('Y-m-d H:i:s');
+        DB::beginTransaction();
 
         try {
 
@@ -305,7 +304,7 @@ class LoteController extends Controller
                 $movimientoLote['CodigoDetalleIngreso'] = $lote['CodigoDetalleIngreso'];
                 $movimientoLote['CodigoLote'] = $loteCreado->Codigo;
                 $movimientoLote['Cantidad'] = $lote['Cantidad'];
-                $movimientoLote['Stock'] = $lote['Cantidad'];
+                $movimientoLote['Stock'] = $nuevoStock;
                 $movimientoLote['CostoPromedio'] = $nuevoCosto;
                 $movimientoLote['Fecha'] = $fechaActual;
                 $movimientoLote['TipoOperacion'] = 'I';

@@ -607,80 +607,51 @@ class ReportesController extends Controller
 
         try {
 
-            $datos = DB::table(DB::raw('(
-                SELECT
-                t.*,
-                @stock := IF(@p_prod = t.CodigoProducto AND @p_sede = t.CodigoSede,
-                            @stock + t.Movimiento,   -- acumula con la fila anterior
-                            t.Movimiento             -- primera fila del grupo
-                ) AS StockCalculado,
-                @p_prod := t.CodigoProducto AS _pp,
-                @p_sede := t.CodigoSede     AS _ps
-                FROM (
-                    SELECT
-                    CONCAT(gi.TipoDocumento, " ", gi.Serie, " - ", gi.Numero) as DocIngreso, 
-                    CONCAT(gs.TipoDocumento, " ", gs.Serie, " - ", gs.Numero) as DocSalida, 
-                    l.CodigoProducto,
-                    l.CodigoSede,
-                    ml.Codigo,
-                    ml.Fecha,
-                    CASE 
-                        WHEN ml.TipoOperacion = "S" THEN "SALIDA"
-                        WHEN ml.TipoOperacion = "I" THEN "INGRESO"
-                        WHEN ml.TipoOperacion = "O" THEN "TRANSFORMACION SALIDA"
-                        WHEN ml.TipoOperacion = "D" THEN "TRANSFORMACION ORIGEN"
-                    END AS TipoOperacion,
-                    l.Serie,
-                    COALESCE(dgi.Cantidad, 0) AS CantidadIngreso,
-                    COALESCE(dgs.Cantidad, 0) AS CantidadSalida,
-                    CASE
-                        WHEN ml.TipoOperacion IN ("I", "D") THEN COALESCE(dgi.Cantidad, 0)
-                        WHEN ml.TipoOperacion IN ("S", "O") THEN -COALESCE(dgs.Cantidad, 0)
-                        ELSE 0
-                    END AS Movimiento
-                    FROM movimientolote AS ml
-                    INNER JOIN lote AS l ON l.Codigo = ml.CodigoLote
-                    LEFT JOIN detalleguiaingreso AS dgi ON ml.CodigoDetalleIngreso = dgi.Codigo
-                    LEFT JOIN guiaingreso AS gi ON dgi.CodigoGuiaRemision = gi.Codigo
-                    LEFT JOIN detalleguiasalida AS dgs ON ml.CodigoDetalleSalida = dgs.Codigo
-                    LEFT JOIN guiasalida AS gs ON dgs.CodigoGuiaSalida = gs.Codigo
-                    WHERE l.CodigoProducto = :codigoProducto
-                    AND l.CodigoSede = :sede
-                    AND DATE(ml.Fecha) BETWEEN :fechaInicio AND :fechaFin
-                    ORDER BY ml.Fecha asc
-                ) AS t
-                CROSS JOIN (SELECT @p_prod := NULL, @p_sede := NULL, @stock := 0) AS vars
-            ) AS x'))
-            ->mergeBindings(DB::table('movimientolote')) // asegura que Laravel pase los parámetros
-            ->select(
-                'x.Codigo',
-                'x.Fecha',
-                'x.TipoOperacion',
-                'x.Serie',
-                'x.CantidadIngreso',
-                'x.CantidadSalida',
-                'x.Movimiento',
-                'x.StockCalculado'
-            )
-            ->setBindings([
-                'codigoProducto' => $codigoProducto,
-                'sede' => $sede,
-                'fechaInicio' => $fechaIncio,
-                'fechaFin' => $fechaFin
-            ])
-            ->orderBy('x.Codigo')
-            ->get();
+            $datos = DB::table('movimientolote as ml')
+                ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                ->leftJoin('detalleguiaingreso as dgi', 'ml.CodigoDetalleIngreso', '=', 'dgi.Codigo')
+                ->leftJoin('guiaingreso as gi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->leftJoin('detalleguiasalida as dgs', 'ml.CodigoDetalleSalida', '=', 'dgs.Codigo')
+                ->leftJoin('guiasalida as gs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
+                ->select([
+                    'ml.Fecha',
+                    'l.Serie',
+                    DB::raw("CASE 
+                                WHEN ml.TipoOperacion = 'S' THEN 'SALIDA'
+                                WHEN ml.TipoOperacion = 'I' THEN 'INGRESO'
+                                WHEN ml.TipoOperacion = 'O' THEN 'TRANSFORMACION SALIDA'
+                                WHEN ml.TipoOperacion = 'D' THEN 'TRANSFORMACION ORIGEN'
+                            END AS TipoOperacion"),
+                    DB::raw("CONCAT(gi.TipoDocumento, ' ', gi.Serie, ' - ', gi.Numero) as DocIngreso"),
+                    DB::raw("CONCAT(gs.TipoDocumento, ' ', gs.Serie, ' - ', gs.Numero) as DocSalida"),
+                    DB::raw("CASE WHEN gi.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadIngreso"),
+                    DB::raw("CASE WHEN gs.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadSalida"),
+                    'ml.Stock AS StockCalculado',
+                ])
+                ->where('l.CodigoProducto', $codigoProducto)
+                ->where('l.CodigoSede', $sede);
+
+
+            // aplicar rango de fechas
+            if (!empty($fechaInicio)) {
+                $datos->whereBetween('ml.Fecha', [$fechaInicio, $fechaFin]);
+            } else {
+                $datos->where('ml.Fecha', '<=', $fechaFin);
+            }
+
+            $resultados = $datos->orderBy('ml.Fecha', 'ASC')->get();
 
             //log info
             Log::info('Reporte Kardex Simple', [
                 'Controlador' => 'ReportesController',
                 'Metodo' => 'reporteKardexSimple',
                 'Query' => $request->all(),
-                'Cantidad' => $datos->count(),
+                'Cantidad' => $resultados->count(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
-            return response()->json($datos, 200);
+            return response()->json($resultados, 200);
+
         } catch (\Exception $e) {
 
             //log error
@@ -709,29 +680,43 @@ class ReportesController extends Controller
 
         try {
 
-            $datos = DB::table('movimientolote AS ml')
-                ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
-                ->select(
-                    'l.Serie',
+            $query = DB::table('movimientolote as ml')
+                ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                ->leftJoin('detalleguiaingreso as dgi', 'ml.CodigoDetalleIngreso', '=', 'dgi.Codigo')
+                ->leftJoin('guiaingreso as gi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->leftJoin('detalleguiasalida as dgs', 'ml.CodigoDetalleSalida', '=', 'dgs.Codigo')
+                ->leftJoin('guiasalida as gs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
+                ->select([
                     'ml.Fecha',
-                    DB::raw("
-                    CASE
-                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
-                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
-                        ELSE 'Otros'
-                    END AS TipoOperacion
-                "),
-                    DB::raw('l.Stock / l.Costo AS Inversion'),
-                    'l.Cantidad',
+                    'l.Serie',
+                    DB::raw("CASE 
+                                WHEN ml.TipoOperacion = 'S' THEN 'SALIDA'
+                                WHEN ml.TipoOperacion = 'I' THEN 'INGRESO'
+                                WHEN ml.TipoOperacion = 'O' THEN 'TRANSFORMACION SALIDA'
+                                WHEN ml.TipoOperacion = 'D' THEN 'TRANSFORMACION ORIGEN'
+                            END AS TipoOperacion"),
+                    DB::raw("CONCAT(gi.TipoDocumento, ' ', gi.Serie, ' - ', gi.Numero) as DocIngreso"),
+                    DB::raw("CONCAT(gs.TipoDocumento, ' ', gs.Serie, ' - ', gs.Numero) as DocSalida"),
+                    DB::raw("CASE WHEN gi.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadIngreso"),
+                    DB::raw("CASE WHEN gs.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadSalida"),
                     'ml.Stock',
-                    'ml.CostoPromedio'
-                )
+                    'ml.CostoPromedio',
+                    'dgi.Costo',
+                    DB::raw("(ml.Stock / l.Costo) AS Inversion"),
+                ])
                 ->where('l.CodigoProducto', $codigoProducto)
-                ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
-                ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
-                ->get();
+                ->where('l.CodigoSede', $sede);
+                
+            // aplicar rango de fechas
+            if (!empty($fechaInicio)) {
+                $query->whereBetween('ml.Fecha', [$fechaInicio, $fechaFin]);
+            } else {
+                $query->where('ml.Fecha', '<=', $fechaFin);
+            }
 
-            return response()->json($datos, 200);
+            $resultados = $query->orderBy('ml.Fecha', 'ASC')->get();
+
+            return response()->json($resultados, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
