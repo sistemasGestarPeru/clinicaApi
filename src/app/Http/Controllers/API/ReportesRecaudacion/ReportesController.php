@@ -639,7 +639,7 @@ class ReportesController extends Controller
                 $datos->where('ml.Fecha', '<=', $fechaFin);
             }
 
-            $resultados = $datos->orderBy('ml.Fecha', 'ASC')->get();
+            $resultados = $datos->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
 
             //log info
             Log::info('Reporte Kardex Simple', [
@@ -706,7 +706,7 @@ class ReportesController extends Controller
                 ])
                 ->where('l.CodigoProducto', $codigoProducto)
                 ->where('l.CodigoSede', $sede);
-                
+
             // aplicar rango de fechas
             if (!empty($fechaInicio)) {
                 $query->whereBetween('ml.Fecha', [$fechaInicio, $fechaFin]);
@@ -714,7 +714,7 @@ class ReportesController extends Controller
                 $query->where('ml.Fecha', '<=', $fechaFin);
             }
 
-            $resultados = $query->orderBy('ml.Fecha', 'ASC')->get();
+            $resultados = $query->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
 
             return response()->json($resultados, 200);
         } catch (\Exception $e) {
