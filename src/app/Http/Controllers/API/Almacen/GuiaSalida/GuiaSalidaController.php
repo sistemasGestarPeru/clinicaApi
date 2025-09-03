@@ -53,6 +53,66 @@ class GuiaSalidaController extends Controller
         //
     }
 
+    public function listarPacientes($termino){
+        try{
+            $resultados = DB::table('personas')
+                ->select([
+                    'Codigo',
+                    DB::raw("CONCAT(Nombres, ' ', Apellidos) as Nombres"),
+                    'NumeroDocumento'
+                ])
+                ->where(function($q) use ($termino) {
+                    $q->where('Nombres', 'like', "{$termino}%")
+                    ->orWhere('Apellidos', 'like', "{$termino}%")
+                    ->orWhere('NumeroDocumento', 'like', "{$termino}%");
+                })
+                ->get();
+
+            return response()->json($resultados, 200);
+            
+        }catch(\Exception $e){
+            Log::error('Error inesperado al listar pacientes', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarPacientes',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+        }
+    }
+
+    public function listarProductosDisponibles(Request $request){
+
+        try{
+
+            $resultados = DB::table('sedeproducto as sp')
+                ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
+                ->select([
+                    'p.Codigo',
+                    'p.Nombre',
+                    'sp.Stock'
+                ])
+                ->where('sp.CodigoSede', $request->Sede)
+                ->where('sp.Vigente', 1)
+                ->where('p.Vigente', 1)
+                ->where('sp.Stock', '>', 0)
+                ->where('p.Nombre', 'like', "%{$request->termino}%")
+                ->orderBy('p.Nombre', 'asc')
+                ->get();
+
+            return response()->json($resultados, 200);
+
+        }catch(\Exception $e){
+            Log::error('Error inesperado al listar productos disponibles', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'listarProductosDisponibles',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+        }
+        
+    }
 
     public function lotesDisponibles($sede, $producto)
     {

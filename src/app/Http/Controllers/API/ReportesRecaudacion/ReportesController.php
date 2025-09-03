@@ -601,7 +601,7 @@ class ReportesController extends Controller
 
         $fechaActual = date('Y-m-d');
         $codigoProducto = request()->input('producto'); // Requerido
-        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaInicio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
         $sede = request()->input('sede'); // Opcional
 
@@ -634,11 +634,11 @@ class ReportesController extends Controller
 
             // aplicar rango de fechas
             if (!empty($fechaInicio)) {
-                $datos->whereBetween('ml.Fecha', [$fechaInicio, $fechaFin]);
+                $datos->whereBetween(DB::raw('DATE(ml.Fecha)'), [$fechaInicio, $fechaFin]);
             } else {
-                $datos->where('ml.Fecha', '<=', $fechaFin);
+                $datos->where(DB::raw('DATE(ml.Fecha)'), '<=', $fechaFin);
             }
-
+            
             $resultados = $datos->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
 
             //log info
@@ -674,7 +674,7 @@ class ReportesController extends Controller
 
         $fechaActual = date('Y-m-d');
         $codigoProducto = request()->input('producto'); // Requerido
-        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaInicio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
         $sede = request()->input('sede'); // Opcional
 
@@ -709,9 +709,9 @@ class ReportesController extends Controller
 
             // aplicar rango de fechas
             if (!empty($fechaInicio)) {
-                $query->whereBetween('ml.Fecha', [$fechaInicio, $fechaFin]);
+                $query->whereBetween(DB::raw('DATE(ml.Fecha)'), [$fechaInicio, $fechaFin]);
             } else {
-                $query->where('ml.Fecha', '<=', $fechaFin);
+                $query->where(DB::raw('DATE(ml.Fecha)'), '<=', $fechaFin);
             }
 
             $resultados = $query->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
