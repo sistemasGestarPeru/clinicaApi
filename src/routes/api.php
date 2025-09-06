@@ -284,6 +284,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('compra/listarProveedor', [CompraController::class, 'listarProveedor']);
     Route::post('compra/listarProducto', [CompraController::class, 'listarProducto']);
     Route::post('compra/registrarCompra', [CompraController::class, 'registrarCompra']);
+    Route::post('compra/registrarCompraNC', [CompraController::class, 'registrarCompraNC']); 
     Route::post('compra/listarCompras', [CompraController::class, 'listarCompras']);
     Route::get('compra/consultarCompra/{codigo}', [CompraController::class, 'consultarCompra']);
     Route::post('compra/listarPagosAdelantados', [CompraController::class, 'listarPagosAdelantados']);
@@ -522,13 +523,16 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('guiaIngreso/registrarGuiaIngreso', [GuiaIngresoController::class, 'registrarGuiaIngreso']);
     Route::get('guiaIngreso/consultarGuia/{codigo}', [GuiaIngresoController::class, 'consultarGuia']);
     Route::post('guiaIngreso/actualizarGuiaIngreso', [GuiaIngresoController::class, 'actualizarGuiaIngreso']);
+    
     //SALIDA PRODUCTOS
     Route::post('guiaSalida/listarGuiaSalida', [GuiaSalidaController::class, 'listarGuiaSalida']);
     Route::get('guiaSalida/listarVentasActivas/{sede}', [GuiaSalidaController::class, 'listarVentasActivas']);
     Route::get('guiaSalida/listarDetalleVenta/{venta}', [GuiaSalidaController::class, 'listarDetalleVenta']);
     Route::post('guiaSalida/registrarGuiaSalida', [GuiaSalidaController::class, 'registrarGuiaSalida']);
     Route::get('guiaSalida/lotesDisponibles/{sede}/{productos}', [GuiaSalidaController::class, 'lotesDisponibles']);
-
+    Route::post('guiaSalida/listarProductosDisponibles', [GuiaSalidaController::class, 'listarProductosDisponibles']);
+    Route::get('guiaSalida/listarPacientes/{termino}', [GuiaSalidaController::class, 'listarPacientes']);
+    
     //LOTE
     Route::post('lote/listarLotes', [LoteController::class, 'listarLotes']);
     Route::get('lote/listarGuiasIngreso/{sede}', [LoteController::class, 'listarGuiasIngreso']);

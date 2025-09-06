@@ -21,6 +21,7 @@ class GuiaSalida extends Model
         'CodigoTrabajador',
         'CodigoSede',
         'CodigoVenta',
-        'Vigente'
+        'Vigente',
+        'CodigoPaciente'
     ];
 }

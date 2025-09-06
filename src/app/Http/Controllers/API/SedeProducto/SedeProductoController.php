@@ -148,28 +148,31 @@ class SedeProductoController extends Controller
         }
     }
 
-    public function listarProductosNoAsignados()
+    public function listarProductosNoAsignados($sede)
     {
 
         try {
 
-            $productos = DB::table('producto as p')
-                ->leftJoin('sedeproducto as sp', 'p.Codigo', '=', 'sp.CodigoProducto')
-                ->select(
-                    'p.Codigo as CodigoProducto',
-                    'p.Nombre',
-                    DB::raw("
+        $productos = DB::table('producto as p')
+            ->leftJoin('sedeproducto as sp', function ($join) use ($sede) {
+                $join->on('p.Codigo', '=', 'sp.CodigoProducto')
+                    ->where('sp.CodigoSede', $sede);
+            })
+            ->select(
+                'p.Codigo as CodigoProducto',
+                'p.Nombre',
+                DB::raw("
                     CASE
                         WHEN p.Tipo = 'S' THEN 'SERVICIO'
                         WHEN p.Tipo = 'B' THEN 'BIEN'
-                        WHEN p.tipo = 'C' THEN 'COMBO'
+                        WHEN p.Tipo = 'C' THEN 'COMBO'
                     END AS TipoProducto
                 "),
-                    'p.tipo as Tipo'
-                )
-                ->where('p.Vigente', 1)
-                ->whereNull('sp.Codigo')
-                ->get();
+                'p.Tipo'
+            )
+            ->where('p.Vigente', 1)
+            ->whereNull('sp.Codigo')
+            ->get();
 
             //log info
             Log::info('Listar Productos No Asignados', [

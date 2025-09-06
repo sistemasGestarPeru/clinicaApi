@@ -202,19 +202,34 @@ class VentaController extends Controller
                     ->first();
 
                     $detallesFormateados[] = [
-                        'num_lin_item'        => $i + 1,
-                        'cod_unid_item'       => $datosProductoSede->unidadMedida,
-                        'cant_unid_item'      => $this->formato4($detalle['Cantidad'] ?? 0),
-                        'val_vta_item'        => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
+                        'num_lin_item'           => $i + 1,
+                        'cod_unid_item'          => $datosProductoSede->unidadMedida,
+                        'cant_unid_item'         => $this->formato4($detalle['Cantidad'] ?? 0),
+
+                        // Valor de venta sin IGV (ya con descuento aplicado)
+                        'val_vta_item'           => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
+
                         'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
-                        'prc_vta_unit_item'   => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
-                        'mnt_dscto_item'      => $this->formato4(abs($detalle['Descuento'] ?? 0)),
-                        'mnt_igv_item'        => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
-                        'txt_descr_item'      => $detalle['Descripcion'] ?? 'Producto sin descripción',
-                        'val_unit_item'       => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
-                        'importe_total_item'  => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
-                        'cod_item' => $datosProductoSede->Tipo . str_pad($detalle['CodigoProducto'], 5, '0', STR_PAD_LEFT),
+
+                        // Precio de venta unitario con IGV (ya con descuento aplicado)
+                        'prc_vta_unit_item'      => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
+
+                        // Monto de descuento total (descuento unitario x cantidad)
+                        'mnt_dscto_item'         => $this->formato4(abs(($detalle['Descuento'] ?? 0) * abs($detalle['Cantidad'] ?? 0))),
+
+                        'mnt_igv_item'           => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
+
+                        'txt_descr_item'         => $detalle['Descripcion'] ?? 'Producto sin descripción',
+
+                        // Valor unitario sin IGV (ya con descuento aplicado)
+                        'val_unit_item'          => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
+
+                        // Importe total (ya incluye IGV y descuento aplicado)
+                        'importe_total_item'     => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
+
+                        'cod_item'               => $datosProductoSede->Tipo . str_pad($detalle['CodigoProducto'], 5, '0', STR_PAD_LEFT),
                     ];
+
             }
 
             switch ($tipoDocumentoVenta->CodigoSUNAT) {
@@ -284,11 +299,11 @@ class VentaController extends Controller
 
                     // Venta
                     'mnt_tot_gravadas'     => round(abs($ventaData['TotalGravado'] ?? 0), 4),
+                    'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
                     'mnt_tot_inafectas'    => round(abs($ventaData['TotalInafecto'] ?? 0), 4),
                     'mnt_tot_exoneradas'   => round(abs($ventaData['TotalExonerado'] ?? 0), 4),
                     'mnt_tot_gratuitas'    => round(abs($ventaData['TotalGratis'] ?? 0), 4),
                     'mnt_tot_desc_global'  => 0.00,
-                    'mnt_tot_igv'          => round(abs($ventaData['IGVTotal'] ?? 0), 4),
                     'mnt_tot'              => round(abs($ventaData['MontoTotal'] ?? 0), 4),
                     'mnt_tot_base_imponible' => 0.00,
                     'mnt_tot_percepcion' => 0.00,
@@ -933,7 +948,6 @@ class VentaController extends Controller
                         'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
                     ]);
 
-                    return response()->json(['error' => 'No hay suficiente Efectivo en caja', 'Disponible' => $total], 500);
                 }
             } else if ($dataEgreso['CodigoSUNAT'] == '003') {
                 $dataEgreso['Lote'] = null;
@@ -1856,8 +1870,9 @@ class VentaController extends Controller
                 ->when($estadoPago == 2, function ($query) {
                     $query->whereRaw('IFNULL(dv.MontoTotal, 0) != IFNULL(dv.MontoPagado, 0)');
                 })
-
-                ->orderByDesc('dv.Codigo')
+                    ->orderBy('dv.CodigoTipoDocumentoVenta', 'asc')
+                    ->orderBy('dv.Serie', 'asc')
+                    ->orderBy('dv.Numero', 'desc')
                 ->get();
 
             //log info
@@ -2759,7 +2774,7 @@ class VentaController extends Controller
                 ->selectRaw('
                 S.CodigoProducto, 
                 S.Descripcion, 
-                S.Descuento,
+                0 AS Descuento,
                 P.Tipo, 
                 CASE WHEN P.Tipo = "B" THEN S.Cantidad ELSE 1 END AS Cantidad, 
                 S.Monto as MontoTotal, 

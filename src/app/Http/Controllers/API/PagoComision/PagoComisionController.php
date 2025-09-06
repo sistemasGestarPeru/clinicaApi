@@ -421,10 +421,7 @@ class PagoComisionController extends Controller
                                             ELSE e.Vigente
                         END AS Vigente")
                 )
-                ->where(function ($query) use ($sede) {
-                    $query->where('cp.CodigoSede', $sede)
-                        ->orWhere('dv.CodigoSede', $sede);
-                })
+                ->where('c.CodigoSede', $sede)
                 ->where('c.CodigoTrabajador', $trabajador)
                 ->when(!empty($data['fecha']), function ($query) use ($data) {
                     $query->where(function ($sub) use ($data) {

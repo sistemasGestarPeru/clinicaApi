@@ -395,9 +395,10 @@ class CompraController extends Controller
 
         $MontoTotal = 0;
 
-        try {
-            DB::beginTransaction();
+        DB::beginTransaction();
 
+        try {
+            
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
@@ -624,6 +625,7 @@ class CompraController extends Controller
                     'c.Serie',
                     'c.Numero',
                     'c.Fecha',
+                    'p.Codigo as CodigoProveedor',
                     DB::raw("CONCAT(p.RazonSocial,' ', p.RUC) as Proveedor"),
                     'tdv.Nombre as Documento'
                 )
@@ -631,21 +633,50 @@ class CompraController extends Controller
                 ->first();
 
             // Segundo query
-            $detalleCompra = DB::table('detallecompra')
+            $detalleCompra = DB::table('producto as p')
+                ->joinSub(function ($q) use ($codigo) {
+                    $q->select(
+                            'DDNC.CodigoProducto',
+                            'DDNC.Descripcion',
+                            'DDNC.Codigo',
+                            DB::raw('SUM(DDNC.Cantidad) - COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
+                            DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
+                        )
+                        ->from('detallecompra as DDNC')
+                        ->leftJoin(DB::raw("(
+                            SELECT 
+                                DNC.CodigoProducto, 
+                                SUM(DNC.Cantidad) AS CantidadBoleteada, 
+                                SUM(DNC.MontoTotal) AS MontoBoleteado
+                            FROM compra AS NC
+                            INNER JOIN detallecompra AS DNC 
+                                ON NC.Codigo = DNC.CodigoCompra
+                            WHERE NC.CodigoDocumentoReferencia = {$codigo}
+                            AND NC.Vigente = 1
+                            GROUP BY DNC.CodigoProducto
+                        ) AS NOTAC"), 'NOTAC.CodigoProducto', '=', 'DDNC.CodigoProducto')
+                        ->where('DDNC.CodigoCompra', $codigo)
+                        ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo');
+                }, 'S', function ($join) {
+                    $join->on('p.Codigo', '=', 'S.CodigoProducto');
+                })
+                ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'p.Codigo')
+                ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
                 ->select(
-                    'Codigo',
-                    'Descripcion',
-                    'MontoTotal',
-                    'MontoIGV',
-                    'Cantidad',
-                    'TipoGravado',
-                    'CodigoProducto',
-                    DB::raw('MontoTotal / Cantidad as MontoUnitario'),
-                    DB::raw('((MontoTotal / Cantidad) - MontoIGV) AS ValorUnitario'),
-                    DB::raw('18 AS Porcentaje')
+                    'S.CodigoProducto',
+                    'S.Descripcion',
+                    'TG.Tipo as TipoGravado',
+                    'TG.Porcentaje',
+                    'p.Tipo',
+                    DB::raw("CASE WHEN p.Tipo = 'B' THEN S.Cantidad ELSE 1 END AS Cantidad"),
+                    DB::raw('S.Monto AS MontoTotal')
                 )
-                ->where('CodigoCompra', $codigo)
+                ->where('S.Monto', '>', 0)
+                ->where('SP.CodigoSede', 1)
+                ->orderBy('S.Descripcion')
                 ->get();
+
+
 
             // Log de éxito
             Log::info('Detalles de compra consultados correctamente', [
@@ -671,6 +702,53 @@ class CompraController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
             return response()->json(['error' => 'Error al consultar los detalles de la compra', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+    public function registrarCompraNC(Request $request){
+
+        $compra = $request->input('compra');
+        $detalleCompra = $request->input('detalleCompra');
+        $cuotas = $request->input('cuota');
+        $egreso = $request->input('egreso');
+        $proveedor = $request->input('proveedor');
+        $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
+        $MontoTotal = 0;
+
+        DB::beginTransaction();
+
+        try{
+
+            $compraData = Compra::create($compra);
+            $idCompra = $compraData->Codigo;
+
+
+            foreach ($detalleCompra as $detalle) {
+
+                $detalle['CodigoCompra'] = $idCompra;
+                $MontoTotal += $detalle['MontoTotal'];
+
+                $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
+                $detalle['MontoIGV'] = $detalle['MontoIGV'] * -1;
+                $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
+
+                DetalleCompra::create($detalle);
+            }
+            
+            DB::commit();
+            return response()->json(['message' => 'Nota de Credito Compra registrada correctamente'], 200);
+
+        }catch(\Exception $e){
+            DB::rollBack();
+            Log::error('Error al registrar la Nota de Credito Compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'registrarCompraNC',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+            return response()->json(['error' => 'Error al registrar la Nota de Credito Compra', 'bd' => $e->getMessage()], 500);
         }
     }
 }

@@ -602,41 +602,57 @@ class ReportesController extends Controller
 
         $fechaActual = date('Y-m-d');
         $codigoProducto = request()->input('producto'); // Requerido
-        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaInicio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
         $sede = request()->input('sede'); // Opcional
 
         try {
-            $datos = DB::table('movimientolote AS ml')
-                ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
-                ->select(
-                    'l.Serie',
+
+            $datos = DB::table('movimientolote as ml')
+                ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                ->leftJoin('detalleguiaingreso as dgi', 'ml.CodigoDetalleIngreso', '=', 'dgi.Codigo')
+                ->leftJoin('guiaingreso as gi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->leftJoin('detalleguiasalida as dgs', 'ml.CodigoDetalleSalida', '=', 'dgs.Codigo')
+                ->leftJoin('guiasalida as gs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
+                ->select([
                     'ml.Fecha',
-                    DB::raw("
-                    CASE
-                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
-                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
-                        ELSE 'Otros'
-                    END AS TipoOperacion
-                "),
-                    'l.Cantidad',
-                    'ml.Stock'
-                )
+                    'l.Serie',
+                    DB::raw("CASE 
+                                WHEN ml.TipoOperacion = 'S' THEN 'SALIDA'
+                                WHEN ml.TipoOperacion = 'I' THEN 'INGRESO'
+                                WHEN ml.TipoOperacion = 'O' THEN 'TRANSFORMACION SALIDA'
+                                WHEN ml.TipoOperacion = 'D' THEN 'TRANSFORMACION ORIGEN'
+                            END AS TipoOperacion"),
+                    DB::raw("CONCAT(gi.TipoDocumento, ' ', gi.Serie, ' - ', gi.Numero) as DocIngreso"),
+                    DB::raw("CONCAT(gs.TipoDocumento, ' ', gs.Serie, ' - ', gs.Numero) as DocSalida"),
+                    DB::raw("CASE WHEN gi.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadIngreso"),
+                    DB::raw("CASE WHEN gs.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadSalida"),
+                    'ml.Stock AS StockCalculado',
+                ])
                 ->where('l.CodigoProducto', $codigoProducto)
-                ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
-                ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
-                ->get();
+                ->where('l.CodigoSede', $sede);
+
+
+            // aplicar rango de fechas
+            if (!empty($fechaInicio)) {
+                $datos->whereBetween(DB::raw('DATE(ml.Fecha)'), [$fechaInicio, $fechaFin]);
+            } else {
+                $datos->where(DB::raw('DATE(ml.Fecha)'), '<=', $fechaFin);
+            }
+            
+            $resultados = $datos->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
 
             //log info
             Log::info('Reporte Kardex Simple', [
                 'Controlador' => 'ReportesController',
                 'Metodo' => 'reporteKardexSimple',
                 'Query' => $request->all(),
-                'Cantidad' => $datos->count(),
+                'Cantidad' => $resultados->count(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
-            return response()->json($datos, 200);
+            return response()->json($resultados, 200);
+
         } catch (\Exception $e) {
 
             //log error
@@ -659,35 +675,49 @@ class ReportesController extends Controller
 
         $fechaActual = date('Y-m-d');
         $codigoProducto = request()->input('producto'); // Requerido
-        $fechaIncio = request()->input('fechaInicio'); // Opcional
+        $fechaInicio = request()->input('fechaInicio'); // Opcional
         $fechaFin = request()->input('fechaFin') ?? $fechaActual; // Opcional
         $sede = request()->input('sede'); // Opcional
 
         try {
 
-            $datos = DB::table('movimientolote AS ml')
-                ->join('lote AS l', 'l.Codigo', '=', 'ml.CodigoLote')
-                ->select(
-                    'l.Serie',
+            $query = DB::table('movimientolote as ml')
+                ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                ->leftJoin('detalleguiaingreso as dgi', 'ml.CodigoDetalleIngreso', '=', 'dgi.Codigo')
+                ->leftJoin('guiaingreso as gi', 'dgi.CodigoGuiaRemision', '=', 'gi.Codigo')
+                ->leftJoin('detalleguiasalida as dgs', 'ml.CodigoDetalleSalida', '=', 'dgs.Codigo')
+                ->leftJoin('guiasalida as gs', 'dgs.CodigoGuiaSalida', '=', 'gs.Codigo')
+                ->select([
                     'ml.Fecha',
-                    DB::raw("
-                    CASE
-                        WHEN ml.TipoOperacion = 'I' THEN 'Ingreso'
-                        WHEN ml.TipoOperacion = 'S' THEN 'Salida'
-                        ELSE 'Otros'
-                    END AS TipoOperacion
-                "),
-                    DB::raw('l.Stock / l.Costo AS Inversion'),
-                    'l.Cantidad',
+                    'l.Serie',
+                    DB::raw("CASE 
+                                WHEN ml.TipoOperacion = 'S' THEN 'SALIDA'
+                                WHEN ml.TipoOperacion = 'I' THEN 'INGRESO'
+                                WHEN ml.TipoOperacion = 'O' THEN 'TRANSFORMACION SALIDA'
+                                WHEN ml.TipoOperacion = 'D' THEN 'TRANSFORMACION ORIGEN'
+                            END AS TipoOperacion"),
+                    DB::raw("CONCAT(gi.TipoDocumento, ' ', gi.Serie, ' - ', gi.Numero) as DocIngreso"),
+                    DB::raw("CONCAT(gs.TipoDocumento, ' ', gs.Serie, ' - ', gs.Numero) as DocSalida"),
+                    DB::raw("CASE WHEN gi.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadIngreso"),
+                    DB::raw("CASE WHEN gs.Codigo IS NULL THEN 0 ELSE ml.Cantidad END AS CantidadSalida"),
                     'ml.Stock',
-                    'ml.CostoPromedio'
-                )
+                    'ml.CostoPromedio',
+                    'dgi.Costo',
+                    DB::raw("(ml.Stock / l.Costo) AS Inversion"),
+                ])
                 ->where('l.CodigoProducto', $codigoProducto)
-                ->where('l.CodigoSede', $sede) // Filtro por CódigoSede
-                ->whereBetween('ml.Fecha', [$fechaIncio, $fechaFin]) // 🔥 Filtro de fechas
-                ->get();
+                ->where('l.CodigoSede', $sede);
 
-            return response()->json($datos, 200);
+            // aplicar rango de fechas
+            if (!empty($fechaInicio)) {
+                $query->whereBetween(DB::raw('DATE(ml.Fecha)'), [$fechaInicio, $fechaFin]);
+            } else {
+                $query->where(DB::raw('DATE(ml.Fecha)'), '<=', $fechaFin);
+            }
+
+            $resultados = $query->orderBy('ml.Fecha', 'ASC')->orderBy('ml.Codigo', 'ASC')->get();
+
+            return response()->json($resultados, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al generar el reporte.', 'bd' => $e->getMessage()], 400);
         }
@@ -738,6 +768,7 @@ class ReportesController extends Controller
                 ->join('categoriaproducto as cp', 'p.CodigoCategoria', '=', 'cp.Codigo')
                 ->select('p.Nombre as Producto', 'cp.Nombre as Categoria', 'sp.Stock')
                 ->where('p.Tipo', 'B')
+                ->where('p.Vigente', 1)
                 ->when($sede, fn($query) => $query->where('sp.CodigoSede', $sede))
                 ->when($categoria, fn($query) => $query->where('cp.Codigo', $categoria))
                 ->when($nombre, fn($query) => $query->where('p.Nombre', 'LIKE', "{$nombre}%"))
