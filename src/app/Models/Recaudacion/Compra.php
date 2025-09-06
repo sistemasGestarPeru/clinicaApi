@@ -24,6 +24,7 @@ class Compra extends Model
         'FormaPago',
         'CodigoProveedor',
         'CodigoTrabajador',
-        'Vigente'
+        'Vigente',
+        'CodigoDocumentoReferencia'
     ];
 }

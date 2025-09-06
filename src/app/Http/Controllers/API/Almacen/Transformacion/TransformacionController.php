@@ -165,7 +165,7 @@ class TransformacionController extends Controller
             $costoSedeOrigen = $productoOrigen->CostoCompraPromedio ?? 0;
 
             DB::table('lote')->where('Codigo', $lote['Codigo'])->decrement('Stock', $transformacion['CantidadOrigen']);
-            $nuevoStockOrigen = $stockSedeOrigen - $transformacion['CantidadOrigen'];
+            $stockSedeOrigen -= $transformacion['CantidadOrigen'];
 
             //Generar Salida (ORIGEN)
             $guiaSalida['CodigoSede'] = $transformacion['CodigoSede'];
@@ -191,7 +191,8 @@ class TransformacionController extends Controller
             $movimientoLoteOrigen['CodigoLote'] = $lote['Codigo'];
             $movimientoLoteOrigen['TipoOperacion'] = 'O';
             $movimientoLoteOrigen['Fecha'] = $fechaActual;
-            $movimientoLoteOrigen['Cantidad'] = $nuevoStockOrigen;
+            $movimientoLoteOrigen['Stock'] = $stockSedeOrigen;
+            $movimientoLoteOrigen['Cantidad'] = $transformacion['CantidadOrigen'];
             $movimientoLoteOrigen['CostoPromedio'] = $costoSedeOrigen;
 
             MovimientoLote::create($movimientoLoteOrigen);
@@ -254,7 +255,7 @@ class TransformacionController extends Controller
             $movimientoLoteDestino['CodigoDetalleIngreso'] = $detalleGuiaIngreso->Codigo;
             $movimientoLoteDestino['CodigoLote'] = $loteCreado->Codigo;
             $movimientoLoteDestino['Cantidad'] = $transformacion['CantidadDestino'];
-            $movimientoLoteDestino['Stock'] = $transformacion['CantidadDestino'];
+            $movimientoLoteDestino['Stock'] = $nuevoStockDestino;
             $movimientoLoteDestino['CostoPromedio'] = $nuevoCostoDestino;
             $movimientoLoteDestino['Fecha'] = $fechaActual;
             $movimientoLoteDestino['TipoOperacion'] = 'D';

@@ -281,7 +281,7 @@ class LoteController extends Controller
 
             foreach ($data as $lote) {
                 $inversionLote = 0;
-
+                $nuevoStock = 0;
                 $producto = DB::table('sedeproducto')
                     ->where('CodigoProducto', $lote['CodigoProducto'])
                     ->where('CodigoSede', $lote['CodigoSede'])
