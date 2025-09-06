@@ -65,6 +65,7 @@ class ReportesController extends Controller
                 ->where('p.Tipo', 'B') // Filtro por Tipo = 'B'
                 ->where('p.Vigente', 1) // Filtro por Vigente en producto
                 // ->where('p.Nombre', 'LIKE', "{$nombre}%") // Filtro por Nombre
+                ->orderBy('p.Nombre', 'asc')
                 ->get();
 
             //log info
