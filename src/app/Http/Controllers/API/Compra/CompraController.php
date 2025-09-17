@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API\Compra;
 
 use App\Http\Controllers\Controller;
+use App\Models\Almacen\GuiaSalida\DetalleGuiaSalida;
+use App\Models\Almacen\GuiaSalida\GuiaSalida;
+use App\Models\Almacen\Lote\MovimientoLote;
 use App\Models\Recaudacion\Compra;
 use App\Models\Recaudacion\Cuota;
 use App\Models\Recaudacion\DetalleCompra;
@@ -263,7 +266,8 @@ class CompraController extends Controller
                 DB::raw('IFNULL(cuotas.MontoPagar, 0) as MontoPagar'),
                 DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
                 DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
-                DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda')
+                DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda'),
+                'c.CodigoDocumentoReferencia'
             )
 
             // Filtro por sede
@@ -627,7 +631,8 @@ class CompraController extends Controller
                     'c.Fecha',
                     'p.Codigo as CodigoProveedor',
                     DB::raw("CONCAT(p.RazonSocial,' ', p.RUC) as Proveedor"),
-                    'tdv.Nombre as Documento'
+                    'tdv.Nombre as Documento',
+                    'c.CodigoSede'
                 )
                 ->where('c.Codigo', $codigo)
                 ->first();
@@ -639,7 +644,7 @@ class CompraController extends Controller
                             'DDNC.CodigoProducto',
                             'DDNC.Descripcion',
                             'DDNC.Codigo',
-                            DB::raw('SUM(DDNC.Cantidad) - COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
+                            DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
                             DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
                         )
                         ->from('detallecompra as DDNC')
@@ -672,7 +677,7 @@ class CompraController extends Controller
                     DB::raw('S.Monto AS MontoTotal')
                 )
                 ->where('S.Monto', '>', 0)
-                ->where('SP.CodigoSede', 1)
+                ->where('SP.CodigoSede', $compra->CodigoSede)
                 ->orderBy('S.Descripcion')
                 ->get();
 
@@ -709,11 +714,12 @@ class CompraController extends Controller
 
         $compra = $request->input('compra');
         $detalleCompra = $request->input('detalleCompra');
-        $cuotas = $request->input('cuota');
         $egreso = $request->input('egreso');
         $proveedor = $request->input('proveedor');
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
         $MontoTotal = 0;
+
+        $fechaActual = date('Y-m-d H:i:s');
 
         DB::beginTransaction();
 
@@ -722,6 +728,21 @@ class CompraController extends Controller
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
+            Cuota::create(
+                [
+                    'CodigoCompra' => $idCompra,
+                    'Fecha' => $compra['Fecha'],
+                    'Monto' => $MontoTotal * -1,
+                    'TipoMoneda' => 1,
+                    'Vigente' => 1
+                ]
+            );
+
+            // 1. Buscar si la compra tiene guia ingreso
+            $guia = DB::table('guiaingreso')
+                ->where('CodigoCompra', $idCompra)
+                ->select('Codigo')
+                ->first();
 
             foreach ($detalleCompra as $detalle) {
 
@@ -733,9 +754,91 @@ class CompraController extends Controller
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
 
                 DetalleCompra::create($detalle);
+
+                $cantidad = abs($detalle['Cantidad']);
+                // 2. Validar si existe la guia
+                if ($guia) {
+
+                    $lotes = DB::table('guiaingreso as gi')
+                        ->join('detalleguiaingreso as dgi', 'gi.Codigo', '=', 'dgi.CodigoGuiaRemision')
+                        ->join('lote as l', 'dgi.Codigo', '=', 'l.CodigoDetalleIngreso')
+                        ->select('l.Codigo', 'l.Stock', 'l.Costo')
+                        ->where('gi.CodigoCompra', $compra['CodigoDocumentoReferencia'])
+                        ->where('gi.Vigente', 1)
+                        ->where('dgi.CodigoProducto', $detalle['CodigoProducto'])
+                        ->orderBy('FechaCaducidad', 'asc')
+                        ->get();
+
+                    // 3. Validar si tiene lotes
+                    if($lotes->count() > 0){
+
+                        foreach ($lotes as $lote) {
+
+                            if($cantidad > 0) {
+                                // Obtener el Costo Promedio del producto en la sede
+                                $datosSede = DB::table('sedeproducto')
+                                    ->where('CodigoProducto', $detalle['CodigoProducto'])
+                                    ->where('CodigoSede', $compra['CodigoSede'])
+                                    ->where('Vigente', 1)
+                                    ->select('CostoCompraPromedio', 'Stock')
+                                    ->first();
+
+                                // 4. Generar Guia Salida 
+                                $guiaSalida['TipoDocumento'] = 'G';
+                                $guiaSalida['Serie'] = 'NC'; // CAMBIAR
+                                $guiaSalida['Numero'] = 1; // CAMBIAR
+                                $guiaSalida['Fecha'] = $fechaActual;
+                                $guiaSalida['Motivo'] = 'N';
+                                $guiaSalida['CodigoSede'] = $compra['CodigoSede'];
+                                $guiaSalida['CodigoTrabajador'] = $compra['CodigoTrabajador'];
+                                $guiaSalidaCreada = GuiaSalida::create($guiaSalida);
+
+
+                                //Generar Detalle Salida 
+                                $detalleGuiaSalida['Cantidad'] = $cantidad;
+                                $detalleGuiaSalida['Costo'] = $lote['Costo']; // verificar 
+                                $detalleGuiaSalida['CodigoGuiaSalida'] = $guiaSalidaCreada->Codigo;
+                                $detalleGuiaSalida['CodigoProducto'] = $detalle['CodigoProducto'];
+                                $detalleGuiaSalida = DetalleGuiaSalida::create($detalleGuiaSalida);
+
+
+                                //Generar Movimiento LOTE (ORIGEN)
+                                $movimientoLote['CodigoDetalleSalida'] = $detalleGuiaSalida->Codigo;
+                                $movimientoLote['CodigoLote'] = $lote['Codigo'];
+                                $movimientoLote['TipoOperacion'] = 'N';
+                                $movimientoLote['Fecha'] = $fechaActual;
+                                $movimientoLote['Stock'] = $datosSede->Stock;
+                                $movimientoLote['Cantidad'] = $cantidad;
+                                $movimientoLote['CostoPromedio'] = $datosSede->CostoCompraPromedio;
+                                MovimientoLote::create($movimientoLote);
+                            }
+
+                            $cantidad -= $lote->Stock;
+
+                        }
+
+                        //Actualizar el stock de la sede Origen
+                        DB::table('sedeproducto')
+                            ->where('CodigoProducto', $detalle['CodigoProducto'])
+                            ->where('CodigoSede', $compra['CodigoSede'])
+                            ->decrement('Stock', abs($detalle['Cantidad']));
+                    }
+
+                }
             }
-            
+
             DB::commit();
+
+            Log::info('Nota de Credito Compra', [
+                'Controlador' => 'CompraController',
+                'Metodo' => 'registrarCompraNC',
+                'idCompra' => $idCompra,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            
+            
+            
             return response()->json(['message' => 'Nota de Credito Compra registrada correctamente'], 200);
 
         }catch(\Exception $e){

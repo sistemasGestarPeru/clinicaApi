@@ -207,33 +207,40 @@ class PagoProveedorController extends Controller
         $codigoCompra = $request->input('codigoCompra');
 
         try {
-            $resultado = DB::table('cuota AS C')
+            $resultado = DB::table('cuota as C')
                 ->select(
                     'C.Codigo',
                     'C.Fecha',
                     'C.Monto',
                     DB::raw("
-                    CASE
-                        WHEN tm.Siglas = 'PEN' THEN COALESCE(SUM(e.Monto), 0)
-                        ELSE COALESCE(SUM(PP.MontoMonedaExtranjera), 0)
-                    END AS MontoTotalPagado
-                "),
+                        CASE 
+                            WHEN tm.Siglas = 'PEN' THEN COALESCE(SUM(e.Monto), 0)
+                            ELSE COALESCE(SUM(PP.MontoMonedaExtranjera), 0)
+                        END AS MontoTotalPagado
+                    "),
                     DB::raw("
-                    CASE
-                        WHEN tm.Siglas = 'PEN' THEN (C.Monto - COALESCE(SUM(e.Monto), 0))
-                        ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
-                    END AS MontoRestante
-                "),
-                    'PP.Adelanto',
-                    'C.TipoMoneda AS CodMoneda',
-                    'tm.Siglas AS TipoMoneda',
-
+                        CASE 
+                            WHEN tm.Siglas = 'PEN' THEN (C.Monto - COALESCE(SUM(e.Monto), 0))
+                            ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
+                        END AS MontoRestante
+                    "),
+                    DB::raw("MAX(PP.Adelanto) as Adelanto"),
+                    'C.TipoMoneda as CodMoneda',
+                    'tm.Siglas as SiglaMoneda'
                 )
-                ->leftJoin('pagoproveedor AS PP', 'C.Codigo', '=', 'PP.CodigoCuota')
-                ->leftJoin('egreso AS e', 'e.Codigo', '=', 'PP.Codigo')
-                ->leftJoin('tipomoneda AS tm', 'C.TipoMoneda', '=', 'tm.Codigo')
-                ->where('C.CodigoCompra', '=', $codigoCompra)
-                ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas', 'PP.Adelanto')
+                ->leftJoin('pagoproveedor as PP', 'C.Codigo', '=', 'PP.CodigoCuota')
+                ->leftJoin('egreso as e', 'e.Codigo', '=', 'PP.Codigo')
+                ->leftJoin('tipomoneda as tm', 'C.TipoMoneda', '=', 'tm.Codigo')
+                ->where(function ($query) use ($codigoCompra) {
+                    $query->where('C.CodigoCompra', $codigoCompra)
+                        ->orWhere('C.CodigoCompra', function ($sub) use ($codigoCompra) {
+                            $sub->select('Codigo')
+                                ->from('compra')
+                                ->where('CodigoDocumentoReferencia', $codigoCompra)
+                                ->limit(1);
+                        });
+                })
+                ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas')
                 ->get();
 
             Log::info('Listado de cuotas de proveedor', [
