@@ -740,7 +740,7 @@ class CompraController extends Controller
 
             // 1. Buscar si la compra tiene guia ingreso
             $guia = DB::table('guiaingreso')
-                ->where('CodigoCompra', $idCompra)
+                ->where('CodigoCompra', $compra['CodigoDocumentoReferencia'])
                 ->select('Codigo')
                 ->first();
 
@@ -773,8 +773,7 @@ class CompraController extends Controller
                     if($lotes->count() > 0){
 
                         foreach ($lotes as $lote) {
-
-                            if($cantidad > 0) {
+                            if ($cantidad > 0) {
                                 // Obtener el Costo Promedio del producto en la sede
                                 $datosSede = DB::table('sedeproducto')
                                     ->where('CodigoProducto', $detalle['CodigoProducto'])
@@ -784,38 +783,42 @@ class CompraController extends Controller
                                     ->first();
 
                                 // 4. Generar Guia Salida 
-                                $guiaSalida['TipoDocumento'] = 'G';
-                                $guiaSalida['Serie'] = 'NC'; // CAMBIAR
-                                $guiaSalida['Numero'] = 1; // CAMBIAR
-                                $guiaSalida['Fecha'] = $fechaActual;
-                                $guiaSalida['Motivo'] = 'N';
-                                $guiaSalida['CodigoSede'] = $compra['CodigoSede'];
-                                $guiaSalida['CodigoTrabajador'] = $compra['CodigoTrabajador'];
-                                $guiaSalidaCreada = GuiaSalida::create($guiaSalida);
+                                $guiaSalidaData = [
+                                    'TipoDocumento'    => 'G',
+                                    'Serie'            => 'NC', // TODO: generar correlativo
+                                    'Numero'           => 1,    // TODO: generar correlativo
+                                    'Fecha'            => $fechaActual,
+                                    'Motivo'           => 'N',
+                                    'CodigoSede'       => $compra['CodigoSede'],
+                                    'CodigoTrabajador' => $compra['CodigoTrabajador'],
+                                ];
+                                $guiaSalidaCreada = GuiaSalida::create($guiaSalidaData);
 
+                                // Generar Detalle Salida 
+                                $detalleGuiaSalidaData = [
+                                    'Cantidad'        => $lote->Stock, // O min($cantidad, $lote->Stock) si quieres controlar cantidades
+                                    'Costo'           => $lote->Costo,
+                                    'CodigoGuiaSalida'=> $guiaSalidaCreada->Codigo,
+                                    'CodigoProducto'  => $detalle['CodigoProducto'],
+                                ];
+                                $detalleGuiaSalidaCreada = DetalleGuiaSalida::create($detalleGuiaSalidaData);
 
-                                //Generar Detalle Salida 
-                                $detalleGuiaSalida['Cantidad'] = $cantidad;
-                                $detalleGuiaSalida['Costo'] = $lote['Costo']; // verificar 
-                                $detalleGuiaSalida['CodigoGuiaSalida'] = $guiaSalidaCreada->Codigo;
-                                $detalleGuiaSalida['CodigoProducto'] = $detalle['CodigoProducto'];
-                                $detalleGuiaSalida = DetalleGuiaSalida::create($detalleGuiaSalida);
-
-
-                                //Generar Movimiento LOTE (ORIGEN)
-                                $movimientoLote['CodigoDetalleSalida'] = $detalleGuiaSalida->Codigo;
-                                $movimientoLote['CodigoLote'] = $lote['Codigo'];
-                                $movimientoLote['TipoOperacion'] = 'N';
-                                $movimientoLote['Fecha'] = $fechaActual;
-                                $movimientoLote['Stock'] = $datosSede->Stock;
-                                $movimientoLote['Cantidad'] = $cantidad;
-                                $movimientoLote['CostoPromedio'] = $datosSede->CostoCompraPromedio;
-                                MovimientoLote::create($movimientoLote);
+                                // Generar Movimiento LOTE (ORIGEN)
+                                $movimientoLoteData = [
+                                    'CodigoDetalleSalida' => $detalleGuiaSalidaCreada->Codigo,
+                                    'CodigoLote'          => $lote->Codigo,
+                                    'TipoOperacion'       => 'N',
+                                    'Fecha'               => $fechaActual,
+                                    'Stock'               => $datosSede->Stock,
+                                    'Cantidad'            => $lote->Stock,
+                                    'CostoPromedio'       => $datosSede->CostoCompraPromedio,
+                                ];
+                                MovimientoLote::create($movimientoLoteData);
                             }
 
                             $cantidad -= $lote->Stock;
-
                         }
+
 
                         //Actualizar el stock de la sede Origen
                         DB::table('sedeproducto')
