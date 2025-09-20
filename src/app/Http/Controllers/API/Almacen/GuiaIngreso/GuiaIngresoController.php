@@ -185,7 +185,7 @@ class GuiaIngresoController extends Controller
                     DB::raw('dc.Cantidad - COALESCE(Entregado.Cantidad, 0) as Cantidad'),
                     'dc.CodigoProducto',
                     'dc.Descripcion',
-                    DB::raw('FORMAT(((dc.MontoTotal - dc.MontoIGV)) / (dc.Cantidad - COALESCE(Entregado.Cantidad, 0)), 4) AS Costo')
+                    DB::raw('ROUND(((dc.MontoTotal - dc.MontoIGV)) / (dc.Cantidad - COALESCE(Entregado.Cantidad, 0)), 4) AS Costo')
                 ])
                 ->get();
 

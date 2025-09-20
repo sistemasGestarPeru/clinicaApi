@@ -190,14 +190,17 @@ class VentaController extends Controller
                 $datosProductoSede = DB::table('sedeproducto as sp')
                     ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
                     ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
-                    ->join('tipogravado as tg', 'sp.CodigoTipoGravado', '=', 'tg.Codigo')
+                    ->join('tipogravado as tg', 'tg.Codigo', '=', 'tg.Codigo') // para que no pete
+                    ->where('tg.Codigo', $detalle['CodigoTipoGravado'])
                     ->where('p.Codigo', $detalle['CodigoProducto'])
                     ->where('sp.CodigoSede', $ventaData['CodigoSede'])
                     ->select([
                         'um.CodigoSUNAT as unidadMedida',
                         'tg.CodigoSUNAT as tipoGravado',
                         'p.Tipo',
-                        'p.Codigo'
+                        'p.Codigo',
+                        'tg.Tipo',
+                        'tg.Porcentaje'
                     ])
                     ->first();
 
@@ -215,7 +218,7 @@ class VentaController extends Controller
                         'prc_vta_unit_item'      => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
 
                         // Monto de descuento total (descuento unitario x cantidad)
-                        'mnt_dscto_item'         => $this->formato4(abs(($detalle['Descuento'] ?? 0) * abs($detalle['Cantidad'] ?? 0))),
+                        'mnt_dscto_item'         => 0.00,
 
                         'mnt_igv_item'           => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
 
@@ -397,7 +400,6 @@ class VentaController extends Controller
             ];
         }
     }
-
 
     public function anularFacturacionElectronica($codigoVenta, $anulacionData, $codigoAnulacion)
     {
@@ -1465,7 +1467,7 @@ class VentaController extends Controller
             $detalle = DB::table('detalledocumentoventa as ddv')
                 ->join('sedeproducto as sp', 'sp.CodigoProducto', '=', 'ddv.CodigoProducto')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
-                ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
+                ->join('tipogravado as tg', 'tg.Codigo', '=', 'ddv.CodigoTipoGravado')
                 ->where('ddv.CodigoVenta', $CodVenta)
                 ->where('sp.CodigoSede', $sede)
                 ->select(
@@ -1476,7 +1478,7 @@ class VentaController extends Controller
                     'p.Tipo',
                     DB::raw("CASE WHEN tg.Tipo = 'G' THEN ROUND(ddv.MontoTotal - (ddv.MontoTotal / (1 + (tg.Porcentaje / 100))), 2) ELSE 0 END AS MontoIGV"),
                     'tg.Tipo AS TipoGravado',
-                    'tg.Codigo AS CodigoTipoGravado',
+                    'ddv.CodigoTipoGravado AS CodigoTipoGravado',
                     'tg.Porcentaje',
                     'ddv.Descuento'
                 )
@@ -2740,7 +2742,8 @@ class VentaController extends Controller
                         DDNC.Codigo, 
                         DDNC.Descuento,
                         SUM(DDNC.Cantidad) - COALESCE(NOTAC.CantidadBoleteada, 0) AS Cantidad, 
-                        SUM(DDNC.MontoTotal) + COALESCE(NOTAC.MontoBoleteado, 0) AS Monto
+                        SUM(DDNC.MontoTotal) + COALESCE(NOTAC.MontoBoleteado, 0) AS Monto,
+                        DDNC.CodigoTipoGravado
                     ')
                         ->leftJoinSub(
                             DB::table('documentoventa as NC')
@@ -2767,7 +2770,7 @@ class VentaController extends Controller
                     'S.CodigoProducto'
                 )
                 ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'P.Codigo')
-                ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+                ->join('tipogravado as TG', 'TG.Codigo', '=', 'S.CodigoTipoGravado')
                 ->where('S.Monto', '>', 0)
                 ->where('SP.CodigoSede', $venta->CodigoSede)
                 ->orderBy('S.Descripcion')
@@ -2780,7 +2783,7 @@ class VentaController extends Controller
                 S.Monto as MontoTotal, 
                 TG.Tipo AS TipoGravado, 
                 TG.Porcentaje AS Porcentaje, 
-                TG.Codigo AS CodigoTipoGravado
+                S.CodigoTipoGravado AS CodigoTipoGravado
             ')
                 ->get();
 
@@ -2965,11 +2968,12 @@ class VentaController extends Controller
                     'ddv.Cantidad as cantidad',
                     'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
-                    DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("( (ddv.MontoTotal + (ddv.Descuento * ddv.Cantidad)) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
+                ->orderBy('ddv.Descripcion')
                 ->get();
 
             //log info
@@ -3054,7 +3058,7 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
-                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal"),
+                    DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal"),
                     DB::raw("CONCAT(paciente.Apellidos, ' ', paciente.Nombres) as NombrePaciente"),
                     'paciente.NumeroDocumento as DocumentoPaciente',
                     'tipoDocPaciente.Siglas as docIdentidadPaciente'
@@ -3070,11 +3074,12 @@ class VentaController extends Controller
                     'ddv.Cantidad as cantidad',
                     'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
-                    DB::raw("( (ddv.MontoTotal + ddv.Descuento) / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("( (ddv.MontoTotal + (ddv.Descuento * ddv.Cantidad)) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
+                ->orderBy('ddv.Descripcion')
                 ->get();
 
             //log info
@@ -3256,7 +3261,7 @@ class VentaController extends Controller
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
-                    DB::raw("(SELECT SUM(Descuento) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
+                    DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
                 ->where('dv.Codigo', $venta)
                 ->distinct()
@@ -3269,13 +3274,13 @@ class VentaController extends Controller
                     'ddv.Cantidad as cantidad',
                     'um.CodigoSUNAT AS unidad',
                     'ddv.Descripcion as descripcion',
-                    DB::raw("(ddv.MontoTotal / ddv.Cantidad) as precioUnitario"),
+                    DB::raw("( (ddv.MontoTotal + (ddv.Descuento * ddv.Cantidad)) / ddv.Cantidad) as precioUnitario"),
                     'ddv.Descuento as descuento',
                     'ddv.MontoTotal as total'
                 ])
                 ->where('ddv.CodigoVenta', $venta)
+                ->orderBy('ddv.Descripcion')
                 ->get();
-
 
             //log info
             Log::info('Consulta de Nota de Venta realizada correctamente.', [
