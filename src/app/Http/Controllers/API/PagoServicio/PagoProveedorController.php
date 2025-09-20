@@ -226,7 +226,7 @@ class PagoProveedorController extends Controller
                     "),
                     DB::raw("MAX(PP.Adelanto) as Adelanto"),
                     'C.TipoMoneda as CodMoneda',
-                    'tm.Siglas as SiglaMoneda'
+                    'tm.Siglas as TipoMoneda'
                 )
                 ->leftJoin('pagoproveedor as PP', 'C.Codigo', '=', 'PP.CodigoCuota')
                 ->leftJoin('egreso as e', 'e.Codigo', '=', 'PP.Codigo')

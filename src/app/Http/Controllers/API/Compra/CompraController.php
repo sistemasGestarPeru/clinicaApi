@@ -202,125 +202,125 @@ class CompraController extends Controller
         try {
 
             $compra = DB::table('compra as c')
-            ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
+                ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
 
-            // LEFT JOIN con subconsulta de cuotas (MontoPagar)
-            ->leftJoinSub(
-                DB::table('cuota')
-                    ->select('CodigoCompra', DB::raw('SUM(Monto) as MontoPagar'), 'TipoMoneda')
-                    ->groupBy('CodigoCompra', 'TipoMoneda'),
-                'cuotas',
-                'cuotas.CodigoCompra',
-                '=',
-                'c.Codigo'
-            )
+                // LEFT JOIN con subconsulta de cuotas (MontoPagar)
+                ->leftJoinSub(
+                    DB::table('cuota')
+                        ->select('CodigoCompra', DB::raw('SUM(Monto) as MontoPagar'), 'TipoMoneda')
+                        ->groupBy('CodigoCompra', 'TipoMoneda'),
+                    'cuotas',
+                    'cuotas.CodigoCompra',
+                    '=',
+                    'c.Codigo'
+                )
 
-            // LEFT JOIN con subconsulta de pagos (MontoPagado)
-            ->leftJoinSub(
-                DB::table('cuota as cu')
-                    ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
-                    ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
-                    ->leftJoin('tipomoneda as m', 'cu.TipoMoneda', '=', 'm.Codigo')
-                    ->select(
-                        'cu.CodigoCompra',
-                        DB::raw("SUM(CASE 
+                // LEFT JOIN con subconsulta de pagos (MontoPagado)
+                ->leftJoinSub(
+                    DB::table('cuota as cu')
+                        ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                        ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                        ->leftJoin('tipomoneda as m', 'cu.TipoMoneda', '=', 'm.Codigo')
+                        ->select(
+                            'cu.CodigoCompra',
+                            DB::raw("SUM(CASE 
                                     WHEN m.Siglas = 'PEN' THEN e.Monto 
                                     ELSE pp.MontoMonedaExtranjera 
                                 END) AS MontoPagado")
-                    )
-                    ->groupBy('cu.CodigoCompra'),
-                'pagos',
-                'pagos.CodigoCompra',
-                '=',
-                'c.Codigo'
-            )
+                        )
+                        ->groupBy('cu.CodigoCompra'),
+                    'pagos',
+                    'pagos.CodigoCompra',
+                    '=',
+                    'c.Codigo'
+                )
 
-            // LEFT JOIN con subconsulta de vencimiento (FechaVencimiento)
-            ->leftJoinSub(
-                DB::table('cuota as cu')
-                    ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
-                    ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
-                    ->select('cu.CodigoCompra', DB::raw('MIN(cu.Fecha) as FechaVencimiento'))
-                    ->whereRaw('(e.Codigo IS NULL OR e.Monto < cu.Monto)')
-                    ->groupBy('cu.CodigoCompra'),
-                'vencimiento',
-                'vencimiento.CodigoCompra',
-                '=',
-                'c.Codigo'
-            )
+                // LEFT JOIN con subconsulta de vencimiento (FechaVencimiento)
+                ->leftJoinSub(
+                    DB::table('cuota as cu')
+                        ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+                        ->leftJoin('egreso as e', 'e.Codigo', '=', 'pp.Codigo')
+                        ->select('cu.CodigoCompra', DB::raw('MIN(cu.Fecha) as FechaVencimiento'))
+                        ->whereRaw('(e.Codigo IS NULL OR e.Monto < cu.Monto)')
+                        ->groupBy('cu.CodigoCompra'),
+                    'vencimiento',
+                    'vencimiento.CodigoCompra',
+                    '=',
+                    'c.Codigo'
+                )
 
-            ->leftJoin('tipomoneda as m', 'm.Codigo', '=', 'cuotas.TipoMoneda')
-            ->leftJoin('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                ->leftJoin('tipomoneda as m', 'm.Codigo', '=', 'cuotas.TipoMoneda')
+                ->leftJoin('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
 
-            // Campos que deseas recuperar
-            ->select(
-                'c.Codigo',
-                'c.Serie',
-                'c.Numero',
-                'tdv.Siglas as TipoDocumento',
-                'c.Fecha',
-                'p.RazonSocial',
-                'p.Codigo as CodigoProveedor',
-                'c.Vigente',
-                'cuotas.TipoMoneda',
-                DB::raw('IFNULL(cuotas.MontoPagar, 0) as MontoPagar'),
-                DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
-                DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
-                DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda'),
-                'c.CodigoDocumentoReferencia'
-            )
+                // Campos que deseas recuperar
+                ->select(
+                    'c.Codigo',
+                    'c.Serie',
+                    'c.Numero',
+                    'tdv.Siglas as TipoDocumento',
+                    'c.Fecha',
+                    'p.RazonSocial',
+                    'p.Codigo as CodigoProveedor',
+                    'c.Vigente',
+                    'cuotas.TipoMoneda',
+                    DB::raw('IFNULL(cuotas.MontoPagar, 0) as MontoPagar'),
+                    DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
+                    DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
+                    DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda'),
+                    'c.CodigoDocumentoReferencia'
+                )
 
-            // Filtro por sede
-            ->where('c.CodigoSede', $filtro['sede'])
+                // Filtro por sede
+                ->where('c.CodigoSede', $filtro['sede'])
 
-            // Filtro por fecha o rango
-            ->when($anio, function ($query) use ($mes, $anio) {
-                if (empty($mes)) {
-                    $query->whereYear('c.Fecha', $anio); //buscar por año
-                } else {
-                    $query->whereYear('c.Fecha', $anio)->whereMonth('c.Fecha', $mes); //mes y año
-                }
-            })
+                // Filtro por fecha o rango
+                ->when($anio, function ($query) use ($mes, $anio) {
+                    if (empty($mes)) {
+                        $query->whereYear('c.Fecha', $anio); //buscar por año
+                    } else {
+                        $query->whereYear('c.Fecha', $anio)->whereMonth('c.Fecha', $mes); //mes y año
+                    }
+                })
 
-            //Serie 
-            ->when($serie, function ($query) use ($serie) {
-                $query->where('c.Serie', 'like', "{$serie}%");
-            })
+                //Serie 
+                ->when($serie, function ($query) use ($serie) {
+                    $query->where('c.Serie', 'like', "{$serie}%");
+                })
 
-            //Numero
-            ->when($numero, function ($query) use ($numero) {
-                $query->where('c.Numero', 'like', "{$numero}%");
-            })
+                //Numero
+                ->when($numero, function ($query) use ($numero) {
+                    $query->where('c.Numero', 'like', "{$numero}%");
+                })
 
-            // Filtro por estado de pago
-            ->when($estadoPago == 1, function ($query) {
-                $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) = IFNULL(pagos.MontoPagado, 0)');
-            })
-            ->when($estadoPago == 2, function ($query) {
-                $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) != IFNULL(pagos.MontoPagado, 0)');
-            })
+                // Filtro por estado de pago
+                ->when($estadoPago == 1, function ($query) {
+                    $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) = IFNULL(pagos.MontoPagado, 0)');
+                })
+                ->when($estadoPago == 2, function ($query) {
+                    $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) != IFNULL(pagos.MontoPagado, 0)');
+                })
 
-            // Filtro por tipo
-            ->where(function ($query) use ($filtro) {
-                if ($filtro['tipo'] == 1) {
-                    $query->whereExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('detallecompra as dc')
-                            ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                            ->whereNotNull('dc.CodigoProducto');
-                    });
-                } elseif ($filtro['tipo'] == 0) {
-                    $query->whereExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('detallecompra as dc')
-                            ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                            ->whereNull('dc.CodigoProducto');
-                    });
-                }
-            })
+                // Filtro por tipo
+                ->where(function ($query) use ($filtro) {
+                    if ($filtro['tipo'] == 1) {
+                        $query->whereExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('detallecompra as dc')
+                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                                ->whereNotNull('dc.CodigoProducto');
+                        });
+                    } elseif ($filtro['tipo'] == 0) {
+                        $query->whereExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('detallecompra as dc')
+                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
+                                ->whereNull('dc.CodigoProducto');
+                        });
+                    }
+                })
 
-            ->orderByDesc('c.Codigo')
-            ->get();
+                ->orderByDesc('c.Codigo')
+                ->get();
 
             // Log de éxito
             Log::info('Compras listadas correctamente', [
@@ -402,7 +402,7 @@ class CompraController extends Controller
         DB::beginTransaction();
 
         try {
-            
+
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
@@ -530,9 +530,9 @@ class CompraController extends Controller
                 return response()->json([
                     'error' => __('mensajes.error_act_compra')
                 ], 400);
-            } 
+            }
 
-            if($compra['Vigente'] == 0) {
+            if ($compra['Vigente'] == 0) {
                 // Que no tenga pago activos
                 $existePagoActivo = DB::table('cuota as cu')
                     ->join('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
@@ -579,17 +579,18 @@ class CompraController extends Controller
                 DB::table('cuota')
                     ->where('CodigoCompra', $compra['Codigo'])
                     ->update(['Vigente' => 0]);
-
-            }else{
+            } else {
                 $compraEncontrada->update(
-                    ['Fecha' => $compra['Fecha'], 
-                    'CodigoTipoDocumentoVenta' => $compra['CodigoTipoDocumentoVenta'],
-                    'Serie' => $compra['Serie'],
-                    'Numero' => $compra['Numero']]
+                    [
+                        'Fecha' => $compra['Fecha'],
+                        'CodigoTipoDocumentoVenta' => $compra['CodigoTipoDocumentoVenta'],
+                        'Serie' => $compra['Serie'],
+                        'Numero' => $compra['Numero']
+                    ]
                 );
             }
-            
-        
+
+
             DB::commit();
             // Log de éxito
             Log::info('Compra actualizada correctamente', [
@@ -600,7 +601,6 @@ class CompraController extends Controller
             ]);
 
             return response()->json(['message' => 'Compra actualizada correctamente'], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             // Log del error general
@@ -616,9 +616,10 @@ class CompraController extends Controller
         }
     }
 
-    public function consultarDetalleComprasNC($codigo){ //para nota de credito
+    public function consultarDetalleComprasNC($codigo)
+    { //para nota de credito
 
-        try{
+        try {
 
             // Primer query
             $compra = DB::table('compra as c')
@@ -641,12 +642,12 @@ class CompraController extends Controller
             $detalleCompra = DB::table('producto as p')
                 ->joinSub(function ($q) use ($codigo) {
                     $q->select(
-                            'DDNC.CodigoProducto',
-                            'DDNC.Descripcion',
-                            'DDNC.Codigo',
-                            DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
-                            DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
-                        )
+                        'DDNC.CodigoProducto',
+                        'DDNC.Descripcion',
+                        'DDNC.Codigo',
+                        DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
+                        DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
+                    )
                         ->from('detallecompra as DDNC')
                         ->leftJoin(DB::raw("(
                             SELECT 
@@ -695,8 +696,7 @@ class CompraController extends Controller
                 'compra' => $compra,
                 'detalleCompra' => $detalleCompra
             ]);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             Log::error('Error al consultar los detalles de la compra', [
                 'Controlador' => 'CompraController',
                 'Metodo' => 'consultaDetallesCompra',
@@ -710,7 +710,8 @@ class CompraController extends Controller
         }
     }
 
-    public function registrarCompraNC(Request $request){
+    public function registrarCompraNC(Request $request)
+    {
 
         $compra = $request->input('compra');
         $detalleCompra = $request->input('detalleCompra');
@@ -723,26 +724,17 @@ class CompraController extends Controller
 
         DB::beginTransaction();
 
-        try{
+        try {
 
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
-            Cuota::create(
-                [
-                    'CodigoCompra' => $idCompra,
-                    'Fecha' => $compra['Fecha'],
-                    'Monto' => $MontoTotal * -1,
-                    'TipoMoneda' => 1,
-                    'Vigente' => 1
-                ]
-            );
-
             // 1. Buscar si la compra tiene guia ingreso
-            $guia = DB::table('guiaingreso')
+            $guia = DB::table('guiaingreso') //agregue vigente = 1
                 ->where('CodigoCompra', $compra['CodigoDocumentoReferencia'])
+                ->where('Vigente', 1)
                 ->select('Codigo')
-                ->first();
+                ->get();
 
             foreach ($detalleCompra as $detalle) {
 
@@ -757,7 +749,7 @@ class CompraController extends Controller
 
                 $cantidad = abs($detalle['Cantidad']);
                 // 2. Validar si existe la guia
-                if ($guia) {
+                if ($guia->count() > 0) {
 
                     $lotes = DB::table('guiaingreso as gi')
                         ->join('detalleguiaingreso as dgi', 'gi.Codigo', '=', 'dgi.CodigoGuiaRemision')
@@ -770,18 +762,19 @@ class CompraController extends Controller
                         ->get();
 
                     // 3. Validar si tiene lotes
-                    if($lotes->count() > 0){
+                    if ($lotes->count() > 0) {
 
                         // 4. Generar Guia Salida 
                         $guiaSalidaData = [
                             'TipoDocumento'    => 'G',
-                            'Serie'            => 'NC', // TODO: generar correlativo
-                            'Numero'           => 1,    // TODO: generar correlativo
+                            'Serie'            => $compra['Serie'],
+                            'Numero'           => $compra['Numero'],
                             'Fecha'            => $fechaActual,
                             'Motivo'           => 'N',
                             'CodigoSede'       => $compra['CodigoSede'],
                             'CodigoTrabajador' => $compra['CodigoTrabajador'],
                         ];
+
                         $guiaSalidaCreada = GuiaSalida::create($guiaSalidaData);
 
                         $cantidadPendiente = abs($detalle['Cantidad']); // lo que debo devolver
@@ -827,14 +820,27 @@ class CompraController extends Controller
                                 ->where('CodigoSede', $compra['CodigoSede'])
                                 ->decrement('Stock', $cantidadSalida);
 
+                            // Descontar en lote
+                            DB::table('lote')
+                                ->where('Codigo', $lote->Codigo)
+                                ->decrement('Stock', $cantidadSalida);
+
                             // Actualizar cantidad pendiente
                             $cantidadPendiente -= $cantidadSalida;
                         }
-
                     }
-
                 }
             }
+
+            Cuota::create(
+                [
+                    'CodigoCompra' => $idCompra,
+                    'Fecha' => $compra['Fecha'],
+                    'Monto' => $MontoTotal * -1,
+                    'TipoMoneda' => 1,
+                    'Vigente' => 1
+                ]
+            );
 
             DB::commit();
 
@@ -845,12 +851,8 @@ class CompraController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
-            
-            
-            
             return response()->json(['message' => 'Nota de Credito Compra registrada correctamente'], 200);
-
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al registrar la Nota de Credito Compra', [
                 'Controlador' => 'CompraController',
