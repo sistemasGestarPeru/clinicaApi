@@ -25,6 +25,7 @@ class Compra extends Model
         'CodigoProveedor',
         'CodigoTrabajador',
         'Vigente',
-        'CodigoDocumentoReferencia'
+        'CodigoDocumentoReferencia',
+        'Tipo'
     ];
 }

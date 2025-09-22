@@ -153,7 +153,9 @@ class CompraController extends Controller
     {
         $sede = $request->input('sede');
         $nombre = $request->input('nombre');
+        $tipo = $request->input('tipo');
         try {
+            
             $productos = DB::table('sedeproducto as sp')
                 ->select(
                     'p.Codigo',
@@ -164,7 +166,7 @@ class CompraController extends Controller
                 ->join('producto as p', 'p.Codigo', '=', 'sp.CodigoProducto')
                 ->join('tipogravado as tg', 'tg.Codigo', '=', 'sp.CodigoTipoGravado')
                 ->where('sp.CodigoSede', $sede) // Filtro por CódigoSede
-                ->where('p.Tipo', 'B') // Filtro por Tipo = 'B'
+                ->where('p.Tipo', $tipo) // Filtro por Tipo = 'B' o 'S'
                 ->where('sp.Vigente', 1) // Filtro por Vigente en sedeproducto
                 ->where('p.Vigente', 1) // Filtro por Vigente en producto
                 ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
@@ -199,6 +201,8 @@ class CompraController extends Controller
         $estadoPago = $filtro['estadoPago'];
         $serie = $filtro['serie'];
         $numero = $filtro['numero'];
+        $tipo = $filtro['tipo'];
+        $proveedor = $filtro['proveedor'];
         try {
 
             $compra = DB::table('compra as c')
@@ -273,6 +277,16 @@ class CompraController extends Controller
                 // Filtro por sede
                 ->where('c.CodigoSede', $filtro['sede'])
 
+                // Filtro de tipo de venta
+                ->when($tipo !== null, function ($query) use ($tipo) {
+                    if ($tipo == 1) {
+                        // Solo bienes
+                        $query->where('c.Tipo', 'B');
+                    } elseif ($tipo == 0) {
+                        // Todo menos bienes
+                        $query->where('c.Tipo', '!=', 'B');
+                    }
+                })
                 // Filtro por fecha o rango
                 ->when($anio, function ($query) use ($mes, $anio) {
                     if (empty($mes)) {
@@ -300,25 +314,10 @@ class CompraController extends Controller
                     $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) != IFNULL(pagos.MontoPagado, 0)');
                 })
 
-                // Filtro por tipo
-                ->where(function ($query) use ($filtro) {
-                    if ($filtro['tipo'] == 1) {
-                        $query->whereExists(function ($q) {
-                            $q->select(DB::raw(1))
-                                ->from('detallecompra as dc')
-                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                                ->whereNotNull('dc.CodigoProducto');
-                        });
-                    } elseif ($filtro['tipo'] == 0) {
-                        $query->whereExists(function ($q) {
-                            $q->select(DB::raw(1))
-                                ->from('detallecompra as dc')
-                                ->whereColumn('dc.CodigoCompra', 'c.Codigo')
-                                ->whereNull('dc.CodigoProducto');
-                        });
-                    }
+                ->when($proveedor != 0, function ($query) use ($proveedor) {
+                    $query->where('c.CodigoProveedor', '=', $proveedor);
                 })
-
+                
                 ->orderByDesc('c.Codigo')
                 ->get();
 
