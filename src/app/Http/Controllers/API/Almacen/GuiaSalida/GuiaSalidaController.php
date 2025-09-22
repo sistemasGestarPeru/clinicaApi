@@ -148,26 +148,49 @@ class GuiaSalidaController extends Controller
 
     public function listarGuiaSalida(Request $request)
     {
-        $filtros = $request->all();
+        $filtros   = $request->all();
+        $fecha     = $filtros['Fecha'] ?? null;
+        $fechaFin    = $filtros['FechaFin'] ?? null;
+        $busqueda  = $filtros['Busqueda'] ?? null; // si luego agregas búsqueda opcional
+        $sede = $filtros['CodigoSede'] ?? null;
+
         try {
 
-            $guiaSalida = DB::table('guiasalida')
+            $guiaSalida = DB::table('guiasalida as g')
+                ->leftJoin('personas as p', 'g.CodigoPaciente', '=', 'p.Codigo')
                 ->select(
-                    'Codigo',
+                    'g.Codigo',
+                    'g.CodigoVenta',
                     DB::raw("
-                    CASE 
-                        WHEN TipoDocumento = 'GR' THEN 'Guia de remisión'
-                        WHEN TipoDocumento = 'F' THEN 'Factura'
-                        WHEN TipoDocumento = 'B' THEN 'Boleta'
-                        ELSE 'Desconocido'
-                    END AS TipoDocumento
-                "),
-                    DB::raw("CONCAT(Serie, ' - ', Numero) AS Documento"),
-                    'Fecha',
-                    'Vigente'
+                        CASE 
+                            WHEN g.TipoDocumento = 'GR' THEN 'Guia de remisión'
+                            WHEN g.TipoDocumento = 'F'  THEN 'Factura'
+                            WHEN g.TipoDocumento = 'B'  THEN 'Boleta'
+                            WHEN g.TipoDocumento = 'D'  THEN 'Guia de remisión - Donante'
+                            ELSE 'Desconocido'
+                        END AS TipoDocumento
+                    "),
+                    DB::raw("CONCAT(g.Serie, ' - ', g.Numero) AS Documento"),
+                    'g.Fecha',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) AS Paciente"),
+                    'g.Vigente'
                 )
-                ->where('CodigoSede', $filtros['CodigoSede'])
-                ->where('TipoDocumento', '!=', 'T')
+                ->where('g.CodigoSede', $sede)
+                ->where('g.TipoDocumento', '!=', 'T')
+                // Filtro por fecha o rango
+                ->when($fecha, function ($query) use ($fecha, $fechaFin) {
+                    if (empty($fechaFin)) {
+                        $query->whereDate('g.Fecha', $fecha);
+                    } else {
+                        $query->whereBetween('g.Fecha', [$fecha, $fechaFin]);
+                    }
+                })
+                ->when($busqueda, function ($query, $busqueda) {
+                    return $query->where(function ($q) use ($busqueda) {
+                        $q->where('p.Nombres', 'like', "%{$busqueda}%")
+                        ->orWhere('p.Apellidos', 'like', "%{$busqueda}%");
+                    });
+                })
                 ->get();
 
             // Log de éxito
@@ -412,6 +435,83 @@ class GuiaSalidaController extends Controller
                 'archivo' => $e->getFile()
             ]);
             return response()->json(['error' => 'Ocurrió un error al registrar la guia de salida', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function consultarGuiaSalida($codigo){
+
+        try{
+
+            // Primera consulta: cabecera de la guía salida
+            $guiaSalida = DB::table('guiasalida as g')
+                ->leftJoin('personas as p', 'g.CodigoPaciente', '=', 'p.Codigo')
+                ->select(
+                    'g.Codigo',
+                    'g.TipoDocumento',
+                    'g.Serie',
+                    'g.Numero',
+                    'g.Fecha',
+                    DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Paciente"),
+                    'g.Vigente'
+                )
+                ->where('g.Codigo', $codigo)
+                ->first();
+
+
+            // Segunda consulta: detalle de la guía salida
+            $detalleGuia = DB::table('detalleguiasalida as dgs')
+                ->join('producto as p', 'dgs.CodigoProducto', '=', 'p.Codigo')
+                ->select(
+                    'dgs.Codigo',
+                    'p.Nombre as Descripcion',
+                    'dgs.Cantidad'
+                )
+                ->where('dgs.CodigoGuiaSalida', $codigo)
+                ->get();
+            
+            $guia = [
+                'cabecera' => $guiaSalida,
+                'detalle' => $detalleGuia
+            ];
+
+            return response()->json($guia, 200);
+        }catch(\Exception $e){
+            Log::error('Error inesperado al consultar guia de salida', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'consultarGuiaSalida',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+            return response()->json(['error' => 'Ocurrió un error al consultar la guia de salida', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
+    public function buscarCorrelativoSalidaDonante($sede, $serie){
+
+        try{
+
+            $numero = ((int) DB::table('guiasalida')
+                ->where('TipoDocumento', 'D')
+                ->where('CodigoSede', $sede)
+                ->where('Serie', $serie)
+                ->orderByDesc('Codigo')
+                ->value('Numero')) ?: 0;
+
+            $numero = $numero + 1;
+
+            return response()->json($numero, 200);
+
+        }catch(\Exception $e){
+            Log::error('Error inesperado al buscar correlativo de salida donante', [
+                'Controlador' => 'GuiaSalidaController',
+                'Metodo' => 'buscarCorrelativoSalidaDonante',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+            return response()->json(['error' => 'Ocurrió un error al buscar el correlativo de salida donante', 'bd' => $e->getMessage()], 500);
         }
     }
 }

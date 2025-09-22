@@ -532,7 +532,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('guiaSalida/lotesDisponibles/{sede}/{productos}', [GuiaSalidaController::class, 'lotesDisponibles']);
     Route::post('guiaSalida/listarProductosDisponibles', [GuiaSalidaController::class, 'listarProductosDisponibles']);
     Route::get('guiaSalida/listarPacientes/{termino}', [GuiaSalidaController::class, 'listarPacientes']);
-    
+    Route::get('guiaSalida/consultarGuiaSalida/{codigo}', [GuiaSalidaController::class, 'consultarGuiaSalida']);
+    Route::get('guiaSalida/buscarCorrelativoSalidaDonante/{sede}/{serie}', [GuiaSalidaController::class, 'buscarCorrelativoSalidaDonante']);
     //LOTE
     Route::post('lote/listarLotes', [LoteController::class, 'listarLotes']);
     Route::get('lote/listarGuiasIngreso/{sede}', [LoteController::class, 'listarGuiasIngreso']);
