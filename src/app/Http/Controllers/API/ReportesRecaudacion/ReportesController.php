@@ -503,6 +503,16 @@ class ReportesController extends Controller
                     END AS IGV,
 
                     CASE 
+                        WHEN dv.Vigente = 1 THEN dv.TotalExonerado
+                        ELSE 0
+                    END AS Exonerado,
+
+                    CASE 
+                        WHEN dv.Vigente = 1 THEN dv.TotalInafecto
+                        ELSE 0
+                    END AS Inafecto,
+
+                    CASE 
                         WHEN dv.Vigente = 1 THEN dv.MontoTotal
                         ELSE 0
                     END AS Monto,
