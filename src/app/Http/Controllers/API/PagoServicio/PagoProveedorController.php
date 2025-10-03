@@ -214,19 +214,21 @@ class PagoProveedorController extends Controller
                     'C.Monto',
                     DB::raw("
                         CASE 
-                            WHEN tm.Siglas = 'PEN' THEN COALESCE(SUM(e.Monto), 0)
-                            ELSE COALESCE(SUM(PP.MontoMonedaExtranjera), 0)
+                            WHEN tm.Siglas = 'PEN' 
+                                THEN COALESCE(SUM(CASE WHEN e.Vigente = 1 THEN e.Monto ELSE 0 END), 0)
+                            ELSE COALESCE(SUM(CASE WHEN e.Vigente = 1 THEN PP.MontoMonedaExtranjera ELSE 0 END), 0)
                         END AS MontoTotalPagado
                     "),
                     DB::raw("
                         CASE 
-                            WHEN tm.Siglas = 'PEN' THEN (C.Monto - COALESCE(SUM(e.Monto), 0))
-                            ELSE (C.Monto - COALESCE(SUM(PP.MontoMonedaExtranjera), 0))
+                            WHEN tm.Siglas = 'PEN' 
+                                THEN (C.Monto - COALESCE(SUM(CASE WHEN e.Vigente = 1 THEN e.Monto ELSE 0 END), 0))
+                            ELSE (C.Monto - COALESCE(SUM(CASE WHEN e.Vigente = 1 THEN PP.MontoMonedaExtranjera ELSE 0 END), 0))
                         END AS MontoRestante
                     "),
                     DB::raw("MAX(PP.Adelanto) as Adelanto"),
                     'C.TipoMoneda as CodMoneda',
-                    'tm.Siglas as TipoMoneda'
+                    'tm.Siglas as TipoMoneda',
                 )
                 ->leftJoin('pagoproveedor as PP', 'C.Codigo', '=', 'PP.CodigoCuota')
                 ->leftJoin('egreso as e', 'e.Codigo', '=', 'PP.Codigo')
@@ -240,6 +242,7 @@ class PagoProveedorController extends Controller
                                 ->limit(1);
                         });
                 })
+                
                 ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas')
                 ->get();
 
