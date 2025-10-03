@@ -66,11 +66,12 @@ class ProductoController extends Controller
                     'cp.Nombre as Categoria',
                     'p.Nombre as Producto',
                     'p.Vigente',
-                    DB::raw("CASE 
-                    WHEN p.Tipo = 'S' THEN 'SERVICIO'
-                    WHEN p.Tipo = 'B' THEN 'BIEN'
-                    ELSE 'Desconocido'
-                END AS Tipo")
+                    DB::raw("
+                    CASE 
+                        WHEN p.Tipo = 'S' THEN 'SERVICIO'
+                        WHEN p.Tipo = 'B' THEN 'BIEN'
+                    ELSE 'Desconocido' END AS Tipo"),
+                    'p.CodigoUnidadMedida'
                 )
                 ->where('p.Tipo', '!=', 'C')
                 ->where('p.Tipo', $tipoProducto)
@@ -484,13 +485,14 @@ class ProductoController extends Controller
 
 
 
-    public function comboIGV($codigo)
+    public function comboIGV($codigo, $sede)
     {
         try {
             $montoIGV = DB::table('productocombo as pc')
                 ->join('sedeproducto as sd', 'sd.CodigoProducto', '=', 'pc.CodigoProducto')
                 ->join('tipogravado as tg', 'tg.Codigo', '=', 'sd.Codigotipogravado')
                 ->where('pc.CodigoCombo', $codigo)
+                ->where('sd.CodigoSede', $sede)
                 ->selectRaw("SUM(CASE WHEN tg.Tipo = 'G' THEN (pc.Precio - (pc.Precio / (1 + (tg.Porcentaje / 100)))) * pc.Cantidad ELSE 0 END) AS MontoIGV")
                 ->value('MontoIGV'); // Obtiene el resultado directamente
 
