@@ -798,7 +798,7 @@ class PagoComisionController extends Controller
                             ->from('detallecontrato as dc')
                             ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
                             ->whereRaw('dc.CodigoContrato = cp.Codigo')
-                            ->where('p.Tipo', 'S');
+                            ->whereIn('p.Tipo', ['S', 'C']);
                     });
             } else {
                 $query = DB::table('documentoventa as dv')
@@ -824,7 +824,7 @@ class PagoComisionController extends Controller
                             ->from('detalledocumentoventa as ddv')
                             ->join('producto as pr', 'ddv.CodigoProducto', '=', 'pr.Codigo')
                             ->whereRaw('ddv.CodigoVenta = dv.Codigo')
-                            ->where('pr.Tipo', 'S');
+                            ->whereIn('pr.Tipo', ['S', 'C']);
                     })
                     ->whereNotExists(function ($query) {
                         $query->select(DB::raw(1))
@@ -868,14 +868,14 @@ class PagoComisionController extends Controller
                     ->join('detallecontrato as dc', 'cp.Codigo', '=', 'dc.CodigoContrato')
                     ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
                     ->where('cp.Codigo', $codigo)
-                    ->where('p.Tipo', 'S')
+                    ->whereIn('p.Tipo', ['S', 'C'])
                     ->select('dc.Codigo as CodigoDetalleContrato', 'dc.Descripcion');
             } else {
                 $detalles = DB::table('documentoventa as dv')
                     ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
                     ->join('producto as p', 'ddv.CodigoProducto', '=', 'p.Codigo')
                     ->where('dv.Codigo', $codigo)
-                    ->where('p.Tipo', 'S')
+                    ->whereIn('p.Tipo', ['S', 'C'])
                     ->select('ddv.Codigo as CodigoDetalleVenta', 'ddv.Descripcion');
             }
             //log info
@@ -993,7 +993,7 @@ class PagoComisionController extends Controller
                             ->from('detallecontrato as dc')
                             ->join('producto as p', 'dc.CodigoProducto', '=', 'p.Codigo')
                             ->whereRaw('dc.CodigoContrato = cp.Codigo')
-                            ->where('p.Tipo', 'S');
+                            ->whereIn('p.Tipo', ['S', 'C']);
                     });
             } else {
                 $query = DB::table('documentoventa as dv')
@@ -1020,7 +1020,7 @@ class PagoComisionController extends Controller
                             ->from('detalledocumentoventa as ddv')
                             ->join('producto as pr', 'ddv.CodigoProducto', '=', 'pr.Codigo')
                             ->whereRaw('ddv.CodigoVenta = dv.Codigo')
-                            ->where('pr.Tipo', 'S');
+                            ->whereIn('pr.Tipo', ['S', 'C']);
                     });
             }
             //log info
