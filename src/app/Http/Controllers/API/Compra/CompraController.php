@@ -208,18 +208,31 @@ class CompraController extends Controller
             $compra = DB::table('compra as c')
                 ->join('proveedor as p', 'p.Codigo', '=', 'c.CodigoProveedor')
 
-                // LEFT JOIN con subconsulta de cuotas (MontoPagar)
+                // Subconsulta cuotas propias (cada documento mantiene lo suyo)
                 ->leftJoinSub(
-                    DB::table('cuota')
-                        ->select('CodigoCompra', DB::raw('SUM(Monto) as MontoPagar'), 'TipoMoneda')
-                        ->groupBy('CodigoCompra', 'TipoMoneda'),
+                    DB::table('cuota as cu')
+                        ->select('cu.CodigoCompra', DB::raw('SUM(cu.Monto) as MontoPropio'), 'cu.TipoMoneda')
+                        ->groupBy('cu.CodigoCompra', 'cu.TipoMoneda'),
                     'cuotas',
                     'cuotas.CodigoCompra',
                     '=',
                     'c.Codigo'
                 )
 
-                // LEFT JOIN con subconsulta de pagos (MontoPagado)
+                // Subconsulta NC (suma de notas de crédito que referencian a otro documento)
+                ->leftJoinSub(
+                    DB::table('cuota as cu')
+                        ->join('compra as comp', 'cu.CodigoCompra', '=', 'comp.Codigo')
+                        ->select('comp.CodigoDocumentoReferencia as CodigoCompra', DB::raw('SUM(cu.Monto) as MontoNC'), 'cu.TipoMoneda')
+                        ->whereNotNull('comp.CodigoDocumentoReferencia')
+                        ->groupBy('comp.CodigoDocumentoReferencia', 'cu.TipoMoneda'),
+                    'nc',
+                    'nc.CodigoCompra',
+                    '=',
+                    'c.Codigo'
+                )
+
+                // Subconsulta pagos
                 ->leftJoinSub(
                     DB::table('cuota as cu')
                         ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
@@ -228,10 +241,11 @@ class CompraController extends Controller
                         ->select(
                             'cu.CodigoCompra',
                             DB::raw("SUM(CASE 
-                                    WHEN m.Siglas = 'PEN' THEN e.Monto 
-                                    ELSE pp.MontoMonedaExtranjera 
-                                END) AS MontoPagado")
+                                        WHEN m.Siglas = 'PEN' THEN e.Monto
+                                        ELSE pp.MontoMonedaExtranjera
+                                    END) AS MontoPagado")
                         )
+                        ->where('e.Vigente', 1)
                         ->groupBy('cu.CodigoCompra'),
                     'pagos',
                     'pagos.CodigoCompra',
@@ -239,7 +253,7 @@ class CompraController extends Controller
                     'c.Codigo'
                 )
 
-                // LEFT JOIN con subconsulta de vencimiento (FechaVencimiento)
+                // Subconsulta vencimiento
                 ->leftJoinSub(
                     DB::table('cuota as cu')
                         ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
@@ -267,59 +281,61 @@ class CompraController extends Controller
                     'p.Codigo as CodigoProveedor',
                     'c.Vigente',
                     'cuotas.TipoMoneda',
-                    DB::raw('IFNULL(cuotas.MontoPagar, 0) as MontoPagar'),
+                    DB::raw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) as MontoPagar'),
                     DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
                     DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
                     DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda'),
                     'c.CodigoDocumentoReferencia'
                 )
 
-                // Filtro por sede
+                // 🔹 Filtros
                 ->where('c.CodigoSede', $filtro['sede'])
 
-                // Filtro de tipo de venta
                 ->when($tipo !== null, function ($query) use ($tipo) {
                     if ($tipo == 1) {
-                        // Solo bienes
-                        $query->where('c.Tipo', 'B');
+                        $query->where('c.Tipo', 'B'); // Solo bienes
                     } elseif ($tipo == 0) {
-                        // Todo menos bienes
-                        $query->where('c.Tipo', '!=', 'B');
-                    }
-                })
-                // Filtro por fecha o rango
-                ->when($anio, function ($query) use ($mes, $anio) {
-                    if (empty($mes)) {
-                        $query->whereYear('c.Fecha', $anio); //buscar por año
-                    } else {
-                        $query->whereYear('c.Fecha', $anio)->whereMonth('c.Fecha', $mes); //mes y año
+                        $query->where('c.Tipo', '!=', 'B'); // Todo menos bienes
                     }
                 })
 
-                //Serie 
+                ->when($anio, function ($query) use ($mes, $anio) {
+                    if (empty($mes)) {
+                        $query->whereYear('c.Fecha', $anio); // Buscar por año
+                    } else {
+                        $query->whereYear('c.Fecha', $anio)->whereMonth('c.Fecha', $mes); // Mes y año
+                    }
+                })
+
                 ->when($serie, function ($query) use ($serie) {
                     $query->where('c.Serie', 'like', "{$serie}%");
                 })
 
-                //Numero
                 ->when($numero, function ($query) use ($numero) {
                     $query->where('c.Numero', 'like', "{$numero}%");
                 })
 
-                // Filtro por estado de pago
                 ->when($estadoPago == 1, function ($query) {
-                    $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) = IFNULL(pagos.MontoPagado, 0)');
+                    $query->where(function ($q) {
+                        $q->whereRaw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) = IFNULL(pagos.MontoPagado, 0)')
+                        ->orWhereNotNull('c.CodigoDocumentoReferencia'); // siempre pagado si tiene doc. ref.
+                    });
                 })
+
                 ->when($estadoPago == 2, function ($query) {
-                    $query->whereRaw('IFNULL(cuotas.MontoPagar, 0) != IFNULL(pagos.MontoPagado, 0)');
+                    $query->where(function ($q) {
+                        $q->whereRaw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) != IFNULL(pagos.MontoPagado, 0)')
+                        ->whereNull('c.CodigoDocumentoReferencia'); // solo pendientes si no hay doc. ref.
+                    });
                 })
 
                 ->when($proveedor != 0, function ($query) use ($proveedor) {
                     $query->where('c.CodigoProveedor', '=', $proveedor);
                 })
-                
+
                 ->orderByDesc('c.Codigo')
                 ->get();
+
 
             // Log de éxito
             Log::info('Compras listadas correctamente', [
@@ -402,6 +418,20 @@ class CompraController extends Controller
 
         try {
 
+            $existe = DB::table('compra')
+                ->where('CodigoProveedor', $compra['CodigoProveedor'])
+                ->where('CodigoSede', $compra['CodigoSede'])
+                ->where('Vigente', 1)
+                ->where('Serie', $compra['Serie'])
+                ->where('Numero', $compra['Numero'])
+                ->exists();
+
+            if ($existe) {
+                return response()->json([
+                    'error' => 'Ya existe una compra para el mismo proveedor con la misma serie y número.'
+                ], 400);
+            }
+            
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
