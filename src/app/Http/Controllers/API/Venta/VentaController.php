@@ -7,6 +7,10 @@ use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Http\Requests\Recaudacion\Pago\RegistrarPagoRequest;
 use App\Http\Requests\Venta\RegistrarDetalleVentaRequest;
 use App\Http\Requests\Venta\RegistrarVentaRequest;
+use App\Models\Almacen\GuiaIngreso\DetalleGuiaIngreso;
+use App\Models\Almacen\GuiaIngreso\GuiaIngreso;
+use App\Models\Almacen\Lote\Lote;
+use App\Models\Almacen\Lote\MovimientoLote;
 use App\Models\Recaudacion\Anulacion;
 use App\Models\Recaudacion\DetalleVenta;
 use App\Models\Recaudacion\Detraccion;
@@ -865,6 +869,7 @@ class VentaController extends Controller
 
     public function registrarNotaCredito(Request $request)
     {
+        $fechaActual = date('Y-m-d H:i:s');
 
         $ventaData = $request->input('venta');
         $detallesVentaData = $request->input('detalleVenta');
@@ -1008,7 +1013,16 @@ class VentaController extends Controller
             $ventaCreada = Venta::create($ventaData);
 
             $ventaData['TotalDescuento'] = 0;
+
+            // Buscar Guias de Salida asociadas a la venta original
+
+            $codigos = DB::table('guiasalida')
+                ->where('CodigoVenta', $ventaData['CodigoDocumentoReferencia'])
+                ->where('Vigente', 1)
+                ->pluck('Codigo');
+
             foreach ($detallesVentaData as $i => $detalle) {
+
                 $detalle['Numero'] = $i + 1;
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
                 $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
@@ -1021,6 +1035,115 @@ class VentaController extends Controller
 
                 $detalle['CodigoVenta'] = $ventaCreada->Codigo;
                 DetalleVenta::create($detalle);
+
+                if ($codigos->isNotEmpty()) {
+
+                    $resultados = DB::table('guiasalida as gs')
+                        ->join('detalleguiasalida as dgs', 'gs.Codigo', '=', 'dgs.CodigoGuiaSalida')
+                        ->join('movimientolote as ml', 'ml.CodigoDetalleSalida', '=', 'dgs.Codigo')
+                        ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                        ->where('gs.CodigoVenta', $ventaData['CodigoDocumentoReferencia'])
+                        ->where('gs.Vigente', 1)
+                        ->where('dgs.CodigoProducto', $detalle['CodigoProducto'])
+                        ->select(
+                            'gs.Codigo as CodigoGuiaSalida',
+                            'dgs.Codigo as CodigoDetalleSalida',
+                            'dgs.Cantidad as CantidadDetalle',
+                            'dgs.Costo as CostoDetalle',
+                            'ml.CodigoLote',
+                            'ml.Cantidad as CantidadLote',
+                            'l.Serie',
+                            'l.MontoIGV',
+                            'l.Costo as CostoLote',
+                            'l.FechaCaducidad',
+                            'l.CodigoProducto'
+                        )
+                    ->get();
+                    
+                    // Validar los lotes
+                    if($resultados->count() > 0) {
+
+                        // 4. Generar Guia de Entrada 
+                        $guiaEntradaData = [
+                            'TipoDocumento'    => 'G',
+                            'Serie'            => $ventaData['Serie'],
+                            'Numero'           => $ventaData['Numero'],
+                            'Fecha'            => $fechaActual,
+                            'Motivo'           => 'N',
+                            'CodigoSede'       => $ventaData['CodigoSede'],
+                            'CodigoTrabajador' => $ventaData['CodigoTrabajador'],
+                        ];
+
+                        $guiaEntrada = GuiaIngreso::create($guiaEntradaData);
+
+                        foreach ($resultados as $lote){ // Creacion de lotes
+
+                            $inversionLote = 0;
+                            $nuevoStock = 0;
+                            $producto = DB::table('sedeproducto')
+                                ->where('CodigoProducto', $lote->CodigoProducto)
+                                ->where('CodigoSede', $ventaData['CodigoSede'])
+                                ->first();
+
+                            $stockSede = $producto->Stock ?? 0;
+                            $costoSede = $producto->CostoCompraPromedio ?? 0;
+                            $inversionSede = $stockSede * $costoSede;
+                            $nuevoStock = $lote->CantidadLote + $stockSede;
+
+                            $inversionLote = $lote->CostoLote * $lote->CantidadLote;
+                            $nuevaInversion = $inversionSede + $inversionLote;
+                            $nuevoCosto = $nuevaInversion / $nuevoStock;
+
+                            // Crear detalle de ingreso
+                            $detalleGuiaIngreso = [
+                                'Cantidad' => $lote->CantidadLote,
+                                'Costo' => $lote->CostoLote,
+                                'CodigoGuiaRemision' => $guiaEntrada->Codigo,
+                                'CodigoProducto' => $lote->CodigoProducto
+                            ];
+
+                            $detalleGuiaIngreso = DetalleGuiaIngreso::create($detalleGuiaIngreso);
+
+                            // Crear Lote
+                            $nuevoLote = [
+                                'Serie' => 'D00',
+                                'Cantidad' => $lote->CantidadLote,
+                                'Stock' => $lote->CantidadLote,
+                                'Costo' => $lote->CostoLote,
+                                'MontoIGV' => $lote->MontoIGV,
+                                'FechaCaducidad' => $lote->FechaCaducidad,
+                                'CodigoProducto' => $lote->CodigoProducto,
+                                'CodigoSede' => $ventaData['CodigoSede'],
+                                'CodigoDetalleIngreso' => $detalleGuiaIngreso->Codigo
+                            ];
+
+                            $loteCreado = Lote::create($nuevoLote);
+
+                            // Registrar movimiento de lote
+                            $movimientoLote = [
+                                    'CodigoDetalleIngreso' => $detalleGuiaIngreso->Codigo,
+                                    'CodigoLote'          => $loteCreado->Codigo,
+                                    'TipoOperacion'       => 'N',
+                                    'Fecha'               => $fechaActual,
+                                    'Stock'               => $nuevoStock, // cambiar
+                                    'Cantidad'            => $lote->CantidadLote, 
+                                    'CostoPromedio'       => $nuevoCosto, 
+                            ];
+
+                            MovimientoLote::create($movimientoLote);
+
+                            // Aumentar en sede
+                            DB::table('sedeproducto')
+                                ->where('CodigoProducto', $detalle['CodigoProducto'])
+                                ->where('CodigoSede', $ventaData['CodigoSede'])
+                                ->increment('Stock', $lote->CantidadLote);
+
+                        }
+
+                    }
+
+                }
+
             }
 
             if (!empty($dataEgreso) && is_array($dataEgreso)) {
@@ -1036,6 +1159,7 @@ class VentaController extends Controller
             }
 
             DB::commit();
+            
 
             //log info
             Log::info('Nota de Crédito registrada correctamente.', [
