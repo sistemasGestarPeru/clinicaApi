@@ -121,6 +121,7 @@ class GuiaSalidaController extends Controller
                 ->where('CodigoProducto', $producto)
                 ->where('CodigoSede', $sede)
                 ->where('Stock', '>', 0)
+                ->where('Vigente', 1)
                 ->get();
 
             // Log de éxito
