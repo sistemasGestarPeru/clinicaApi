@@ -493,6 +493,7 @@ class ProductoController extends Controller
                 ->join('tipogravado as tg', 'tg.Codigo', '=', 'sd.Codigotipogravado')
                 ->where('pc.CodigoCombo', $codigo)
                 ->where('sd.CodigoSede', $sede)
+                ->where('sd.Vigente', 1)
                 ->selectRaw("SUM(CASE WHEN tg.Tipo = 'G' THEN (pc.Precio - (pc.Precio / (1 + (tg.Porcentaje / 100)))) * pc.Cantidad ELSE 0 END) AS MontoIGV")
                 ->value('MontoIGV'); // Obtiene el resultado directamente
 

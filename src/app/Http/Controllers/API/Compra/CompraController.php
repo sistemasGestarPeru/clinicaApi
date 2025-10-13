@@ -155,7 +155,7 @@ class CompraController extends Controller
         $nombre = $request->input('nombre');
         $tipo = $request->input('tipo');
         try {
-            
+
             $productos = DB::table('sedeproducto as sp')
                 ->select(
                     'p.Codigo',
@@ -318,14 +318,14 @@ class CompraController extends Controller
                 ->when($estadoPago == 1, function ($query) {
                     $query->where(function ($q) {
                         $q->whereRaw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) = IFNULL(pagos.MontoPagado, 0)')
-                        ->orWhereNotNull('c.CodigoDocumentoReferencia'); // siempre pagado si tiene doc. ref.
+                            ->orWhereNotNull('c.CodigoDocumentoReferencia'); // siempre pagado si tiene doc. ref.
                     });
                 })
 
                 ->when($estadoPago == 2, function ($query) {
                     $query->where(function ($q) {
                         $q->whereRaw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) != IFNULL(pagos.MontoPagado, 0)')
-                        ->whereNull('c.CodigoDocumentoReferencia'); // solo pendientes si no hay doc. ref.
+                            ->whereNull('c.CodigoDocumentoReferencia'); // solo pendientes si no hay doc. ref.
                     });
                 })
 
@@ -431,7 +431,7 @@ class CompraController extends Controller
                     'error' => 'Ya existe una compra para el mismo proveedor con la misma serie y número.'
                 ], 400);
             }
-            
+
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
 
@@ -645,6 +645,38 @@ class CompraController extends Controller
         }
     }
 
+
+
+    // -------------------------------------- NOTAS DE CREDITO EN COMRAS -------------------------------------------------------
+
+    public function consultarLotesNC(Request $request)
+    {
+        try {
+
+            $lotes = DB::table('guiaingreso as gi')
+                ->join('detalleguiaingreso as dgi', 'gi.Codigo', '=', 'dgi.CodigoGuiaRemision')
+                ->join('lote as l', 'dgi.Codigo', '=', 'l.CodigoDetalleIngreso')
+                ->where('gi.CodigoCompra', $request->CodigoCompra)
+                ->where('l.CodigoProducto', $request->CodigoProducto)
+                ->where('l.Stock', '>', 0)
+                ->where('l.Vigente', 1)
+                ->select(
+                    'l.Codigo',
+                    'l.Serie',
+                    'l.Cantidad',
+                    'l.Stock',
+                    'l.FechaCaducidad',
+                    'l.Costo'
+                )
+                ->orderBy('l.FechaCaducidad')
+                ->get();
+
+            return response()->json($lotes, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al consultar los detalles de la compra', 'bd' => $e->getMessage()], 500);
+        }
+    }
+
     public function consultarDetalleComprasNC($codigo)
     { //para nota de credito
 
@@ -744,6 +776,9 @@ class CompraController extends Controller
 
         $compra = $request->input('compra');
         $detalleCompra = $request->input('detalleCompra');
+        $todosLosLotes = [];
+
+
         $egreso = $request->input('egreso');
         $proveedor = $request->input('proveedor');
         $proveedor['CodigoProveedor'] = $compra['CodigoProveedor'];
@@ -751,125 +786,124 @@ class CompraController extends Controller
 
         $fechaActual = date('Y-m-d H:i:s');
 
+        //Capturar todos los lotes si lo hubieran
+        foreach ($detalleCompra as $detalle) {
+            $lotes = isset($detalle['lote']) && is_array($detalle['lote']) ? $detalle['lote'] : [];
+            $todosLosLotes = array_merge($todosLosLotes, $lotes);
+        }
+
         DB::beginTransaction();
 
         try {
-
+            // Crear la Compra
             $compraData = Compra::create($compra);
             $idCompra = $compraData->Codigo;
+            $montoTotal = 0;
 
-            // 1. Buscar si la compra tiene guia ingreso
-            $guia = DB::table('guiaingreso') //agregue vigente = 1
-                ->where('CodigoCompra', $compra['CodigoDocumentoReferencia'])
-                ->where('Vigente', 1)
-                ->select('Codigo')
-                ->get();
-
+            // Crear los detalles de la compra (en negativo)
             foreach ($detalleCompra as $detalle) {
+                if (!isset($detalle['MontoTotal'], $detalle['MontoIGV'], $detalle['Cantidad'])) {
+                    return response()->json(['error' => 'Datos incompletos en detalle de compra'], 500);
+                }
 
                 $detalle['CodigoCompra'] = $idCompra;
-                $MontoTotal += $detalle['MontoTotal'];
+                $montoTotal += $detalle['MontoTotal'];
 
                 $detalle['MontoTotal'] = $detalle['MontoTotal'] * -1;
                 $detalle['MontoIGV'] = $detalle['MontoIGV'] * -1;
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
 
                 DetalleCompra::create($detalle);
-
-                $cantidad = abs($detalle['Cantidad']);
-                // 2. Validar si existe la guia
-                if ($guia->count() > 0) {
-
-                    $lotes = DB::table('guiaingreso as gi')
-                        ->join('detalleguiaingreso as dgi', 'gi.Codigo', '=', 'dgi.CodigoGuiaRemision')
-                        ->join('lote as l', 'dgi.Codigo', '=', 'l.CodigoDetalleIngreso')
-                        ->select('l.Codigo', 'l.Stock', 'l.Costo')
-                        ->where('gi.CodigoCompra', $compra['CodigoDocumentoReferencia'])
-                        ->where('gi.Vigente', 1)
-                        ->where('dgi.CodigoProducto', $detalle['CodigoProducto'])
-                        ->orderBy('FechaCaducidad', 'asc')
-                        ->get();
-
-                    // 3. Validar si tiene lotes
-                    if ($lotes->count() > 0) {
-
-                        // 4. Generar Guia Salida 
-                        $guiaSalidaData = [
-                            'TipoDocumento'    => 'G',
-                            'Serie'            => $compra['Serie'],
-                            'Numero'           => $compra['Numero'],
-                            'Fecha'            => $fechaActual,
-                            'Motivo'           => 'N',
-                            'CodigoSede'       => $compra['CodigoSede'],
-                            'CodigoTrabajador' => $compra['CodigoTrabajador'],
-                        ];
-
-                        $guiaSalidaCreada = GuiaSalida::create($guiaSalidaData);
-
-                        $cantidadPendiente = abs($detalle['Cantidad']); // lo que debo devolver
-
-                        foreach ($lotes as $lote) {
-                            if ($cantidadPendiente <= 0) break;
-
-                            // Lo que saco de este lote
-                            $cantidadSalida = min($cantidadPendiente, $lote->Stock);
-
-                            // Datos de la sede
-                            $datosSede = DB::table('sedeproducto')
-                                ->where('CodigoProducto', $detalle['CodigoProducto'])
-                                ->where('CodigoSede', $compra['CodigoSede'])
-                                ->where('Vigente', 1)
-                                ->select('CostoCompraPromedio', 'Stock')
-                                ->first();
-
-                            // Crear detalle de salida
-                            $detalleGuiaSalidaData = [
-                                'Cantidad'         => $cantidadSalida,
-                                'Costo'            => $lote->Costo,
-                                'CodigoGuiaSalida' => $guiaSalidaCreada->Codigo,
-                                'CodigoProducto'   => $detalle['CodigoProducto'],
-                            ];
-                            $detalleGuiaSalidaCreada = DetalleGuiaSalida::create($detalleGuiaSalidaData);
-
-                            // Movimiento de lote
-                            $movimientoLoteData = [
-                                'CodigoDetalleSalida' => $detalleGuiaSalidaCreada->Codigo,
-                                'CodigoLote'          => $lote->Codigo,
-                                'TipoOperacion'       => 'N',
-                                'Fecha'               => $fechaActual,
-                                'Stock'               => $datosSede->Stock - $cantidadSalida,
-                                'Cantidad'            => $cantidadSalida,
-                                'CostoPromedio'       => $datosSede->CostoCompraPromedio,
-                            ];
-                            MovimientoLote::create($movimientoLoteData);
-
-                            // Descontar en sede
-                            DB::table('sedeproducto')
-                                ->where('CodigoProducto', $detalle['CodigoProducto'])
-                                ->where('CodigoSede', $compra['CodigoSede'])
-                                ->decrement('Stock', $cantidadSalida);
-
-                            // Descontar en lote
-                            DB::table('lote')
-                                ->where('Codigo', $lote->Codigo)
-                                ->decrement('Stock', $cantidadSalida);
-
-                            // Actualizar cantidad pendiente
-                            $cantidadPendiente -= $cantidadSalida;
-                        }
-                    }
-                }
             }
 
-            Cuota::create(
-                [
-                    'CodigoCompra' => $idCompra,
-                    'Fecha' => $compra['Fecha'],
-                    'Monto' => $MontoTotal * -1,
-                    'TipoMoneda' => 1,
-                    'Vigente' => 1
-                ]
-            );
+            // Crear la cuota (solo una)
+            Cuota::create([
+                'CodigoCompra' => $idCompra,
+                'Fecha'        => $compra['Fecha'],
+                'Monto'        => $montoTotal * -1,
+                'TipoMoneda'   => 1,
+                'Vigente'      => 1
+            ]);
+
+            // Si hay lotes, crear guía de salida
+            if (count($todosLosLotes) > 0) {
+                $guiaSalidaData = [
+                    'CodigoVenta' => $idCompra,
+                    'TipoDocumento'    => 'G',
+                    'Serie'            => $compra['Serie'],
+                    'Numero'           => $compra['Numero'],
+                    'Fecha'            => $fechaActual,
+                    'Motivo'           => 'N',
+                    'CodigoSede'       => $compra['CodigoSede'],
+                    'CodigoTrabajador' => $compra['CodigoTrabajador']
+                ];
+
+                $guiaSalidaCreada = GuiaSalida::create($guiaSalidaData);
+
+                // Procesar los lotes
+                foreach ($todosLosLotes as $lote) {
+                    // Asegurar estructura válida
+                    $codigoLote = is_array($lote) ? ($lote['Codigo'] ?? null) : ($lote->Codigo ?? null);
+                    $cantidad   = is_array($lote) ? ($lote['Cantidad'] ?? 0) : ($lote->Cantidad ?? 0);
+
+                    if (!$codigoLote || $cantidad <= 0) {
+                        continue; // omitir lote inválido
+                    }
+
+                    // Buscar el lote
+                    $loteEncontrado = DB::table('lote')
+                        ->select('Codigo', 'Costo', 'CodigoProducto')
+                        ->where('Codigo', $codigoLote)
+                        ->first();
+
+                    if (!$loteEncontrado) {
+                        // return response()->json(['error' => 'Datos incompletos en detalle de compra'], 500);
+                        throw new \Exception("No se encontró el lote con código $codigoLote.");
+                    }
+
+                    // Buscar datos de sede
+                    $datosSede = DB::table('sedeproducto')
+                        ->where('CodigoProducto', $loteEncontrado->CodigoProducto)
+                        ->where('CodigoSede', $compra['CodigoSede'])
+                        ->where('Vigente', 1)
+                        ->select('CostoCompraPromedio', 'Stock')
+                        ->first();
+
+                    if (!$datosSede) {
+                        throw new \Exception("No se encontró producto {$loteEncontrado->CodigoProducto} en la sede {$compra['CodigoSede']}.");
+                    }
+
+                    // Crear detalle de guía de salida
+                    $detalleGuiaSalida = DetalleGuiaSalida::create([
+                        'Cantidad'         => $cantidad,
+                        'Costo'            => $loteEncontrado->Costo,
+                        'CodigoGuiaSalida' => $guiaSalidaCreada->Codigo,
+                        'CodigoProducto'   => $loteEncontrado->CodigoProducto,
+                    ]);
+
+                    // Crear movimiento de lote
+                    MovimientoLote::create([
+                        'CodigoDetalleSalida' => $detalleGuiaSalida->Codigo,
+                        'CodigoLote'          => $codigoLote,
+                        'TipoOperacion'       => 'N',
+                        'Fecha'               => $fechaActual,
+                        'Stock'               => $datosSede->Stock - $cantidad,
+                        'Cantidad'            => $cantidad,
+                        'CostoPromedio'       => $datosSede->CostoCompraPromedio,
+                    ]);
+
+                    // Actualizar stock en sede
+                    DB::table('sedeproducto')
+                        ->where('CodigoProducto', $loteEncontrado->CodigoProducto)
+                        ->where('CodigoSede', $compra['CodigoSede'])
+                        ->decrement('Stock', $cantidad);
+
+                    // Actualizar stock en lote
+                    DB::table('lote')
+                        ->where('Codigo', $codigoLote)
+                        ->decrement('Stock', $cantidad);
+                }
+            }
 
             DB::commit();
 
