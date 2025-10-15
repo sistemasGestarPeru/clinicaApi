@@ -680,6 +680,8 @@ class CompraController extends Controller
     public function consultarDetalleComprasNC($codigo)
     { //para nota de credito
 
+        $codigoCompra = $codigo;
+
         try {
 
             // Primer query
@@ -700,50 +702,99 @@ class CompraController extends Controller
                 ->first();
 
             // Segundo query
-            $detalleCompra = DB::table('producto as p')
-                ->joinSub(function ($q) use ($codigo) {
-                    $q->select(
-                        'DDNC.CodigoProducto',
-                        'DDNC.Descripcion',
-                        'DDNC.Codigo',
-                        DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
-                        DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
-                    )
-                        ->from('detallecompra as DDNC')
-                        ->leftJoin(DB::raw("(
-                            SELECT 
-                                DNC.CodigoProducto, 
-                                SUM(DNC.Cantidad) AS CantidadBoleteada, 
-                                SUM(DNC.MontoTotal) AS MontoBoleteado
-                            FROM compra AS NC
-                            INNER JOIN detallecompra AS DNC 
-                                ON NC.Codigo = DNC.CodigoCompra
-                            WHERE NC.CodigoDocumentoReferencia = {$codigo}
-                            AND NC.Vigente = 1
-                            GROUP BY DNC.CodigoProducto
-                        ) AS NOTAC"), 'NOTAC.CodigoProducto', '=', 'DDNC.CodigoProducto')
-                        ->where('DDNC.CodigoCompra', $codigo)
-                        ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo');
-                }, 'S', function ($join) {
-                    $join->on('p.Codigo', '=', 'S.CodigoProducto');
-                })
-                ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'p.Codigo')
-                ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
-                ->select(
-                    'S.CodigoProducto',
-                    'S.Descripcion',
-                    'TG.Tipo as TipoGravado',
-                    'TG.Porcentaje',
-                    'p.Tipo',
-                    DB::raw("CASE WHEN p.Tipo = 'B' THEN S.Cantidad ELSE 1 END AS Cantidad"),
-                    DB::raw('S.Monto AS MontoTotal')
-                )
+            // $detalleCompra = DB::table('producto as p')
+            //     ->joinSub(function ($q) use ($codigo) {
+            //         $q->select(
+            //             'DDNC.CodigoProducto',
+            //             'DDNC.Descripcion',
+            //             'DDNC.Codigo',
+            //             DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
+            //             DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
+            //         )
+            //             ->from('detallecompra as DDNC')
+            //             ->leftJoin(DB::raw("(
+            //                 SELECT 
+            //                     DNC.CodigoProducto, 
+            //                     SUM(DNC.Cantidad) AS CantidadBoleteada, 
+            //                     SUM(DNC.MontoTotal) AS MontoBoleteado
+            //                 FROM compra AS NC
+            //                 INNER JOIN detallecompra AS DNC 
+            //                     ON NC.Codigo = DNC.CodigoCompra
+            //                 WHERE NC.CodigoDocumentoReferencia = {$codigo}
+            //                 AND NC.Vigente = 1
+            //                 GROUP BY DNC.CodigoProducto
+            //             ) AS NOTAC"), 'NOTAC.CodigoProducto', '=', 'DDNC.CodigoProducto')
+            //             ->where('DDNC.CodigoCompra', $codigo)
+            //             ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo');
+            //     }, 'S', function ($join) {
+            //         $join->on('p.Codigo', '=', 'S.CodigoProducto');
+            //     })
+            //     ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'p.Codigo')
+            //     ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+            //     ->select(
+            //         'S.CodigoProducto',
+            //         'S.Descripcion',
+            //         'TG.Tipo as TipoGravado',
+            //         'TG.Porcentaje',
+            //         'p.Tipo',
+            //         DB::raw("CASE WHEN p.Tipo = 'B' THEN S.Cantidad ELSE 1 END AS Cantidad"),
+            //         DB::raw('S.Monto AS MontoTotal')
+            //     )
+            //     ->where('S.Monto', '>', 0)
+            //     ->where('SP.CodigoSede', $compra->CodigoSede)
+            //     ->orderBy('S.Descripcion')
+            //     ->get();
+
+            $codigoSede = $compra->CodigoSede;
+
+            $subquery = DB::table('detallecompra as DDNC')
+                ->selectRaw('
+                    COALESCE(DDNC.CodigoProducto, 0) AS CodigoProducto,
+                    DDNC.Descripcion,
+                    DDNC.Codigo,
+                    SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad,
+                    SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto
+                ')
+                ->leftJoin(DB::raw('(
+                    SELECT 
+                        DNC.CodigoProducto, 
+                        SUM(DNC.Cantidad) AS CantidadBoleteada, 
+                        SUM(DNC.MontoTotal) AS MontoBoleteado
+                    FROM compra AS NC
+                    INNER JOIN detallecompra AS DNC 
+                        ON NC.Codigo = DNC.CodigoCompra
+                    WHERE NC.CodigoDocumentoReferencia = ' . $codigoCompra . '
+                    AND NC.Vigente = 1
+                    GROUP BY DNC.CodigoProducto
+                ) AS NOTAC'), 'NOTAC.CodigoProducto', '=', 'DDNC.CodigoProducto')
+                ->where('DDNC.CodigoCompra', $codigoCompra)
+                ->groupBy(DB::raw('COALESCE(DDNC.CodigoProducto, 0), DDNC.Descripcion, DDNC.Codigo'));
+
+
+            $detalleCompra = DB::table(DB::raw("({$subquery->toSql()}) AS S"))
+                ->mergeBindings($subquery) // 🔹 importante para combinar parámetros del subquery
+                ->leftJoin('producto as p', 'p.Codigo', '=', 'S.CodigoProducto')
+                ->leftJoin('sedeproducto as SP', 'SP.CodigoProducto', '=', 'p.Codigo')
+                ->leftJoin('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
+                ->selectRaw('
+                    S.CodigoProducto,
+                    S.Descripcion,
+                    COALESCE(TG.Tipo, "G") AS TipoGravado,
+                    COALESCE(TG.Porcentaje, 18) AS Porcentaje,
+                    COALESCE(p.Tipo, "G") AS Tipo,
+                    CASE 
+                        WHEN p.Tipo = "B" THEN S.Cantidad 
+                        ELSE 1 
+                    END AS Cantidad,
+                    S.Monto AS MontoTotal
+                ')
                 ->where('S.Monto', '>', 0)
-                ->where('SP.CodigoSede', $compra->CodigoSede)
+                ->where(function ($query) use ($codigoSede) {
+                    $query->where('SP.CodigoSede', $codigoSede)
+                        ->orWhereNull('SP.CodigoSede');
+                })
                 ->orderBy('S.Descripcion')
                 ->get();
-
-
 
             // Log de éxito
             Log::info('Detalles de compra consultados correctamente', [
@@ -801,9 +852,13 @@ class CompraController extends Controller
             $montoTotal = 0;
 
             // Crear los detalles de la compra (en negativo)
-            foreach ($detalleCompra as $detalle) {
+            foreach ($detalleCompra as $detalle) 
                 if (!isset($detalle['MontoTotal'], $detalle['MontoIGV'], $detalle['Cantidad'])) {
                     return response()->json(['error' => 'Datos incompletos en detalle de compra'], 500);
+                }
+
+                if (!isset($detalle['CodigoProducto'])  || $detalle['CodigoProducto'] == 0) {
+                    $detalle['CodigoProducto'] = null;
                 }
 
                 $detalle['CodigoCompra'] = $idCompra;
@@ -814,7 +869,7 @@ class CompraController extends Controller
                 $detalle['Cantidad'] = $detalle['Cantidad'] * -1;
 
                 DetalleCompra::create($detalle);
-            }
+            
 
             // Crear la cuota (solo una)
             Cuota::create([
