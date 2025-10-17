@@ -264,7 +264,7 @@ class TransformacionController extends Controller
 
             //Actualizar el stock de la sede Destino
             DB::table('sedeproducto')
-                ->where('CodigoProducto', $transformacion['ProductoOrigen'])
+                ->where('CodigoProducto', $transformacion['ProductoDestino'])
                 ->where('CodigoSede', $transformacion['CodigoSede'])
                 ->update([
                     'CostoCompraPromedio' => $nuevoCostoDestino,
