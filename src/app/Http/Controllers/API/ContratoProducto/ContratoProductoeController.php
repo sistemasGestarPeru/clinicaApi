@@ -78,7 +78,7 @@ class ContratoProductoeController extends Controller
                 ->where('p.Vigente', 1) // Filtro por Vigente en producto
                 ->where('tg.Vigente', 1) // Filtro por Vigente en tipogravado
                 ->where('p.Tipo', '!=', 'C')
-                ->where('p.Nombre', 'LIKE', "{$nombreProducto}%") // Filtro por Nombre
+                ->where('p.Nombre', 'LIKE', "%{$nombreProducto}%") // Filtro por Nombre
                 ->get();
 
             // Log de éxito
