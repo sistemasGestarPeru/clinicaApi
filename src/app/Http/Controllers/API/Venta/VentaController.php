@@ -1409,6 +1409,8 @@ class VentaController extends Controller
             }
 
             if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
+                
+                $detraccion['Monto'] = isset($detraccion['Monto']) ? round($detraccion['Monto']): 0;
                 $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
                 Detraccion::create($detraccion);
             }
