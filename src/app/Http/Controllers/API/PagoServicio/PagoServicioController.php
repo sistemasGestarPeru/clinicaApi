@@ -78,6 +78,7 @@ class PagoServicioController extends Controller
                     's.Descripcion',
                     's.Monto',
                     's.IGV',
+                    's.Vigente',
                     DB::raw('IFNULL(ps.Codigo, 0) as pago')
                 ])
                 ->leftJoin('pagoservicio as ps', 's.Codigo', '=', 'ps.CodigoServicio')
@@ -86,8 +87,9 @@ class PagoServicioController extends Controller
 
             
                 if (!empty($servicio->pago) && $servicio->pago != 0) {
-                    $egreso = DB::table('egreso')
-                        ->where('Codigo', $servicio->pago)
+                    $egreso = Egreso::join('caja as c', 'egreso.CodigoCaja', '=', 'c.Codigo')
+                        ->select('egreso.*', 'c.Estado as EstadoCaja')
+                        ->where('egreso.Codigo', $servicio->pago)
                         ->first();
                 }
 
@@ -120,14 +122,14 @@ class PagoServicioController extends Controller
                 'mps.Nombre as Motivo',
                 DB::raw("IFNULL(mp.Nombre, '-') as MedioPago"),
                 's.Monto',
+                's.Vigente',
                 DB::raw("
                     CASE
                         WHEN e.Codigo IS NULL THEN 'Por pagar'
                         ELSE 'Pagado'
                     END as EstadoPago
                 "),
-                'e.Vigente as PagoVigente',
-                's.Vigente as ServicioVigente',
+                's.Vigente as Vigente',
             ])
             ->join('motivopagoservicio as mps', 's.CodigoMotivoPago', '=', 'mps.Codigo')
             ->join('proveedor as p', 's.CodigoProveedor', '=', 'p.Codigo')
@@ -165,6 +167,7 @@ class PagoServicioController extends Controller
             $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
             $egresoValidator->validate();
 
+            $egreso = ValidarEgreso::validar($egreso, $servicio);
 
             // $fechaCajaObj = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
             // $fechaCajaVal = Carbon::parse($fechaCajaObj->FechaInicio)->toDateString(); // Suponiendo que el campo es "FechaCaja"
@@ -205,8 +208,6 @@ class PagoServicioController extends Controller
             //     $egreso['CodigoCuentaBancaria'] = null;
             //     $egreso['CodigoBilleteraDigital'] = null;
             // }
-
-            $egreso = ValidarEgreso::validar($egreso, $servicio);
         }
 
 
@@ -257,11 +258,23 @@ class PagoServicioController extends Controller
 
                 // Caja cerrada -> solo servicio (sin monto)
                 if ($estadoCaja->Estado == 'C') {
-                    $servicioFiltrado = collect($servicio)->except(['Monto'])->toArray();
+
+                    if($servicio['Vigente'] == 0){
+                        
+                        return response()->json([
+                            'error' => 'Error al actualizar el pago del servicio',
+                            'message' => 'Error al actualizar el pago del servicio, la caja ya fue cerrada.'
+                        ], 500);
+
+                    }
+
+                    $servicioFiltrado = collect($servicio)
+                        ->except(['Monto', 'Vigente'])
+                        ->toArray();
                     $servicioData->update($servicioFiltrado);
 
                     DB::commit();
-                    return response()->json('Servicio actualizado parcialmente (monto no modificado porque la caja está cerrada).', 200);
+                    return response()->json('Servicio actualizado con éxito.', 200);
                 }
 
                 // Caja abierta -> actualizar todo

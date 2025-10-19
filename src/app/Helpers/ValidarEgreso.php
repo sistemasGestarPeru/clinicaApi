@@ -30,9 +30,9 @@ class ValidarEgreso
             }
         }
 
-        // 🧹 Normalizar campos nulos
-        $egreso['CodigoCuentaOrigen'] = $egreso['CodigoCuentaOrigen'] ?? null;
-        $egreso['CodigoBilleteraDigital'] = $egreso['CodigoBilleteraDigital'] ?? null;
+        // 🧹 Normalizar campos nulos o 0
+        $egreso['CodigoCuentaOrigen'] = self::nullIfZero($egreso['CodigoCuentaOrigen'] ?? null);
+        $egreso['CodigoBilleteraDigital'] = self::nullIfZero($egreso['CodigoBilleteraDigital'] ?? null);
 
         // 💰 Reglas según CódigoSUNAT
         switch ($egreso['CodigoSUNAT']) {
@@ -73,5 +73,13 @@ class ValidarEgreso
         $egreso['NumeroOperacion'] = null;
 
         return $egreso;
+    }
+
+    /**
+     * Devuelve null si el valor es 0 o vacío.
+     */
+    private static function nullIfZero($valor)
+    {
+        return ($valor ?? 0) == 0 ? null : $valor;
     }
 }

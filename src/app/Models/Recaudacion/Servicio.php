@@ -25,6 +25,7 @@ class Servicio extends Model
         'IGV',
         'CodigoProveedor',
         'Monto',
-        'CodigoSede'
+        'CodigoSede',
+        'Vigente'
     ];
 }
