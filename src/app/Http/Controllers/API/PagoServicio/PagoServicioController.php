@@ -157,12 +157,12 @@ class PagoServicioController extends Controller
         $servicio = $request->input('servicio');
         $egreso = $request->input('egreso');
 
+        //Validar PagoServicio
+        $pagoServicioValidator = Validator::make($servicio, (new RegistrarPagoServicioRequest())->rules());
+        $pagoServicioValidator->validate();
+
         if($egreso){
             
-            //Validar PagoServicio
-            $pagoServicioValidator = Validator::make($servicio, (new RegistrarPagoServicioRequest())->rules());
-            $pagoServicioValidator->validate();
-
             //Validar Egreso
             $egresoValidator = Validator::make($egreso, (new GuardarEgresoRequest())->rules());
             $egresoValidator->validate();
@@ -275,6 +275,10 @@ class PagoServicioController extends Controller
 
                     DB::commit();
                     return response()->json('Servicio actualizado con éxito.', 200);
+                }
+
+                if($servicio['Vigente'] == 0){
+                    $egreso['Vigente'] = 0;
                 }
 
                 // Caja abierta -> actualizar todo
