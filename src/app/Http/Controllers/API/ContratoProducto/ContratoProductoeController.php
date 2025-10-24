@@ -236,8 +236,10 @@ class ContratoProductoeController extends Controller
                 ->select(
                     'cp.Codigo as Codigo',
                     DB::raw("DATE(cp.Fecha) as Fecha"),
+                    DB::raw("LPAD(cp.NumContrato, 5, '0') as NumContrato"),
                     'cp.Total as Total',
                     'cp.TotalPagado as TotalPagado',
+                    'cp.CodigoContratoReferencia',
                     DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as NombrePaciente"),
                     'cp.Vigente as Vigente'
                 )
@@ -630,6 +632,7 @@ class ContratoProductoeController extends Controller
 
         $detallesContrato = $request->input('detalleContrato');
         $contratoProductoData = $request->input('contratoProducto');
+        $anularContrato = $request->input('anularContrato');
         $compromisoContrato = $request->input('compromisoContrato');
 
         //Validar Contrato
@@ -671,6 +674,7 @@ class ContratoProductoeController extends Controller
         $ultimoNumContrato = ContratoProducto::where('CodigoSede', $codigoSede)->max('NumContrato');
         $contratoProductoData['NumContrato'] = $ultimoNumContrato ? $ultimoNumContrato + 1 : 1;
         $contratoProductoData['Fecha'] = $fecha;
+        $contratoProductoData['CodigoContratoReferencia'] = $contratoOriginal;
 
         DB::beginTransaction();
         try {
@@ -739,6 +743,10 @@ class ContratoProductoeController extends Controller
                     'message' => 'Contrato original no encontrado'
                 ], 404);
             }
+
+            $anularContrato['Codigo'] = $contratoOriginal->Codigo;
+            AnulacionContrato::create($anularContrato);
+
             // Actualizar contrato Original Vigente = 0 
             $contratoOriginal->Vigente = 0;
             $contratoOriginal->save();
@@ -773,6 +781,46 @@ class ContratoProductoeController extends Controller
 
             return response()->json([
                 'message' => 'Error al cambiar el contrato.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function consultarHistorialContrato($codigo){
+
+        try{
+
+            $resultado = DB::table('contratoproducto as c')
+                ->join('anulacioncontrato as ac', 'c.Codigo', '=', 'ac.Codigo')
+                ->join('personas as PACIENTE', 'c.CodigoPaciente', '=', 'PACIENTE.Codigo')
+                ->join('personas as MEDICO', 'c.CodigoMedico', '=', 'MEDICO.Codigo')
+                ->where('c.Codigo', $codigo)
+                ->select(
+                    'c.Codigo',
+                    DB::raw("LPAD(c.NumContrato, 5, '0') as NumContrato"),
+                    DB::raw("CONCAT(PACIENTE.Nombres, ' ', PACIENTE.Apellidos) as Paciente"),
+                    DB::raw("CONCAT(MEDICO.Nombres, ' ', MEDICO.Apellidos) as Medico"),
+                    'ac.Fecha as FechaCambio',
+                    'ac.Comentario'
+                )
+                ->get();
+                return response()->json($resultado, 200);
+
+
+        } catch (\Exception $e) {
+
+            // Log de error
+            Log::error('Error al consultar el contrato', [
+                'Controlador' => 'ContratoProductoeController',
+                'Metodo' => 'consultarHistorialContrato',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json([
+                'message' => 'Error al consultar el contrato.',
                 'error' => $e->getMessage()
             ], 500);
         }
