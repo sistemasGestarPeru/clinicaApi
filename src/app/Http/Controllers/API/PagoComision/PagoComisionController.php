@@ -631,7 +631,13 @@ class PagoComisionController extends Controller
                         'Codigo' => $idNuevoEgreso,
                         'CodigoMedico' => $comision['CodigoMedico']
                     ];
-                    PagoComision::create($pagoComision);
+                    PagoComision::create($pagoComision)->Codigo;
+                    
+                    Comision::where('Codigo', $comision['Codigo'])->update([
+                    
+                        'CodigoPagoComision' => $idNuevoEgreso,
+                    
+                    ]);
                 }
 
                 foreach ($detalleComision as $detalle) {
@@ -834,8 +840,8 @@ class PagoComisionController extends Controller
                 'archivo' => $e->getFile()
             ]);
             return response()->json([
-                'error' => 'Error al actualizar el pago de comisión',
-                'bd' => $e->getMessage()
+                'mensaje' => 'Error al actualizar el pago de comisión',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
