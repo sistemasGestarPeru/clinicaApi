@@ -283,7 +283,7 @@ class CompraController extends Controller
                     'cuotas.TipoMoneda',
                     DB::raw('IFNULL(cuotas.MontoPropio, 0) as MontoPagar'),
                     DB::raw('IFNULL(pagos.MontoPagado, 0) as MontoPagado'),
-                    DB::raw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, 0) as MontoPendiente'),
+                    DB::raw('IFNULL(cuotas.MontoPropio, 0) + IFNULL(nc.MontoNC, IFNULL(-pagos.MontoPagado, 0 )) AS MontoPendiente'),
                     DB::raw('IFNULL(vencimiento.FechaVencimiento, NULL) as FechaVencimiento'),
                     DB::raw('IFNULL(m.Siglas, "N/A") as TipoMoneda'),
                     'c.CodigoDocumentoReferencia'
