@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\PagosVarios;
 
+use App\Helpers\ValidarEgreso;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use App\Models\Recaudacion\Egreso;
@@ -58,54 +59,46 @@ class PagosVariosController extends Controller
 
     public function actualizarPagoVarios(Request $request)
     {
-        $egreso = request()->input('egreso');
+        $servicio = $request->input('pagosVarios');
+        $egreso = $request->input('egreso');
+        $egreso['CodigoSUNAT'] = '008';
         DB::beginTransaction();
         try {
 
-            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+            // Buscar registros en BD
+            $egresoData = isset($egreso['Codigo']) ? Egreso::find($egreso['Codigo']) : null;
+            $servicioData = PagosVarios::find($servicio['Codigo']);
 
-            if ($estadoCaja->Estado == 'C') {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios en una caja cerrada', [
-                    'Controlador' => 'PagosVariosController',
-                    'Metodo' => 'actualizarPagoVarios',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoCaja' => $egreso['CodigoCaja'],
-                ]);
-                return response()->json([
-                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
-                ], 400);
+            if ($egresoData) {
+                $egreso = ValidarEgreso::validar($egreso, $servicio);
+                $estadoCaja = ValidarFecha::obtenerFechaCaja($egresoData->CodigoCaja);
+
+                // Caja cerrada -> solo servicio (sin monto)
+                if ($estadoCaja->Estado == 'C') {
+
+                    if($egreso['Vigente'] == 0){
+                        
+                        return response()->json([
+                            'error' => 'Error al actualizar el pago varios.',
+                            'message' => 'Error al actualizar el pago varios, la caja ya fue cerrada.'
+                        ], 500);
+
+                    }
+
+                    $servicioFiltrado = collect($servicio)
+                        ->except(['Monto', 'Vigente'])
+                        ->toArray();
+                    $servicioData->update($servicioFiltrado);
+
+                    DB::commit();
+                    return response()->json('Pago varios actualizado con éxito.', 200);
+                
+                }
+                // Caja abierta -> actualizar todo
+                $servicioData->update($servicio);
+                $egresoData->update($egreso);
             }
 
-            $egresoData = Egreso::find($egreso['Codigo']);
-
-            if (!$egresoData) {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios que no existe', [
-                    'Controlador' => 'PagosVariosController',
-                    'Metodo' => 'actualizarPagoVarios',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoEgreso' => $egreso['Codigo'],
-                ]);
-                return response()->json([
-                    'error' => 'No se ha encontrado el Pago Varios.'
-                ], 404);
-            }
-
-            if ($egresoData['Vigente'] == 1) {
-                $egresoData->update(['Vigente' => $egreso['Vigente']]);
-            } else {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios que ya no es vigente', [
-                    'Controlador' => 'PagosVariosController',
-                    'Metodo' => 'actualizarPagoVarios',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoEgreso' => $egreso['Codigo'],
-                ]);
-                return response()->json([
-                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
-                ], 400);
-            }
 
             DB::commit();
             //log info
@@ -116,10 +109,23 @@ class PagosVariosController extends Controller
                 'CodigoEgreso' => $egreso['Codigo'],
             ]);
 
-            return response()->json([
-                'message' => 'Pago Varios actualizado correctamente.'
-            ], 200);
-        } catch (\Exception $e) {
+            return response()->json('Pago varios actualizado correctamente.', 200);
+
+        } catch (\Throwable $e) {
+             DB::rollBack();
+
+            // Detectar si el error es SQL
+            $isSqlError = $e instanceof \Illuminate\Database\QueryException;
+
+            // Guardar el mensaje técnico (para logs, no para el usuario)
+            $errorInterno = $e->getMessage();
+
+            // Mensaje público seguro
+            $mensajePublico = $isSqlError
+                ? 'Ocurrió un error en la base de datos. Por favor, contacte al administrador.'
+                : ($errorInterno ?: 'Error desconocido.');
+
+            // Registrar el error técnico en el log de Laravel
 
             //log error
             Log::error('Error al actualizar Pago Varios', [
@@ -130,9 +136,10 @@ class PagosVariosController extends Controller
                 'mensaje' => $e->getMessage(),
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
+                 'error' => $errorInterno,
             ]);
 
-            return response()->json(['error' => 'Error al actualizar el pago varios.', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Error al actualizar el pago varios.', 'message' => $mensajePublico], 500);
         }
     }
 
@@ -275,15 +282,15 @@ class PagosVariosController extends Controller
         try {
             // Obtener datos de pagosvarios
             $pagosVarios = DB::table('pagosvarios')
-                ->select('CodigoReceptor', 'Tipo', 'Comentario', 'Motivo', 'Destino')
+                ->select('Codigo','CodigoReceptor', 'Tipo', 'Comentario', 'Motivo', 'Destino')
                 ->where('Codigo', $codigo)
                 ->first(); // Usamos first() para obtener un solo resultado
 
             // Obtener datos de egreso
-            $egreso = DB::table('egreso')
-                ->select('Codigo', 'Monto', 'Fecha', 'Vigente', 'CodigoCaja')
-                ->where('Codigo', $codigo)
-                ->first(); // Usamos first() para obtener un solo resultado
+            $egreso = Egreso::join('caja as c', 'egreso.CodigoCaja', '=', 'c.Codigo')
+                ->select('egreso.*', 'c.Estado as EstadoCaja')
+                ->where('egreso.Codigo', $codigo)
+                ->first();
 
             //log info
             Log::info('Consulta de Pagos Varios', [
