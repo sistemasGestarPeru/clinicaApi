@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\PagoDonante;
 
+use App\Helpers\ValidarEgreso;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recaudacion\Egreso\GuardarEgresoRequest;
 use Illuminate\Http\Request;
@@ -56,87 +57,88 @@ class PagoDonanteController extends Controller
         //
     }
 
+    public function actualizarPagoDonante(Request $request){
+        $egreso = $request->input('egreso');
+        $servicio = $request->input('pagoDonante');
 
-    public function actualizarPagoDonante(Request $request)
-    {
-        $egreso = request()->input('egreso');
         DB::beginTransaction();
 
-        try {
-            $estadoCaja = ValidarFecha::obtenerFechaCaja($egreso['CodigoCaja']);
+        try{
+            
+            $egresoData = isset($egreso['Codigo']) ? Egreso::find($egreso['Codigo']) : null;
+            $servicioData = PagoDonante::find($servicio['Codigo']);
 
-            if ($estadoCaja->Estado == 'C') {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios en una caja cerrada', [
-                    'Controlador' => 'PagoDonanteController',
-                    'Metodo' => 'actualizarPagoDonante',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoCaja' => $egreso['CodigoCaja'],
-                ]);
-                return response()->json([
-                    'error' => __('mensajes.error_act_egreso_caja', ['tipo' => 'pago varios']),
-                ], 400);
-            }
+            // Verificar si hay egreso
+            if ($egresoData) {
 
-            $egresoData = Egreso::find($egreso['Codigo']);
+                $egreso = ValidarEgreso::validar($egreso, $servicio);
 
-            if (!$egresoData) {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios que no existe', [
-                    'Controlador' => 'PagoDonanteController',
-                    'Metodo' => 'actualizarPagoDonante',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoEgreso' => $egreso['Codigo'],
-                ]);
-                return response()->json([
-                    'error' => 'No se ha encontrado el Pago Varios.'
-                ], 404);
-            }
+                $estadoCaja = ValidarFecha::obtenerFechaCaja($egresoData->CodigoCaja);
 
-            if ($egresoData['Vigente'] == 1) {
-                $egresoData->update(['Vigente' => $egreso['Vigente']]);
-            } else {
-                //log warning
-                Log::warning('Intento de actualizar un pago varios que no está vigente', [
-                    'Controlador' => 'PagoDonanteController',
-                    'Metodo' => 'actualizarPagoDonante',
-                    'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                    'CodigoEgreso' => $egreso['Codigo'],
-                ]);
-                return response()->json([
-                    'error' => __('mensajes.error_act_egreso', ['tipo' => 'servicio']),
-                ], 400);
-            }
+                // Caja cerrada -> solo servicio (sin monto)
+                if ($estadoCaja->Estado == 'C') {
 
-            DB::commit();
-            //log info
-            Log::info('Pago Varios actualizado correctamente', [
-                'Controlador' => 'PagoDonanteController',
-                'Metodo' => 'actualizarPagoDonante',
-                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'CodigoEgreso' => $egreso['Codigo'],
-            ]);
-            return response()->json([
-                'message' => 'Pago Varios actualizado correctamente.'
-            ], 200);
-        } catch (\Exception $e) {
+                    if($egreso['Vigente'] == 0){
+                        
+                        return response()->json([
+                            'error' => 'Error al actualizar el pago del donante.',
+                            'message' => 'Error al actualizar el pago del donante, la caja ya fue cerrada.'
+                        ], 500);
+
+                    }
+
+                    $servicioFiltrado = collect($servicio)
+                        ->except(['Monto', 'Vigente'])
+                        ->toArray();
+                    $servicioData->update($servicioFiltrado);
+
+                    DB::commit();
+                    return response()->json('Pago del donante actualizado con éxito.', 200);
+                }
+
+                // Caja abierta -> actualizar todo
+                $servicioData->update($servicio);
+                $egresoData->update($egreso);
+
+                DB::commit();
+                return response()->json('Pago del donante actualizado correctamente.', 200);
+            } 
+
+        } catch (\Throwable $e) {
             DB::rollBack();
-            //log error
-            Log::error('Error al actualizar Pago Varios', [
-                'Controlador' => 'PagoDonanteController',
-                'Metodo' => 'actualizarPagoDonante',
-                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'CodigoEgreso' => $egreso['Codigo'],
-                'mensaje' => $e->getMessage(),
+
+            // Detectar si el error es SQL
+            $isSqlError = $e instanceof \Illuminate\Database\QueryException;
+
+            // Guardar el mensaje técnico (para logs, no para el usuario)
+            $errorInterno = $e->getMessage();
+
+            // Mensaje público seguro
+            $mensajePublico = $isSqlError
+                ? 'Ocurrió un error en la base de datos. Por favor, contacte al administrador.'
+                : ($errorInterno ?: 'Error desconocido.');
+
+            // Registrar el error técnico en el log de Laravel
+
+            Log::error('Error al actualizar el pago del donante', [
+                'Controlador' => 'MedioPagoController',
+                'Metodo' => 'registrarMedioPago',
+                 'error' => $errorInterno,
+                'data' => [
+                    'servicio' => $servicio ?? null,
+                    'egreso' => $egreso ?? null,
+                ],
                 'linea' => $e->getLine(),
                 'archivo' => $e->getFile(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
+
             return response()->json([
-                'message' => 'Error al actualizar el pago del donante',
-                'error' => $e->getMessage()
+                'error' => 'Error al actualizar el pago del donante',
+                'message' => $mensajePublico
             ], 500);
         }
-    }
+    }    
 
     public function registrarPagoDonante(Request $request)
     {
@@ -296,6 +298,11 @@ class PagoDonanteController extends Controller
             $pagoServicio = PagoDonante::find($codigo);
             $egreso = Egreso::find($codigo);
 
+            $egreso = Egreso::join('caja as c', 'egreso.CodigoCaja', '=', 'c.Codigo')
+                ->select('egreso.*', 'c.Estado as EstadoCaja')
+                ->where('egreso.Codigo', $codigo)
+                ->first();
+            
             if ($pagoServicio) {
                 Log::info('Consultar Pago Donante', [
                     'Controlador' => 'PagoDonanteController',
