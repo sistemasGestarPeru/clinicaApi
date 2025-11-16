@@ -208,35 +208,34 @@ class VentaController extends Controller
                     ])
                     ->first();
 
-                    $detallesFormateados[] = [
-                        'num_lin_item'           => $i + 1,
-                        'cod_unid_item'          => $datosProductoSede->unidadMedida,
-                        'cant_unid_item'         => $this->formato4($detalle['Cantidad'] ?? 0),
+                $detallesFormateados[] = [
+                    'num_lin_item'           => $i + 1,
+                    'cod_unid_item'          => $datosProductoSede->unidadMedida,
+                    'cant_unid_item'         => $this->formato4($detalle['Cantidad'] ?? 0),
 
-                        // Valor de venta sin IGV (ya con descuento aplicado)
-                        'val_vta_item'           => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
+                    // Valor de venta sin IGV (ya con descuento aplicado)
+                    'val_vta_item'           => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0))),
 
-                        'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
+                    'cod_tip_afect_igv_item' => $datosProductoSede->tipoGravado,
 
-                        // Precio de venta unitario con IGV (ya con descuento aplicado)
-                        'prc_vta_unit_item'      => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
+                    // Precio de venta unitario con IGV (ya con descuento aplicado)
+                    'prc_vta_unit_item'      => $this->formato4(abs(($detalle['MontoTotal'] ?? 0) / max($detalle['Cantidad'] ?? 1, 1))),
 
-                        // Monto de descuento total (descuento unitario x cantidad)
-                        'mnt_dscto_item'         => 0.00,
+                    // Monto de descuento total (descuento unitario x cantidad)
+                    'mnt_dscto_item'         => 0.00,
 
-                        'mnt_igv_item'           => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
+                    'mnt_igv_item'           => $this->formato4(abs($detalle['MontoIGV'] ?? 0)),
 
-                        'txt_descr_item'         => $detalle['Descripcion'] ?? 'Producto sin descripción',
+                    'txt_descr_item'         => $detalle['Descripcion'] ?? 'Producto sin descripción',
 
-                        // Valor unitario sin IGV (ya con descuento aplicado)
-                        'val_unit_item'          => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
+                    // Valor unitario sin IGV (ya con descuento aplicado)
+                    'val_unit_item'          => $this->formato4(abs((($detalle['MontoTotal'] ?? 0) - ($detalle['MontoIGV'] ?? 0)) / max($detalle['Cantidad'] ?? 1, 1))),
 
-                        // Importe total (ya incluye IGV y descuento aplicado)
-                        'importe_total_item'     => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
+                    // Importe total (ya incluye IGV y descuento aplicado)
+                    'importe_total_item'     => $this->formato4(abs($detalle['MontoTotal'] ?? 0)),
 
-                        'cod_item'               => $datosProductoSede->Tipo . str_pad($detalle['CodigoProducto'], 5, '0', STR_PAD_LEFT),
-                    ];
-
+                    'cod_item'               => $datosProductoSede->Tipo . str_pad($detalle['CodigoProducto'], 5, '0', STR_PAD_LEFT),
+                ];
             }
 
             switch ($tipoDocumentoVenta->CodigoSUNAT) {
@@ -954,7 +953,6 @@ class VentaController extends Controller
                         'TotalCaja' => $total,
                         'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
                     ]);
-
                 }
             } else if ($dataEgreso['CodigoSUNAT'] == '003') {
                 $dataEgreso['Lote'] = null;
@@ -1058,10 +1056,10 @@ class VentaController extends Controller
                             'l.FechaCaducidad',
                             'l.CodigoProducto'
                         )
-                    ->get();
-                    
+                        ->get();
+
                     // Validar los lotes
-                    if($resultados->count() > 0) {
+                    if ($resultados->count() > 0) {
 
                         // 4. Generar Guia de Entrada 
                         $guiaEntradaData = [
@@ -1076,7 +1074,7 @@ class VentaController extends Controller
 
                         $guiaEntrada = GuiaIngreso::create($guiaEntradaData);
 
-                        foreach ($resultados as $lote){ // Creacion de lotes
+                        foreach ($resultados as $lote) { // Creacion de lotes
 
                             $inversionLote = 0;
                             $nuevoStock = 0;
@@ -1121,13 +1119,13 @@ class VentaController extends Controller
 
                             // Registrar movimiento de lote
                             $movimientoLote = [
-                                    'CodigoDetalleIngreso' => $detalleGuiaIngreso->Codigo,
-                                    'CodigoLote'          => $loteCreado->Codigo,
-                                    'TipoOperacion'       => 'N',
-                                    'Fecha'               => $fechaActual,
-                                    'Stock'               => $nuevoStock, // cambiar
-                                    'Cantidad'            => $lote->CantidadLote, 
-                                    'CostoPromedio'       => $nuevoCosto, 
+                                'CodigoDetalleIngreso' => $detalleGuiaIngreso->Codigo,
+                                'CodigoLote'          => $loteCreado->Codigo,
+                                'TipoOperacion'       => 'N',
+                                'Fecha'               => $fechaActual,
+                                'Stock'               => $nuevoStock, // cambiar
+                                'Cantidad'            => $lote->CantidadLote,
+                                'CostoPromedio'       => $nuevoCosto,
                             ];
 
                             MovimientoLote::create($movimientoLote);
@@ -1137,13 +1135,9 @@ class VentaController extends Controller
                                 ->where('CodigoProducto', $detalle['CodigoProducto'])
                                 ->where('CodigoSede', $ventaData['CodigoSede'])
                                 ->increment('Stock', $lote->CantidadLote);
-
                         }
-
                     }
-
                 }
-
             }
 
             if (!empty($dataEgreso) && is_array($dataEgreso)) {
@@ -1159,7 +1153,7 @@ class VentaController extends Controller
             }
 
             DB::commit();
-            
+
 
             //log info
             Log::info('Nota de Crédito registrada correctamente.', [
@@ -1409,8 +1403,8 @@ class VentaController extends Controller
             }
 
             if ($ventaData['MontoTotal'] >= 700 && !empty((array) $detraccion)) {
-                
-                $detraccion['Monto'] = isset($detraccion['Monto']) ? round($detraccion['Monto']): 0;
+
+                $detraccion['Monto'] = isset($detraccion['Monto']) ? round($detraccion['Monto']) : 0;
                 $detraccion['CodigoDocumentoVenta'] = $ventaCreada->Codigo;
                 Detraccion::create($detraccion);
             }
@@ -1998,9 +1992,9 @@ class VentaController extends Controller
                 ->when($estadoPago == 2, function ($query) {
                     $query->whereRaw('IFNULL(dv.MontoTotal, 0) != IFNULL(dv.MontoPagado, 0)');
                 })
-                    ->orderBy('dv.CodigoTipoDocumentoVenta', 'asc')
-                    ->orderBy('dv.Serie', 'asc')
-                    ->orderBy('dv.Numero', 'desc')
+                ->orderBy('dv.CodigoTipoDocumentoVenta', 'asc')
+                ->orderBy('dv.Serie', 'asc')
+                ->orderBy('dv.Numero', 'desc')
                 ->get();
 
             //log info
@@ -3079,6 +3073,8 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
+                    'dv.TotalExonerado',
+                    'dv.TotalInafecto',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
@@ -3183,6 +3179,8 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
+                    'dv.TotalExonerado',
+                    'dv.TotalInafecto',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal"),
                     DB::raw("CONCAT(paciente.Apellidos, ' ', paciente.Nombres) as NombrePaciente"),
@@ -3297,6 +3295,8 @@ class VentaController extends Controller
                     DB::raw('ABS(dv.MontoTotal) AS totalPagar'),
                     DB::raw('ABS(dv.IGVTotal) AS igv'),
                     DB::raw('ABS(dv.TotalGravado) AS opGravadas'),
+                    'dv.TotalExonerado',
+                    'dv.TotalInafecto',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) AS vendedor"),
                     'venta.Serie AS docRefSerie',
                     DB::raw("LPAD(venta.Numero, 8, '0') AS docRefNumero"),
@@ -3386,6 +3386,8 @@ class VentaController extends Controller
                     'dv.MontoTotal as totalPagar',
                     'dv.IGVTotal as igv',
                     'dv.TotalGravado as opGravadas',
+                    'dv.TotalExonerado',
+                    'dv.TotalInafecto',
                     DB::raw("CONCAT(vendedor.Apellidos, ' ', vendedor.Nombres) as vendedor"),
                     DB::raw("(SELECT SUM(Descuento * Cantidad) FROM detalledocumentoventa WHERE CodigoVenta = dv.Codigo) AS descuentoTotal")
                 )
