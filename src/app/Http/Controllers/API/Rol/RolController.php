@@ -190,6 +190,7 @@ class RolController extends Controller
 
     public function registroRol(Request $request)
     {
+        DB::beginTransaction();
         try {
 
             $codigo = DB::table('aplicacion')
@@ -233,8 +234,12 @@ class RolController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
             ]);
 
+            DB::commit();
+
             return response()->json(['message' => 'Rol registrado correctamente.'], 201);
         } catch (QueryException $e) {
+
+            DB::rollBack();
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {
 
