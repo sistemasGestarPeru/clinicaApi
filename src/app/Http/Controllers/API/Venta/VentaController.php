@@ -667,7 +667,7 @@ class VentaController extends Controller
                 ->where('Vigente', 1)
                 ->value('Monto');
 
-            DB::table('Pago')
+            DB::table('pago')
                 ->where('Codigo', $pago)
                 ->update(['Vigente' => 0]);
 
