@@ -229,10 +229,13 @@ class PagoProveedorController extends Controller
                     DB::raw("MAX(PP.Adelanto) as Adelanto"),
                     'C.TipoMoneda as CodMoneda',
                     'tm.Siglas as TipoMoneda',
+                    DB::raw("IFNULL(e.NumeroOperacion, ' - ') as NumeroOperacion"),
+                    'mp.Nombre as medioPago'
                 )
                 ->leftJoin('pagoproveedor as PP', 'C.Codigo', '=', 'PP.CodigoCuota')
                 ->leftJoin('egreso as e', 'e.Codigo', '=', 'PP.Codigo')
                 ->leftJoin('tipomoneda as tm', 'C.TipoMoneda', '=', 'tm.Codigo')
+                ->leftJoin('mediopago as mp', 'e.CodigoMedioPago', '=', 'mp.Codigo')
                 ->where(function ($query) use ($codigoCompra) {
                     $query->where('C.CodigoCompra', $codigoCompra)
                         ->orWhere('C.CodigoCompra', function ($sub) use ($codigoCompra) {
@@ -243,7 +246,7 @@ class PagoProveedorController extends Controller
                         });
                 })
                 
-                ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas')
+                ->groupBy('C.Codigo', 'C.Monto', 'C.Fecha', 'C.TipoMoneda', 'tm.Siglas','e.NumeroOperacion','mp.Nombre')
                 ->get();
 
             Log::info('Listado de cuotas de proveedor', [
