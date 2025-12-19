@@ -1180,4 +1180,81 @@ class ReportesController extends Controller
             ], 500);
         }
     }
+
+    public function reporteDatosPago(Request $request){
+            
+            $sede = $request->input('sede');             // obligatorio
+            $fechaInicio = $request->input('fechaInicio');
+            $fechaFin    = $request->input('fechaFin');
+                        
+
+        try{
+
+            $resultados = DB::table('documentoventa as dv')
+                ->selectRaw("
+                    CONCAT(dv.Serie, '-', dv.Numero) AS DocumentoVenta,
+
+                    CASE 
+                        WHEN e.Codigo IS NULL THEN p.NumeroDocumento
+                        ELSE e.RUC
+                    END AS DocumentoIdentidad,
+
+                    CASE 
+                        WHEN e.Codigo IS NULL THEN CONCAT(p.Apellidos, ' ', p.Nombres)
+                        ELSE e.RazonSocial
+                    END AS Nombre,
+
+                    dv.Fecha AS Fecha,
+                    dv.MontoTotal AS MontoTotal,
+                    pdv.Monto AS MontoPagado,
+                    IFNULL (CONCAT(' ', pg.NumeroOperacion),'' )AS Operacion,
+                    IFNULL (CONCAT(pg.Lote, '-', pg.Referencia),'') AS Visa,
+                    pg.Fecha AS FechaPago,
+                    pg.Monto AS MontoPago,
+                    mp.Nombre AS MedioPago
+                ")
+                ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
+                ->leftJoin('clienteempresa as e', 'dv.CodigoClienteEmpresa', '=', 'e.Codigo')
+                ->join('pagodocumentoventa as pdv', 'dv.Codigo', '=', 'pdv.CodigoDocumentoVenta')
+                ->join('pago as pg', 'pg.Codigo', '=', 'pdv.CodigoPago')
+                ->join('mediopago as mp', 'mp.Codigo', '=', 'pg.CodigoMedioPago')
+                ->where('dv.Vigente', 1)
+                ->where('pg.Vigente', 1)
+                ->where('dv.CodigoSede', $sede)
+                ->whereBetween(DB::raw('DATE(dv.Fecha)'), [
+                    $fechaInicio,
+                    $fechaFin
+                ])
+                ->get();
+
+
+            //log info
+            Log::info('Reporte Datos Pago', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteDatosPago',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json($resultados, 200);
+
+        } catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Datos Pago', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteDatosPago',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al listar los datos pago.',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
