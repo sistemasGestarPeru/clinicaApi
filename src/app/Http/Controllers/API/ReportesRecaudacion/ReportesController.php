@@ -632,6 +632,7 @@ class ReportesController extends Controller
                                 WHEN ml.TipoOperacion = 'I' THEN 'INGRESO'
                                 WHEN ml.TipoOperacion = 'O' THEN 'TRANSFORMACION SALIDA'
                                 WHEN ml.TipoOperacion = 'D' THEN 'TRANSFORMACION ORIGEN'
+                                WHEN ml.TipoOperacion = 'N' THEN 'DEVOLUCION NOTA CREDITO'
                             END AS TipoOperacion"),
                     DB::raw("CONCAT(gi.TipoDocumento, ' ', gi.Serie, ' - ', gi.Numero) as DocIngreso"),
                     DB::raw("CONCAT(gs.TipoDocumento, ' ', gs.Serie, ' - ', gs.Numero) as DocSalida"),
