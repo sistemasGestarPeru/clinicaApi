@@ -112,32 +112,35 @@ class PagoServicioController extends Controller
         $sede = $request->input('sede');
 
         try {
-        $results = DB::table('servicio as s')
-            ->select([
-                's.Codigo as Codigo',
-                DB::raw("DATE_FORMAT(s.FechaDocumento, '%d/%m/%Y') as FechaDocumento"),
-                's.TipoDocumento',
-                DB::raw("CONCAT(s.Serie, ' - ', s.Numero) as Documento"),
-                'p.RazonSocial',
-                'mps.Nombre as Motivo',
-                DB::raw("IFNULL(mp.Nombre, '-') as MedioPago"),
-                's.Monto',
-                's.Vigente',
-                DB::raw("
-                    CASE
-                        WHEN e.Codigo IS NULL THEN 'Por pagar'
-                        ELSE 'Pagado'
-                    END as EstadoPago
-                "),
-                's.Vigente as Vigente',
-            ])
-            ->join('motivopagoservicio as mps', 's.CodigoMotivoPago', '=', 'mps.Codigo')
-            ->join('proveedor as p', 's.CodigoProveedor', '=', 'p.Codigo')
-            ->leftJoin('pagoservicio as ps', 's.Codigo', '=', 'ps.CodigoServicio')
-            ->leftJoin('egreso as e', 'ps.Codigo', '=', 'e.Codigo')
-            ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
-            ->where('s.CodigoSede', $sede) // <-- aquí usas tu variable $sede
-            ->get();
+            $results = DB::table('servicio as s')
+                ->select([
+                    's.Codigo as Codigo',
+                    DB::raw("DATE_FORMAT(s.FechaDocumento, '%d/%m/%Y') as FechaDocumento"),
+                    's.TipoDocumento',
+                    DB::raw("CONCAT(s.Serie, ' - ', s.Numero) as Documento"),
+                    'p.RazonSocial',
+                    'mps.Nombre as Motivo',
+                    DB::raw("IFNULL(mp.Nombre, '-') as MedioPago"),
+                    's.Monto',
+                    's.Vigente',
+                    DB::raw("
+                        CASE
+                            WHEN e.Codigo IS NULL THEN 'Por pagar'
+                            ELSE 'Pagado'
+                        END as EstadoPago
+                    "),
+                    's.Vigente as Vigente',
+                ])
+                ->join('motivopagoservicio as mps', 's.CodigoMotivoPago', '=', 'mps.Codigo')
+                ->join('proveedor as p', 's.CodigoProveedor', '=', 'p.Codigo')
+                ->leftJoin('pagoservicio as ps', 's.Codigo', '=', 'ps.CodigoServicio')
+                ->leftJoin('egreso as e', 'ps.Codigo', '=', 'e.Codigo')
+                ->leftJoin('mediopago as mp', 'mp.Codigo', '=', 'e.CodigoMedioPago')
+                ->where('s.CodigoSede', $sede) 
+                ->when($fecha, function ($query, $fecha) {
+                    return $query->whereDate('s.FechaDocumento', $fecha);
+                })
+                ->get();
 
             return response()->json([
                 'pagos' => $results

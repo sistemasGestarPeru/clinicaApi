@@ -734,7 +734,8 @@ class CajaController extends Controller
                     'e.Codigo AS CodigoEgreso',
                     'p.Codigo AS CodigoEmisor',
                     'e.Monto',
-                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) AS Emisor")
+                    DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) AS Emisor"),
+                    'e.Fecha'
                 )
                 ->get();
             // Log de éxito

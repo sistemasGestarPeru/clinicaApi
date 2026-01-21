@@ -18,6 +18,7 @@ class SalidaDinero extends Model
     protected $fillable = [
         'Codigo',
         'CodigoCuentaBancaria',
-        'CodigoReceptor'
+        'CodigoReceptor',
+        'Comentario'
     ];
 }
