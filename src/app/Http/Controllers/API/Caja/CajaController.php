@@ -234,7 +234,7 @@ class CajaController extends Controller
                     END AS OPERACION,
                     
                     CASE 
-                        WHEN ps.Codigo IS NOT NULL THEN CONCAT(ps.TipoDocumento,' ',ps.Serie,'-',ps.Numero)
+                        WHEN ps.Codigo IS NOT NULL THEN CONCAT(s.TipoDocumento,' ',s.Serie,'-',s.Numero)
                         WHEN pp.CodigoCuota IS NOT NULL THEN (
                                 SELECT CONCAT(tdv.Nombre,' ',Co.Serie, '-', LPAD(Co.Numero, 5, '0')) FROM cuota as c 
                             INNER JOIN compra as Co ON c.CodigoCompra = Co.Codigo
@@ -252,6 +252,7 @@ class CajaController extends Controller
                     -e.Monto AS MONTO
                         FROM egreso as e
                         LEFT JOIN pagoservicio AS ps ON ps.Codigo = e.Codigo
+                        LEFT JOIN servicio AS s ON s.Codigo = ps.CodigoServicio
                         LEFT JOIN pagoproveedor as pp ON pp.Codigo = e.Codigo
                         LEFT JOIN salidadinero AS sd ON sd.Codigo = e.Codigo
                         LEFT JOIN devolucionnotacredito as dnc ON dnc.Codigo = e.Codigo
@@ -261,8 +262,8 @@ class CajaController extends Controller
                         LEFT JOIN pagosvarios as pvar ON pvar.Codigo = e.Codigo
                         LEFT JOIN pagodetraccion as pdet ON pdet.Codigo = e.Codigo
                         WHERE CodigoCaja = $caja 
-                    AND Vigente = 1 
-                    AND CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE CodigoSUNAT = '008')
+                    AND e.Vigente = 1 
+                    AND e.CodigoMedioPago = (SELECT Codigo FROM mediopago WHERE CodigoSUNAT = '008')
 
                 ) AS result,
                 (SELECT @saldo := 0) AS init
