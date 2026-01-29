@@ -1257,4 +1257,75 @@ class ReportesController extends Controller
             ], 500);
         }
     }
+
+    public function reporteStockValorizado(Request $request){
+
+        $fechaInicio = $request->input('fechaInicio');;
+        $fechaFin    = $request->input('fechaFin');
+        $sede        = $request->input('sede');
+        $desde = Carbon::parse($fechaInicio)->startOfDay();
+        $hasta = Carbon::parse($fechaFin)->addDay()->startOfDay();
+
+        try{
+            $subQuery = DB::table('movimientolote as ml')
+                ->join('lote as l', 'l.Codigo', '=', 'ml.CodigoLote')
+                ->select([
+                    'ml.*',
+                    'l.CodigoProducto',
+                    'l.CodigoSede',
+                    DB::raw("
+                        ROW_NUMBER() OVER (
+                            PARTITION BY l.CodigoProducto, l.CodigoSede
+                            ORDER BY ml.Fecha DESC, ml.Codigo DESC
+                        ) AS rn
+                    ")
+                ])
+                ->where('ml.Fecha', '>=', $desde)
+                ->where('ml.Fecha', '<', $hasta);
+
+            $resultados = DB::query()
+                ->fromSub($subQuery, 't')
+                ->join('producto as p', 't.CodigoProducto', '=', 'p.Codigo')
+                ->join('unidadmedida as um', 'p.CodigoUnidadMedida', '=', 'um.Codigo')
+                ->where('t.rn', 1)
+                ->where('t.CodigoSede', $sede)
+                ->select([
+                    'p.Nombre as Descripcion',
+                    'um.CodigoSUNAT as UnidadMedida',
+                    't.Stock as Cantidad',
+                    't.CostoPromedio as CostoUnitario',
+                    DB::raw('NULLIF((t.CostoPromedio * NULLIF(t.Stock, 0)), 0) as CostoTotal')
+                ])
+                ->orderBy('Descripcion')
+                ->get();
+
+            //log info
+            Log::info('Reporte Stock Valorizado', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteStockValorizado',
+                'Query' => $request->all(),
+                'Cantidad' => $resultados->count(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado'
+            ]);
+
+            return response()->json($resultados, 200);
+
+        }catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Stock Valorizado', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteStockValorizado',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al listar los datos stock valorizado.',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

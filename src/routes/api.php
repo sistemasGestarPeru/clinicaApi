@@ -599,7 +599,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('reportes/reporteComisionesMedicoPeriodo', [ReportesController::class, 'reporteComisionesMedicoPeriodo']);
     Route::post('reportes/reporteIngresoMedico', [ReportesController::class, 'reporteIngresoMedico']);
     Route::post('reportes/reporteDatosPago', [ReportesController::class, 'reporteDatosPago']);
-    
+    Route::post('reportes/reporteStockValorizado', [ReportesController::class, 'reporteStockValorizado']);
+
+
     /******************** FACTURACION ELECTRONICA ******************************/
     Route::post('facturacionElectronica/registrarEnvio', [FacturacionElectronicaController::class, 'registrarEnvio']);
     Route::post('facturacionElectronica/listarEnviosFallidos', [FacturacionElectronicaController::class, 'listarEnviosFallidos']);
