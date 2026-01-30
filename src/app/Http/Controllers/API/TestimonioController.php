@@ -245,31 +245,63 @@ class TestimonioController extends Controller
         }
     }
 
+    // public function listarUltimos()
+    // {
+    //     try{
+    //         $testimonios = DB::table('testimonios as t')
+    //             ->join(DB::raw('(
+    //                 SELECT sede_id, MAX(Fecha) AS max_fecha
+    //                 FROM testimonios
+    //                 WHERE vigente = 1
+    //                 GROUP BY sede_id
+    //             ) as ultimos'), function ($join) {
+    //                 $join->on('t.sede_id', '=', 'ultimos.sede_id')
+    //                     ->on('t.Fecha', '=', 'ultimos.max_fecha');
+    //             })
+    //             ->join('sedes as s', 's.id', '=', 't.sede_id')
+    //             ->where('s.vigente', 1)
+    //             ->select('t.descripcion', 't.imagen', DB::raw('s.nombre as sede_id'))
+    //             ->get();
+    //         return response()->json($testimonios, 200);
+            
+    //     }catch (\Exception $e) {
+    //         return response()->json([
+    //             'error' => 'Ocurrió un error al listar los testimonios: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function listarUltimos()
     {
-        try{
+        try {
             $testimonios = DB::table('testimonios as t')
-                ->join(DB::raw('(
-                    SELECT sede_id, MAX(Fecha) AS max_fecha
-                    FROM testimonios
-                    WHERE vigente = 1
-                    GROUP BY sede_id
-                ) as ultimos'), function ($join) {
-                    $join->on('t.sede_id', '=', 'ultimos.sede_id')
-                        ->on('t.Fecha', '=', 'ultimos.max_fecha');
-                })
                 ->join('sedes as s', 's.id', '=', 't.sede_id')
+                ->where('t.vigente', 1)
                 ->where('s.vigente', 1)
-                ->select('t.descripcion', 't.imagen', DB::raw('s.nombre as sede_id'))
+                ->whereRaw('t.id = (
+                    SELECT t2.id
+                    FROM testimonios t2
+                    WHERE t2.sede_id = t.sede_id
+                    AND t2.vigente = 1
+                    ORDER BY t2.Fecha DESC, t2.id DESC
+                    LIMIT 1
+                )')
+                ->select(
+                    't.descripcion',
+                    't.imagen',
+                    DB::raw('s.nombre as sede_id')
+                )
                 ->get();
+
             return response()->json($testimonios, 200);
-            
-        }catch (\Exception $e) {
+
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Ocurrió un error al listar los testimonios: ' . $e->getMessage()
             ], 500);
         }
     }
+
 
     public function listarVigente()
     {
