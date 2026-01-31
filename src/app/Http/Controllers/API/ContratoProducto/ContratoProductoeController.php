@@ -241,6 +241,7 @@ class ContratoProductoeController extends Controller
                     'cp.TotalPagado as TotalPagado',
                     'cp.CodigoContratoReferencia',
                     DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as NombrePaciente"),
+                    'cp.Comentario',
                     'cp.Vigente as Vigente'
                 )
                 ->get();

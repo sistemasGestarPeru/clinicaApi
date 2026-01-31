@@ -27,6 +27,7 @@ class ContratoProducto extends Model
         'CodigoMedico',
         'CodigoPaciente02',
         'CodigoAutorizador',
-        'CodigoContratoReferencia'
+        'CodigoContratoReferencia',
+        'Comentario'
     ];
 }
