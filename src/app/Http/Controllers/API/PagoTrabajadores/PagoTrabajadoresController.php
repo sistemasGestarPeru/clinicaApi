@@ -653,7 +653,7 @@ class PagoTrabajadoresController extends Controller
 
             $resultado = DB::table('trabajadors as t')
                 ->join('personas as p', 'p.Codigo', '=', 't.Codigo')
-                ->join('SistemaPensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
+                ->join('sistemapensiones as sp', 'sp.Codigo', '=', 't.CodigoSistemaPensiones')
                 ->join('contrato_laborals as cl', 'cl.CodigoTrabajador', '=', 't.Codigo')
                 ->select(
                     'p.Codigo',
@@ -682,7 +682,6 @@ class PagoTrabajadoresController extends Controller
                         ->where('E.Vigente', 1)
                         ->whereRaw("DATE_FORMAT(PP.Mes, '%Y-%m') = ?", [$formattedFecha]);
                 })
-                ->limit(1)
                 ->first();
 
             //log info
