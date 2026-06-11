@@ -174,27 +174,42 @@ class ReportesController extends Controller
     {
         try {
 
-            $proveedores = DB::table('egreso as e')
-                ->selectRaw("
-                    DISTINCT
-                    CASE 
-                        WHEN ps.Codigo IS NULL THEN p1.Codigo
-                        ELSE p2.Codigo
-                    END AS Codigo,
-                    CASE 
-                        WHEN ps.Codigo IS NULL THEN p1.RazonSocial
-                        ELSE p2.RazonSocial
-                    END AS Nombre
-                ")
-                ->leftJoin('pagoproveedor as pp', 'e.Codigo', '=', 'pp.Codigo')
-                ->leftJoin('pagoservicio as ps', 'e.Codigo', '=', 'ps.Codigo')
-                ->leftJoin('proveedor as p1', 'pp.CodigoProveedor', '=', 'p1.Codigo')
-                ->leftJoin('proveedor as p2', 'ps.CodigoProveedor', '=', 'p2.Codigo')
-                ->leftJoin('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
-                ->where('c.CodigoSede', $sede)
+            // 🔵 PROVEEDORES DE COMPRAS
+            $compras = DB::table('egreso as e')
+                ->join('pagoproveedor as pp', 'e.Codigo', '=', 'pp.Codigo')
+                ->join('proveedor as p', 'pp.CodigoProveedor', '=', 'p.Codigo')
+                ->join('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
                 ->where('e.Vigente', 1)
-                ->get();
+                ->where('c.CodigoSede', 1)
+                ->selectRaw("
+                    p.Codigo as Codigo,
+                    p.RazonSocial as Nombre
+                ");
 
+
+            // 🔵 PROVEEDORES DE SERVICIOS
+            $servicios = DB::table('egreso as e')
+                ->join('pagoservicio as ps', 'e.Codigo', '=', 'ps.Codigo')
+                ->join('servicio as s', 'ps.CodigoServicio', '=', 's.Codigo')
+                ->join('proveedor as p', 's.CodigoProveedor', '=', 'p.Codigo')
+                ->join('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
+                ->where('e.Vigente', 1)
+                ->where('c.CodigoSede', 1)
+                ->selectRaw("
+                    p.Codigo as Codigo,
+                    p.RazonSocial as Nombre
+                ");
+
+
+            // 🔥 UNION + DISTINCT FINAL
+            $query = $compras->union($servicios); // 👈 union = elimina duplicados
+
+            $proveedores = DB::query()
+                ->fromSub($query, 't')
+                ->select('Codigo', 'Nombre')
+                ->distinct()
+                ->orderBy('Nombre', 'asc')
+                ->get();
             //log info
             Log::info('Listar Proveedores Pagos', [
                 'Controlador' => 'ReportesController',
@@ -524,7 +539,7 @@ class ReportesController extends Controller
                 ->join('empresas as e', 's.CodigoEmpresa', '=', 'e.Codigo')
                 ->leftJoin('personas as p', 'dv.CodigoPersona', '=', 'p.Codigo')
                 ->leftJoin('clienteempresa as ce', 'dv.CodigoClienteEmpresa', '=', 'ce.Codigo')
-                ->whereNull('dv.CodigoMotivoNotaCredito')
+
                 ->when($anio && $mes, function ($query) use ($anio, $mes) {
                     return $query->whereYear('dv.Fecha', $anio)->whereMonth('dv.Fecha', $mes);
                 })
@@ -777,7 +792,7 @@ class ReportesController extends Controller
             $productos = DB::table('sedeproducto as sp')
                 ->join('producto as p', 'sp.CodigoProducto', '=', 'p.Codigo')
                 ->join('categoriaproducto as cp', 'p.CodigoCategoria', '=', 'cp.Codigo')
-                ->select('p.Nombre as Producto', 'cp.Nombre as Categoria', 'sp.Stock')
+                ->select('p.Nombre as Producto', 'cp.Nombre as Categoria', 'sp.Stock', 'sp.Precio')
                 ->where('p.Tipo', 'B')
                 ->where('p.Vigente', 1)
                 ->when($sede, fn($query) => $query->where('sp.CodigoSede', $sede))
@@ -947,39 +962,64 @@ class ReportesController extends Controller
         $fechaFin = $request->input('FechaFin');
 
         try {
-            $query = DB::table('egreso as e')
-                ->selectRaw("
-                DATE(e.Fecha) as Fecha,
-                CASE 
-                    WHEN ps.Codigo IS NULL THEN 'Compra'
-                    ELSE 'Servicio'
-                END as TipoEgreso,
-                COALESCE(p1.RazonSocial, p2.RazonSocial) as Proveedor,
-                e.Monto
-            ")
-                ->leftJoin('pagoproveedor as pp', 'e.Codigo', '=', 'pp.Codigo')
-                ->leftJoin('pagoservicio as ps', 'e.Codigo', '=', 'ps.Codigo')
-                ->leftJoin('proveedor as p1', 'pp.CodigoProveedor', '=', 'p1.Codigo')
-                ->leftJoin('proveedor as p2', 'ps.CodigoProveedor', '=', 'p2.Codigo')
-                ->leftJoin('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
-                ->where('e.Vigente', 1);
 
-            if ($sede) {
-                $query->where('c.CodigoSede', $sede);
-            }
+            $compraQuery = DB::table('egreso as e')
+                    ->join('pagoproveedor as pp', 'e.Codigo', '=', 'pp.Codigo')
+                    ->join('proveedor as p', 'pp.CodigoProveedor', '=', 'p.Codigo')
+                    ->join('cuota as cu', 'pp.CodigoCuota', '=', 'cu.Codigo')
+                    ->join('compra as compra', 'cu.CodigoCompra', '=', 'compra.Codigo')
+                    ->join('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
+                    ->join('tipodocumentoventa as tdv', 'compra.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                    ->where('e.Vigente', 1)
+                    ->selectRaw("
+                        DATE(e.Fecha) as Fecha,
+                        'Compra' as TipoEgreso,
+                        CONCAT(tdv.Siglas, ' ', compra.Serie, ' - ', compra.Numero) as documento,
+                        p.RazonSocial as Proveedor,
+                        e.Monto
+                    ");
 
-            if ($proveedor) {
-                $query->where(function ($q) use ($proveedor) {
-                    $q->where('p1.Codigo', $proveedor)
-                        ->orWhere('p2.Codigo', $proveedor);
-                });
-            }
+                $servicioQuery = DB::table('egreso as e')
+                    ->join('pagoservicio as ps', 'e.Codigo', '=', 'ps.Codigo')
+                    ->join('servicio as s', 'ps.CodigoServicio', '=', 's.Codigo')
+                    ->join('proveedor as p', 's.CodigoProveedor', '=', 'p.Codigo')
+                    ->join('caja as c', 'e.CodigoCaja', '=', 'c.Codigo')
+                    ->where('e.Vigente', 1)
+                    ->selectRaw("
+                        DATE(e.Fecha) as Fecha,
+                        'Servicio' as TipoEgreso,
+                        CONCAT(s.Serie, ' - ', s.Numero) as documento,
+                        p.RazonSocial as Proveedor,
+                        e.Monto
+                    ");
 
-            if ($fechaInicio && $fechaFin) {
-                $query->whereRaw("DATE(e.Fecha) BETWEEN ? AND ?", [$fechaInicio, $fechaFin]);
-            }
 
-            $resultados = $query->get();
+                // 🔥 FILTROS DINÁMICOS (SE APLICAN A AMBOS)
+                if ($sede) {
+                    $compraQuery->where('c.CodigoSede', $sede);
+                    $servicioQuery->where('c.CodigoSede', $sede);
+                }
+
+                if ($proveedor) {
+                    $compraQuery->where('p.Codigo', $proveedor);
+                    $servicioQuery->where('p.Codigo', $proveedor);
+                }
+
+                if ($fechaInicio && $fechaFin) {
+                    $compraQuery->whereBetween(DB::raw('DATE(e.Fecha)'), [$fechaInicio, $fechaFin]);
+                    $servicioQuery->whereBetween(DB::raw('DATE(e.Fecha)'), [$fechaInicio, $fechaFin]);
+                }
+
+
+                // 🔥 UNION
+                $query = $compraQuery->unionAll($servicioQuery);
+
+
+                // 🔥 ORDER BY (IMPORTANTE: después del UNION)
+                $resultados = DB::query()
+                    ->fromSub($query, 't')
+                    ->orderBy('Fecha', 'desc')
+                    ->get();
 
             //log info
             Log::info('Reporte Pagos Proveedores', [
@@ -1016,22 +1056,48 @@ class ReportesController extends Controller
         $sede = $request->input('Sede');
         $proveedor = $request->input('Proveedor');
         try {
+
             $resultados = DB::table('compra as c')
                 ->select([
                     'c.Codigo as Compra',
                     DB::raw('SUM(cu.Monto) as MontoPendiente'),
-                    'p.RazonSocial as Proveedor'
+                    DB::raw('MAX(p.RazonSocial) as Proveedor'),
+                    DB::raw("CONCAT(MAX(tdv.Siglas), ' ', MAX(c.Serie), ' - ', MAX(c.Numero)) as documento"),
+                    DB::raw('MAX(c.Fecha) as Fecha')
                 ])
                 ->join('proveedor as p', 'c.CodigoProveedor', '=', 'p.Codigo')
                 ->join('cuota as cu', 'c.Codigo', '=', 'cu.CodigoCompra')
+                ->join('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
                 ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
                 ->whereNull('pp.Codigo')
                 ->where('c.CodigoSede', $sede)
-                ->where('c.Vigente', 1)
-                // ->where('p.Codigo', 3)
+                ->where('cu.Vigente', 1)
                 ->when($proveedor, fn($query) => $query->where('p.Codigo', $proveedor))
+                ->where('c.Vigente', 1)
                 ->groupBy('c.Codigo')
+                ->orderByDesc('Fecha')
                 ->get();
+                
+            // $resultados = DB::table('compra as c')
+            //     ->select([
+            //         DB::raw('SUM(cu.Monto) as MontoPendiente'),
+            //         'p.RazonSocial as Proveedor',
+            //         DB::raw('CONCAT(tdv.Siglas, " ", c.Serie, " - ", c.Numero) as documento'),
+            //         'c.Fecha'
+            //     ])
+            //     ->join('proveedor as p', 'c.CodigoProveedor', '=', 'p.Codigo')
+            //     ->join('cuota as cu', 'c.Codigo', '=', 'cu.CodigoCompra')
+            //     ->join('tipodocumentoventa as tdv', 'c.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+            //     ->leftJoin('pagoproveedor as pp', 'cu.Codigo', '=', 'pp.CodigoCuota')
+            //     ->whereNull('pp.Codigo')
+            //     ->where('c.CodigoSede', $sede)
+            //     ->where('c.Vigente', 1)
+            //     // ->where('p.Codigo', 3)
+            //     ->when($proveedor, fn($query) => $query->where('p.Codigo', $proveedor))
+            //     ->groupBy('c.Codigo')
+            //     ->orderBy('c.Fecha', 'desc')
+            //     ->get();
+
 
             //log info
             Log::info('Reporte Pagos Pendientes Proveedores', [
@@ -1328,4 +1394,265 @@ class ReportesController extends Controller
             ], 500);
         }
     }
+
+    public function reporteCompraServicios(Request $request){
+
+        $mesInicio = $request->fechaInicio ?? null;
+        $mesFin = $request->fechaFin ?? null;
+        $estadoPago = $request->estadoPago ?? 0;
+        $proveedor = $request->proveedor ?? 0;
+        $sede = $request->sede;
+
+        try{
+            
+            $pagosSubquery = DB::table('cuota as cu')
+                ->leftJoin('pagoproveedor as pp', function ($join) {
+                    $join->on('cu.Codigo', '=', 'pp.CodigoCuota');
+                        // ->where('pp.Vigente', 1);
+                })
+                ->leftJoin('egreso as e', function ($join) {
+                    $join->on('pp.Codigo', '=', 'e.Codigo')
+                        ->where('e.Vigente', 1);
+                })
+                ->leftJoin('tipomoneda as tm', function ($join) {
+                    $join->on('cu.TipoMoneda', '=', 'tm.Codigo')
+                        ->where('tm.Vigente', 1);
+                })
+                ->where('cu.Vigente', 1)
+                ->groupBy('cu.CodigoCompra')
+                ->select(
+                    'cu.CodigoCompra',
+                    DB::raw('MAX(tm.Siglas) as TipoMoneda'),
+                    DB::raw("
+                        SUM(
+                            CASE
+                                WHEN tm.Siglas = 'PEN'
+                                    THEN COALESCE(e.Monto, 0)
+                                ELSE
+                                    COALESCE(pp.MontoMonedaExtranjera, 0)
+                            END
+                        ) as TotalPagado
+                    ")
+                );
+
+            $query = DB::table('compra as c')
+                ->join('proveedor as p', 'c.CodigoProveedor', '=', 'p.Codigo')
+                ->join('detallecompra as dc', 'dc.CodigoCompra', '=', 'c.Codigo')
+                ->leftJoinSub($pagosSubquery, 'pg', function ($join) {
+                    $join->on('pg.CodigoCompra', '=', 'c.Codigo');
+                })
+                ->where('c.CodigoSede', $sede)
+                ->where('c.Tipo', 'V')
+
+                // Proveedor
+                ->when($proveedor > 0, function ($query) use ($proveedor) {
+                    $query->where('c.CodigoProveedor', $proveedor);
+                })
+
+                // Fecha
+                ->when($mesInicio, function ($query) use ($mesInicio, $mesFin) {
+
+                    $fechaInicio = $mesInicio . '-01';
+
+                    if (!empty($mesFin)) {
+
+                        $fechaFin = date(
+                            'Y-m-t',
+                            strtotime($mesFin . '-01')
+                        );
+
+                    } else {
+
+                        $fechaFin = date(
+                            'Y-m-t',
+                            strtotime($fechaInicio)
+                        );
+                    }
+
+                    $query->whereBetween('c.Fecha', [
+                        $fechaInicio,
+                        $fechaFin
+                    ]);
+                })
+
+                ->groupBy(
+                    'c.Codigo',
+                    'p.RazonSocial',
+                    'c.Serie',
+                    'c.Numero',
+                    'c.Fecha',
+                    'pg.TipoMoneda',
+                    'pg.TotalPagado'
+                )
+
+                ->select(
+                    'c.Codigo',
+                    'p.RazonSocial',
+                    'c.Serie',
+                    'c.Numero',
+                    'c.Fecha',
+                    DB::raw('SUM(dc.MontoTotal) as TotalCompra'),
+                    DB::raw('COALESCE(pg.TipoMoneda, "-") as TipoMoneda'),
+                    DB::raw('COALESCE(pg.TotalPagado, 0) as TotalPagado'),
+                    DB::raw('SUM(dc.MontoTotal) - COALESCE(pg.TotalPagado, 0) as SaldoPendiente')
+                )
+
+                // Estado de pago
+                ->when($estadoPago == 1, function ($query) {
+                    $query->havingRaw(
+                        'SUM(dc.MontoTotal) - COALESCE(pg.TotalPagado, 0) = 0'
+                    );
+                })
+
+                ->when($estadoPago == 2, function ($query) {
+                    $query->havingRaw(
+                        'SUM(dc.MontoTotal) - COALESCE(pg.TotalPagado, 0) <> 0'
+                    );
+                })
+
+                ->orderByDesc('c.Codigo');
+
+            return $query->get();
+
+        }catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Compras Servicios', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteCompraServicios',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al listar los datos compras Servicios.',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reporteIngresosServicios(Request $request){
+
+        $fechaInicio = $request->fechaInicio ?? null;
+        $fechaFin = $request->fechaFin ?? null;
+        $sede = $request->sede;
+
+        try{
+
+            $resultado = DB::table('documentoventa as dv')
+                ->join('detalledocumentoventa as ddv', 'dv.Codigo', '=', 'ddv.CodigoVenta')
+                ->join('localdocumentoventa as ldv', function ($join) {
+                    $join->on('dv.CodigoTipoDocumentoVenta', '=', 'ldv.CodigoTipoDocumentoVenta')
+                        ->on('dv.CodigoSede', '=', 'ldv.CodigoSede')
+                        ->on('dv.Serie', '=', 'ldv.Serie');
+                })
+                ->where('ldv.TipoProducto', 'S')
+                ->where('dv.CodigoSede', $sede)
+                ->where('dv.Vigente', 1)
+                ->whereNull('dv.CodigoMotivoNotaCredito')
+
+                ->when($fechaInicio && !$fechaFin, function ($query) use ($fechaInicio) {
+                    $query->whereDate('dv.Fecha', $fechaInicio);
+                })
+
+                ->when($fechaInicio && $fechaFin, function ($query) use ($fechaInicio, $fechaFin) {
+                    $query->whereBetween('dv.Fecha', [
+                        $fechaInicio . ' 00:00:00',
+                        $fechaFin . ' 23:59:59'
+                    ]);
+                })
+
+                ->select(
+                    'ddv.Descripcion',
+                    'ddv.MontoTotal'
+                )
+                ->orderByDesc('dv.Codigo')
+                ->get();
+            return $resultado; 
+
+        }catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de Ingresos Servicios', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresosServicios',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al listar los datos.',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reporteDocumentoServicio(Request $request){
+
+        $fechaInicio = $request->fechaInicio;
+        $fechaFin = $request->fechaFin;
+        $sede = $request->sede;
+
+        try{
+
+            $resultado = DB::table('documentoventa as dv')
+                ->join('localdocumentoventa as ldv', function ($join) {
+                    $join->on('dv.CodigoTipoDocumentoVenta', '=', 'ldv.CodigoTipoDocumentoVenta')
+                        ->on('dv.CodigoSede', '=', 'ldv.CodigoSede')
+                        ->on('dv.Serie', '=', 'ldv.Serie');
+                })
+                ->join('tipodocumentoventa as tdv', 'ldv.CodigoTipoDocumentoVenta', '=', 'tdv.Codigo')
+                ->where('ldv.TipoProducto', 'S')
+                ->where('dv.CodigoSede', $sede)
+                ->where('dv.Vigente', 1)
+                ->whereNull('dv.CodigoMotivoNotaCredito')
+
+                ->when($fechaInicio && !$fechaFin, function ($query) use ($fechaInicio) {
+                    $query->whereBetween('dv.Fecha', [
+                        $fechaInicio . ' 00:00:00',
+                        $fechaInicio . ' 23:59:59'
+                    ]);
+                })
+
+                ->when($fechaInicio && $fechaFin, function ($query) use ($fechaInicio, $fechaFin) {
+                    $query->whereBetween('dv.Fecha', [
+                        $fechaInicio . ' 00:00:00',
+                        $fechaFin . ' 23:59:59'
+                    ]);
+                })
+
+                ->select(
+                    'dv.Fecha',
+                    'tdv.Nombre as tipoDocumento',
+                    DB::raw("CONCAT(dv.Serie, ' - ', dv.Numero) as Documento"),
+                    'dv.MontoTotal as Total'
+                )
+                ->orderByDesc('dv.Codigo')
+                ->get();
+
+            return $resultado;
+
+        }catch (\Exception $e) {
+            //log error
+            Log::error('Error al generar el reporte de los Documentos por Servicios', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'reporteIngresosServicios',
+                'Query' => $request->all(),
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al listar los datos.',
+                'bd' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
