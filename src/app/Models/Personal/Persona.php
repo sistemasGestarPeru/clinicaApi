@@ -43,4 +43,14 @@ class Persona extends Model
     {
         $this->attributes['Direccion'] = strtoupper($value);
     }
+
+    public function scopeCboBuscarPersonas($query, $texto)
+    {
+        return $query->where(function($q) use ($texto) {
+            $q->where('Nombres', 'LIKE', "%$texto%")
+            ->orWhere('Apellidos', 'LIKE', "%$texto%")
+            ->orWhereRaw("CONCAT(Apellidos, ' ', Nombres) LIKE ?", ["%{$texto}%"])
+            ->where('Vigente', 1);
+        });
+    }
 }

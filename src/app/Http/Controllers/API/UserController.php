@@ -236,6 +236,7 @@ class UserController extends Controller
                 'res' => true,
                 'msg' => 'Usuario Registrado Correctamente'
             ], 200);
+            
         } catch (QueryException $e) {
             // Verificar si el error es por clave duplicada (código SQL 1062)
             if ($e->errorInfo[1] == 1062) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\ControladoresGenerales;
 
 use App\Http\Controllers\Controller;
+use App\Models\Personal\Persona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -939,4 +940,24 @@ class ControladorGeneralController extends Controller
             return response()->json('Error en la consulta: ' . $e->getMessage());
         }
     }
+
+    public function CboBuscarPersonas(Request $request){
+        try{
+
+                $resultado = Persona::CboBuscarPersonas($request->texto)
+                ->select('Codigo', DB::raw("CONCAT(Apellidos, ' ', Nombres) as Nombres"))
+                ->limit(20)
+                ->get();
+
+
+            return response()->json($resultado);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al buscar a la Persona.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

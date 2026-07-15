@@ -813,7 +813,6 @@ class TrabajadorController extends Controller
                     'p.Apellidos',
                     'p.NumeroDocumento',
                     'td.Siglas as DescTipoDocumento',
-                    't.Vigente as VigenteTrabajador',
                     't.Tipo',
                     't.Vigente as tVigente',
                     'p.Vigente as pVigente'
@@ -823,7 +822,7 @@ class TrabajadorController extends Controller
                     $query->where('p.Nombres', 'like', $nombre . '%')
                         ->orWhere('p.Apellidos', 'like', $nombre . '%');
                 })
-                ->where('t.Tipo', 'like', $tipo . '%')
+                ->where('t.Tipo', $tipo)
                 // ->where('p.Vigente', '=', 1)
                 ->orderBy('p.Nombres', 'asc')
                 ->get();

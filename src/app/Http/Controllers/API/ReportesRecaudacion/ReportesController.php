@@ -50,6 +50,38 @@ class ReportesController extends Controller
         //
     }
 
+    public function tiposProductos($sede, $tipo){
+
+        try{
+            $resultado = DB::table('producto as p')
+                ->join('sedeproducto as sp', 'p.Codigo', '=', 'sp.CodigoProducto')
+                ->where('sp.CodigoSede', $sede)
+                ->where('p.Tipo', $tipo)
+                ->where('p.Vigente', 1)
+                ->where('sp.Vigente', 1)
+                ->select('p.Codigo', 'p.Nombre')
+                ->orderBy('p.Nombre')
+                ->get();
+
+                return response()->json($resultado, 200);
+
+        } catch (\Exception $e) {
+
+            //log error
+            Log::error('Error al listar los Trabajadores', [
+                'Controlador' => 'ReportesController',
+                'Metodo' => 'empleados',
+                'Sede' => $sede,
+                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile(),
+            ]);
+
+            return response()->json(['message' => 'Error al listar los Trabajadores', 'bd' => $e->getMessage()], 400);
+        }
+    }
+
     public function listarProducto($sede)
     {
         // $sede = $request->input('sede');
@@ -1538,6 +1570,7 @@ class ReportesController extends Controller
         $fechaInicio = $request->fechaInicio ?? null;
         $fechaFin = $request->fechaFin ?? null;
         $sede = $request->sede;
+        $CodigoProducto = $request->CodigoProducto ?? null;
 
         try{
 
@@ -1564,11 +1597,22 @@ class ReportesController extends Controller
                     ]);
                 })
 
+                ->when($CodigoProducto, function ($query) use ($CodigoProducto) {
+                    $query->where('ddv.CodigoProducto', $CodigoProducto);
+                })
+
                 ->select(
+                    'ddv.CodigoProducto',
                     'ddv.Descripcion',
-                    'ddv.MontoTotal'
+                    DB::raw('SUM(ddv.MontoTotal) as MontoTotal')
                 )
-                ->orderByDesc('dv.Codigo')
+
+                ->groupBy(
+                    'ddv.CodigoProducto',
+                    'ddv.Descripcion'
+                )
+
+                ->orderBy('ddv.Descripcion')
                 ->get();
             return $resultado; 
 
@@ -1596,7 +1640,7 @@ class ReportesController extends Controller
         $fechaInicio = $request->fechaInicio;
         $fechaFin = $request->fechaFin;
         $sede = $request->sede;
-
+        $CodigoProducto = $request->CodigoProducto;
         try{
 
             $resultado = DB::table('documentoventa as dv')
@@ -1610,29 +1654,36 @@ class ReportesController extends Controller
                 ->where('dv.CodigoSede', $sede)
                 ->where('dv.Vigente', 1)
                 ->whereNull('dv.CodigoMotivoNotaCredito')
-
-                ->when($fechaInicio && !$fechaFin, function ($query) use ($fechaInicio) {
-                    $query->whereBetween('dv.Fecha', [
-                        $fechaInicio . ' 00:00:00',
-                        $fechaInicio . ' 23:59:59'
-                    ]);
-                })
-
                 ->when($fechaInicio && $fechaFin, function ($query) use ($fechaInicio, $fechaFin) {
-                    $query->whereBetween('dv.Fecha', [
-                        $fechaInicio . ' 00:00:00',
-                        $fechaFin . ' 23:59:59'
-                    ]);
+
+                    $inicio = Carbon::createFromFormat('Y-m', $fechaInicio)
+                        ->startOfMonth()
+                        ->startOfDay();
+
+                    $fin = Carbon::createFromFormat('Y-m', $fechaFin)
+                        ->endOfMonth()
+                        ->endOfDay();
+
+                    $query->whereBetween('dv.Fecha', [$inicio, $fin]);
                 })
 
-                ->select(
-                    'dv.Fecha',
-                    'tdv.Nombre as tipoDocumento',
-                    DB::raw("CONCAT(dv.Serie, ' - ', dv.Numero) as Documento"),
-                    'dv.MontoTotal as Total'
-                )
-                ->orderByDesc('dv.Codigo')
-                ->get();
+            ->when($CodigoProducto, function ($query) use ($CodigoProducto) {
+                $query->whereExists(function ($subQuery) use ($CodigoProducto) {
+                    $subQuery->select(DB::raw(1))
+                        ->from('detalledocumentoventa as ddv')
+                        ->whereColumn('ddv.CodigoVenta', 'dv.Codigo')
+                        ->where('ddv.CodigoProducto', $CodigoProducto);
+                });
+            })
+            ->distinct()
+            ->select(
+                'dv.Fecha',
+                'tdv.Nombre as tipoDocumento',
+                DB::raw("CONCAT(dv.Serie, ' - ', dv.Numero) as Documento"),
+                'dv.MontoTotal as Total'
+            )
+            ->orderByDesc('dv.Fecha')
+            ->get();
 
             return $resultado;
 
@@ -1640,7 +1691,7 @@ class ReportesController extends Controller
             //log error
             Log::error('Error al generar el reporte de los Documentos por Servicios', [
                 'Controlador' => 'ReportesController',
-                'Metodo' => 'reporteIngresosServicios',
+                'Metodo' => 'reporteDocumentoServicio',
                 'Query' => $request->all(),
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
                 'mensaje' => $e->getMessage(),

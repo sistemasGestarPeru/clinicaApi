@@ -423,6 +423,8 @@ class CajaController extends Controller
 
             date_default_timezone_set('America/Lima');
             $fecha = date('Y-m-d H:i:s');
+
+            
             $request->merge(['FechaFin' => $fecha]);
             $request->merge(['Estado' => 'C']);
             $request->merge(['TotalEfectivo' => $request->Total]);

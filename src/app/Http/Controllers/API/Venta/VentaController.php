@@ -111,7 +111,7 @@ class VentaController extends Controller
         }
     }
 
-    public function detallesFacturacionElectronica($ventaData, $detallesVenta, $ventaCreada)
+    public function detallesFacturacionElectronica($ventaData, $detallesVenta)
     {
         try {
 
@@ -1428,6 +1428,7 @@ class VentaController extends Controller
                 'MontoTotal' => $ventaData['MontoTotal'],
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1442,10 +1443,10 @@ class VentaController extends Controller
                 'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
             ]);
 
-            return response()->json([
+            return [
                 'error' => 'Ocurrió un error al registrar la Venta.',
                 'db' => $e->getMessage()
-            ], 500);
+            ];
         }
 
         // ✅ Ahora sí, fuera de la transacción: procesamiento de facturación electrónica
@@ -1571,7 +1572,8 @@ class VentaController extends Controller
                     'dv.Numero',
                     'cp.Codigo as CodigoContrato',
                     'cp.NumContrato',
-                    DB::raw('DATE(cp.Fecha) as FechaContrato')
+                    DB::raw('DATE(cp.Fecha) as FechaContrato'),
+                    'dv.CodigoSede'
                 )
                 ->join('tipodocumentoventa as tdv', 'tdv.Codigo', '=', 'dv.CodigoTipoDocumentoVenta')
                 ->leftJoin('personas as p', 'p.Codigo', '=', 'dv.CodigoPersona')
@@ -1589,10 +1591,10 @@ class VentaController extends Controller
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
                 ->join('tipogravado as tg', 'tg.Codigo', '=', 'ddv.CodigoTipoGravado')
                 ->where('ddv.CodigoVenta', $CodVenta)
-                ->where('sp.CodigoSede', $sede)
+                ->where('sp.CodigoSede', $venta->CodigoSede)
                 ->select(
                     'ddv.MontoTotal',
-                    DB::raw("CASE WHEN p.Tipo = 'B' THEN ddv.Cantidad WHEN p.Tipo = 'S' THEN 1 END AS Cantidad"),
+                    DB::raw("CASE WHEN p.Tipo = 'B' THEN ddv.Cantidad ELSE 1 END AS Cantidad"),
                     'ddv.Descripcion',
                     'ddv.CodigoProducto',
                     'p.Tipo',
@@ -1767,9 +1769,6 @@ class VentaController extends Controller
                     ->first();
             } else {
                 $cliente = DB::table('personas as p')
-                    // ->join('sedesrec as s', 's.CodigoDepartamento', '=', 'p.CodigoDepartamento')
-                    // ->where('s.Codigo', $codSede)
-                    // ->where('s.Vigente', 1)
                     ->where('p.NumeroDocumento', $numDocumento)
                     ->where('p.CodigoTipoDocumento', $codDocumento)
                     ->where('p.Vigente', 1)
@@ -2389,12 +2388,29 @@ class VentaController extends Controller
         $Sede = $request->input('Sede');
 
         try {
+            // $tipoProducto = DB::table('documentoventa as dv')
+            //     ->join('detalledocumentoventa as ddv', 'ddv.CodigoVenta', '=', 'dv.Codigo')
+            //     ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+            //     ->where('dv.Codigo', $Venta)
+            //     ->selectRaw("CASE WHEN COUNT(DISTINCT p.Tipo) = 1 THEN MAX(p.Tipo) ELSE 'T' END AS TipoProducto")
+            //     ->first(); // Esto devuelve un objeto stdClass con la propiedad TipoProducto
+
+
             $tipoProducto = DB::table('documentoventa as dv')
                 ->join('detalledocumentoventa as ddv', 'ddv.CodigoVenta', '=', 'dv.Codigo')
                 ->join('producto as p', 'p.Codigo', '=', 'ddv.CodigoProducto')
+                ->leftJoin('productocombo as pc', 'pc.CodigoCombo', '=', 'p.Codigo')
+                ->leftJoin('producto as pCombo', 'pCombo.Codigo', '=', 'pc.CodigoProducto')
                 ->where('dv.Codigo', $Venta)
-                ->selectRaw("CASE WHEN COUNT(DISTINCT p.Tipo) = 1 THEN MAX(p.Tipo) ELSE 'T' END AS TipoProducto")
-                ->first(); // Esto devuelve un objeto stdClass con la propiedad TipoProducto
+                ->selectRaw("
+                    CASE 
+                        WHEN p.Tipo = 'C' THEN pCombo.Tipo
+                        ELSE p.Tipo
+                    END AS TipoProducto
+                ")
+                ->limit(1)
+                ->first();
+
 
             if ($tipoProducto) {
                 // Verificamos que la propiedad TipoProducto no sea null
@@ -2501,12 +2517,20 @@ class VentaController extends Controller
                 ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
                 ->get();
 
+            $numero = DB::table('documentoventa')
+                ->where([
+                    ['Serie', '=', $canjeData['Serie']],
+                    ['CodigoSede', '=', $canjeData['CodigoSede']],
+                    ['CodigoTipoDocumentoVenta', '=', $canjeData['CodigoTipoDocumentoVenta']],
+                ])
+                ->max('Numero') + 1 ?: 1;
+
             if ($venta) {
                 // 2. Insertar en documentoventa con los valores obtenidos
                 $nuevoDocumentoVenta = Venta::create([
                     'CodigoSede' => $canjeData['CodigoSede'],
                     'Serie' => $canjeData['Serie'],
-                    'Numero' => $canjeData['Numero'],
+                    'Numero' => $numero,
                     'CodigoTipoDocumentoVenta' => $canjeData['CodigoTipoDocumentoVenta'],
                     'Fecha' =>  $canjeData['Fecha'],
                     'CodigoPersona' => $canjeData['CodigoPersona'],
@@ -2562,6 +2586,22 @@ class VentaController extends Controller
                     ->where('CodigoDocumentoVenta', $canjeData['CodigoDocumentoReferencia'])
                     ->update(['CodigoDocumentoVenta' => $nuevoDocumentoVenta->Codigo]);
 
+
+
+                //5. Actualizar el almacen las guias si tuviera
+                $codigos = DB::table('guiasalida')
+                    ->where('CodigoVenta', $canjeData['CodigoDocumentoReferencia'])
+                    ->pluck('Codigo');
+
+                if ($codigos->isNotEmpty()) {
+                    DB::table('guiasalida')
+                        ->whereIn('Codigo', $codigos)
+                        ->update(['CodigoVenta' => $nuevoDocumentoVenta->Codigo]);
+                }
+
+                
+
+                
 
                 // 5. Actualizar el detallecontrato con el nuevo código generado
                 // DB::table('detalledocumentoventa')

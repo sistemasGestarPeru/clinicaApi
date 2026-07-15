@@ -183,7 +183,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('combos/listarMotivoAnulacionContrato', [ControladorGeneralController::class, 'listarMotivoAnulacionContrato']);
     Route::get('combos/listarCategoriaProducto', [ControladorGeneralController::class, 'listarCategoriaProducto']);
     Route::get('combos/listarApp/{codigoTrabajador}', [ControladorGeneralController::class, 'listarApp']);
-
+    Route::post('combos/CboBuscarPersonas', [ControladorGeneralController::class, 'CboBuscarPersonas']);
 
     /***************************************************************************/
     /********************************* CLIENTES *********************************/
@@ -585,6 +585,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('reportes/medicos/{sede}', [ReportesController::class, 'medicos']);
     Route::get('reportes/sedes/{empresa}', [ReportesController::class, 'sedes']);
     Route::get('reportes/empresas', [ReportesController::class, 'empresas']);
+    Route::get('reportes/tiposProductos/{sede}/{tipo}', [ReportesController::class, 'tiposProductos']);
     Route::post('reportes/reporteCierreCajaEmpleado', [ReportesController::class, 'reporteCierreCajaEmpleado']);
     Route::post('reportes/reporteIngresosPeriodoEmpresa', [ReportesController::class, 'reporteIngresosPeriodoEmpresa']);
     Route::post('reportes/reporteProductosReabastecer', [ReportesController::class, 'reporteProductosReabastecer']);

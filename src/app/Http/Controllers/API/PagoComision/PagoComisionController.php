@@ -390,10 +390,14 @@ class PagoComisionController extends Controller
 
     public function listarPagosComisiones(Request $request)
     {
-        $data = $request->input('data');
+        $data = $request->all();
+
         $sede = $data['CodigoSede'];
         $trabajador = $data['CodigoTrabajador'];
-        $fecha = $data['fecha'];
+        $medico = $data['CodigoMedico'] ?? null;
+        $paciente = $data['CodigoPaciente'] ?? null;
+        $fechaInicio = $data['fechaInicio'] ?? null;
+        $fechaFin = $data['fechaFin'] ?? null;
 
         try {
 
@@ -403,6 +407,8 @@ class PagoComisionController extends Controller
                 ->leftJoin('documentoventa as dv', 'c.CodigoDocumentoVenta', '=', 'dv.Codigo')
                 ->leftJoin('contratoproducto as cp', 'c.CodigoContrato', '=', 'cp.Codigo')
                 ->leftJoin('personas as p', 'c.CodigoMedico', '=', 'p.Codigo')
+                ->leftJoin('personas as pacienteDV', 'dv.CodigoPaciente', '=', 'pacienteDV.Codigo')
+                ->leftJoin('personas as pacienteCP', 'cp.CodigoPaciente', '=', 'pacienteCP.Codigo')
                 ->select(
                     'c.Codigo',
                     'c.CodigoComisionReferencia',
@@ -410,37 +416,55 @@ class PagoComisionController extends Controller
                     'c.CodigoContrato',
                     'e.Codigo as Egreso',
                     DB::raw("CONCAT(p.Apellidos, ' ', p.Nombres) as Medico"),
-                    DB::raw("CASE 
-                            WHEN c.TipoDocumento = 'R' THEN 'Recibo por Honorario' 
-                            ELSE 'Nota de Pago' 
-                        END AS TipoDocumento"),
+                    DB::raw("
+                        CASE
+                            WHEN c.TipoDocumento = 'R' THEN 'Recibo por Honorario'
+                            ELSE 'Nota de Pago'
+                        END AS TipoDocumento
+                    "),
                     'c.Monto',
                     DB::raw("CONCAT(c.Serie, ' - ', c.Numero) as Documento"),
                     DB::raw("DATE(e.Fecha) as FechaPago"),
                     DB::raw("DATE(c.FechaCreacion) as FechaRegistro"),
+                    DB::raw("
+                        CASE
+                            WHEN cp.Codigo IS NOT NULL
+                                THEN CONCAT(pacienteCP.Apellidos, ' ', pacienteCP.Nombres)
+                            ELSE
+                                CONCAT(pacienteDV.Apellidos, ' ', pacienteDV.Nombres)
+                        END AS Paciente
+                    "),
                     'c.Vigente'
                 )
                 ->where('c.CodigoSede', $sede)
                 ->where('c.CodigoTrabajador', $trabajador)
-                ->when(!empty($data['fecha']), function ($query) use ($data) {
-                    $query->where(function ($sub) use ($data) {
-                        $sub->whereDate('c.FechaCreacion', '=', $data['fecha'])
-                            ->orWhereNull('c.FechaCreacion');
+
+                // Filtrar por médico sólo si es distinto de 0
+                ->when($medico != 0, function ($query) use ($medico) {
+                    $query->where('c.CodigoMedico', $medico);
+                })
+
+                //filtrar por paciente, puede ser por documento de venta o contrato
+                ->when($paciente != 0, function ($query) use ($paciente) {
+                    $query->where(function ($q) use ($paciente) {
+                        $q->where('dv.CodigoPaciente', $paciente)
+                            ->orWhere('cp.CodigoPaciente', $paciente);
                     });
                 })
-                ->orderBy('c.Codigo', 'desc')
+
+                // Filtrar por rango de fechas
+                ->when($fechaInicio && $fechaFin, function ($query) use ($fechaInicio, $fechaFin) {
+                    $query->whereBetween('c.FechaCreacion', [
+                        $fechaInicio . ' 00:00:00',
+                        $fechaFin . ' 23:59:59'
+                    ]);
+                })
+
+                ->orderByDesc('c.Codigo')
                 ->get();
 
-            //log info
-            Log::info('Listar Pagos de Comisiones', [
-                'Controlador' => 'PagoComisionController',
-                'Metodo' => 'listarPagosComisiones',
-                'usuario_actual' => auth()->check() ? auth()->user()->id : 'no autenticado',
-                'sede' => $sede,
-                'Cantidad' => count($resultados)
-            ]);
-
             return response()->json($resultados, 200);
+
         } catch (\Exception $e) {
 
             Log::error('Error al listar los pagos de comisiones', [

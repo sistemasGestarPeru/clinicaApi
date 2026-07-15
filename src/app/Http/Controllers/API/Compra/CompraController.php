@@ -702,49 +702,6 @@ class CompraController extends Controller
                 ->where('c.Codigo', $codigo)
                 ->first();
 
-            // Segundo query
-            // $detalleCompra = DB::table('producto as p')
-            //     ->joinSub(function ($q) use ($codigo) {
-            //         $q->select(
-            //             'DDNC.CodigoProducto',
-            //             'DDNC.Descripcion',
-            //             'DDNC.Codigo',
-            //             DB::raw('SUM(DDNC.Cantidad) + COALESCE(MAX(NOTAC.CantidadBoleteada), 0) AS Cantidad'),
-            //             DB::raw('SUM(DDNC.MontoTotal) + COALESCE(MAX(NOTAC.MontoBoleteado), 0) AS Monto')
-            //         )
-            //             ->from('detallecompra as DDNC')
-            //             ->leftJoin(DB::raw("(
-            //                 SELECT 
-            //                     DNC.CodigoProducto, 
-            //                     SUM(DNC.Cantidad) AS CantidadBoleteada, 
-            //                     SUM(DNC.MontoTotal) AS MontoBoleteado
-            //                 FROM compra AS NC
-            //                 INNER JOIN detallecompra AS DNC 
-            //                     ON NC.Codigo = DNC.CodigoCompra
-            //                 WHERE NC.CodigoDocumentoReferencia = {$codigo}
-            //                 AND NC.Vigente = 1
-            //                 GROUP BY DNC.CodigoProducto
-            //             ) AS NOTAC"), 'NOTAC.CodigoProducto', '=', 'DDNC.CodigoProducto')
-            //             ->where('DDNC.CodigoCompra', $codigo)
-            //             ->groupBy('DDNC.CodigoProducto', 'DDNC.Descripcion', 'DDNC.Codigo');
-            //     }, 'S', function ($join) {
-            //         $join->on('p.Codigo', '=', 'S.CodigoProducto');
-            //     })
-            //     ->join('sedeproducto as SP', 'SP.CodigoProducto', '=', 'p.Codigo')
-            //     ->join('tipogravado as TG', 'TG.Codigo', '=', 'SP.CodigoTipoGravado')
-            //     ->select(
-            //         'S.CodigoProducto',
-            //         'S.Descripcion',
-            //         'TG.Tipo as TipoGravado',
-            //         'TG.Porcentaje',
-            //         'p.Tipo',
-            //         DB::raw("CASE WHEN p.Tipo = 'B' THEN S.Cantidad ELSE 1 END AS Cantidad"),
-            //         DB::raw('S.Monto AS MontoTotal')
-            //     )
-            //     ->where('S.Monto', '>', 0)
-            //     ->where('SP.CodigoSede', $compra->CodigoSede)
-            //     ->orderBy('S.Descripcion')
-            //     ->get();
 
             $codigoSede = $compra->CodigoSede;
 
