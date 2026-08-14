@@ -68,6 +68,7 @@ class PagoComisionController extends Controller
 
                 ->join('personas as p', 'p.Codigo', '=', 'c.CodigoMedico')
                 ->whereNull('c.CodigoPagoComision')
+                ->whereNull('c.CodigoSede', $sede)
                 ->distinct()
                 ->select('c.CodigoMedico as Codigo', DB::raw("CONCAT(p.Nombres, ' ', p.Apellidos) as Medico"))
                 ->get();

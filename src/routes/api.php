@@ -11,6 +11,7 @@ use App\Http\Controllers\API\AtencionCliente\PacienteController;
 use App\Http\Controllers\API\BilleteraDigital\BilleteraDigitalController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\Caja\CajaController;
+use App\Http\Controllers\API\CertificadoController;
 use App\Http\Controllers\API\CategoriaProducto\CategoriaProductoController;
 use App\Http\Controllers\API\Cliente\ClienteController;
 use App\Http\Controllers\API\Compra\CompraController;
@@ -77,7 +78,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-
+Route::apiResource("certificado", CertificadoController::class);
+Route::get('certificado/listarCertificadosMedico/{id}', [CertificadoController::class, 'listarCertificadosMedico']);
 
 Route::post('acceso', [UserController::class, 'acceso']);
 Route::post('/consultaApp', [UserController::class, 'verificarAplicacion']);
@@ -91,6 +93,7 @@ Route::get('medico/biologosActivos', [MedicoController::class, 'listarBiologosVi
 Route::get('medico/psicologosActivos', [MedicoController::class, 'listarPsicologosVigentes']);
 Route::get('blog/listarActivos', [BlogController::class, 'listarVigentes']);
 Route::get('blog/consultar/{id}', [BlogController::class, 'consultar']);
+
 Route::post('blog/buscar', [BlogController::class, 'buscarBlog']);
 Route::get('promocion/listarActivos', [PromocionController::class, 'listarVigentes']);
 Route::get('promocion/consultar/{id}', [PromocionController::class, 'consultar']);
@@ -113,6 +116,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::apiResource("sede", SedeController::class);
     Route::apiResource("medico", MedicoController::class);
+
     Route::apiResource("blog", BlogController::class);
     Route::apiResource("testimonio", TestimonioController::class);
     Route::apiResource("promocion", PromocionController::class);
