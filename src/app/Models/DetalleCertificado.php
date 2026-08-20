@@ -16,6 +16,7 @@ class DetalleCertificado extends Model
     protected $fillable = [
         'CodigoMedico',
         'Nombre',
+        'Institucion',
         'FechaEmision',
         'FechaCaducidad',
         'Logo',

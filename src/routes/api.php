@@ -78,7 +78,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::apiResource("certificado", CertificadoController::class);
+Route::apiResource("certificado", CertificadoController::class)->except(['update']);
+Route::post('certificado/update', [CertificadoController::class, 'update']);
 Route::get('certificado/listarCertificadosMedico/{id}', [CertificadoController::class, 'listarCertificadosMedico']);
 
 Route::post('acceso', [UserController::class, 'acceso']);
