@@ -21,6 +21,7 @@ class DetalleCertificado extends Model
         'FechaCaducidad',
         'Logo',
         'Descripcion',
+        'Destacado',
         'Vigente',
     ];
 
