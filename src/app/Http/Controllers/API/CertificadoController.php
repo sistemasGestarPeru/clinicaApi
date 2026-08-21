@@ -105,6 +105,7 @@ class CertificadoController extends Controller
             'Vigente' => 'nullable|boolean',
             'archivo' => 'required_without:Logo|file|max:10240',
             'Logo' => 'required_without:archivo|file|max:10240',
+            'Destacado'=> 'nullable',
         ]);
 
         $fileField = $this->uploadedFileField($request);
@@ -119,6 +120,7 @@ class CertificadoController extends Controller
             'Logo' => $archivo,
             'Descripcion' => $request->Descripcion,
             'Vigente' => $request->Vigente ?? true,
+            'Destacado' => $request->boolean('Destacado') ? 1 : 0
         ]);
 
         return response()->json([
@@ -149,6 +151,7 @@ class CertificadoController extends Controller
             'Descripcion' => 'nullable|string|max:255',
             'Vigente' => 'nullable|boolean',
             'archivo' => 'sometimes|required|file|max:10240',
+            'Destacado'=> 'nullable',
         ]);
 
         $data = $request->only([
@@ -158,7 +161,12 @@ class CertificadoController extends Controller
             'Logo',
             'Descripcion',
             'Vigente',
+            'Destacado'
         ]);
+
+        if ($request->has('Destacado')) {
+            $data['Destacado'] = $request->boolean('Destacado') ? 1 : 0;
+        }
 
         if ($request->has('institucion')) {
             $data['Institucion'] = $request->input('institucion');
