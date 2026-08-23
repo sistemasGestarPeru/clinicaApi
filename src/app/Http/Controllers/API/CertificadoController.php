@@ -67,7 +67,11 @@ class CertificadoController extends Controller
 
     public function listarCertificadosMedico($medico): JsonResponse
     {
-        $certificados = DetalleCertificado::where('CodigoMedico', $medico)->get();
+        $certificados = DetalleCertificado::where('CodigoMedico', $medico)
+            ->where('Vigente', 1)
+            ->orderByDesc('Destacado')
+            ->orderByDesc('Codigo')
+            ->get();
 
         return response()->json($certificados, 200);
     }
@@ -103,13 +107,15 @@ class CertificadoController extends Controller
             'FechaCaducidad' => 'nullable|date|after_or_equal:FechaEmision',
             'Descripcion' => 'nullable|string|max:255',
             'Vigente' => 'nullable|boolean',
-            'archivo' => 'required_without:Logo|file|max:10240',
-            'Logo' => 'required_without:archivo|file|max:10240',
+            'archivo' => 'nullable|file|max:10240',
+            'Logo' => 'nullable|file|max:10240',
             'Destacado'=> 'nullable',
         ]);
 
         $fileField = $this->uploadedFileField($request);
-        $archivo = $this->uploadFile($request, $fileField);
+        $archivo = $fileField !== null
+            ? $this->uploadFile($request, $fileField)
+            : null;
 
         $certificado = DetalleCertificado::create([
             'CodigoMedico' => $request->CodigoMedico,
