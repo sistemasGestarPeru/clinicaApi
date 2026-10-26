@@ -31,6 +31,7 @@ class GuardarMedicoRequest extends FormRequest
             'CMP' => 'nullable|string|max:10|unique:medicos',
             'RNE' => 'nullable|string|max:10|unique:medicos',
             'CBP' => 'nullable|string|max:10|unique:medicos',
+            'doctoralia' => 'nullable|string|max:255',
             'sede_id' => 'required|integer',
             'tipo' => 'required|integer',
         ];

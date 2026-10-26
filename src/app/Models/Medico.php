@@ -31,5 +31,6 @@ class Medico extends Model
         'tipo',
         'sede_id',
         'vigente',
+        'doctoralia'
     ];
 }
