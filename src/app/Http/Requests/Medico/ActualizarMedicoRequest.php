@@ -27,7 +27,7 @@ class ActualizarMedicoRequest extends FormRequest
             'apellidoPaterno' => 'required|string|max:63',
             'apellidoMaterno' => 'required|string|max:63',
             'genero' => 'nullable|boolean',
-            'descripcion' => 'required|string|max:500',
+            'descripcion' => 'required|string|max:1500',
             // 'CMP' => "'nullable|unique:medicos,CMP," . $this->route('medico')->id,
             // 'RNE' => "'nullable|unique:medicos,RNE," . $this->route('medico')->id,
             // 'CBP' => "'nullable|unique:medicos,CBP," . $this->route('medico')->id,
