@@ -24,6 +24,7 @@ class Medico extends Model
         'imagen',
         'linkedin',
         'descripcion',
+        'reconocimiento',
         'CMP',
         'RNE',
         'CBP',

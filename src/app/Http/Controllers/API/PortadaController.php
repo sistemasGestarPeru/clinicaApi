@@ -13,6 +13,13 @@ use Google\Cloud\Storage\StorageClient;
 
 class PortadaController extends Controller
 {
+    // null si viene vacío o como 'undefined'/'null' desde el FormData
+    private function valorOpcional($valor)
+    {
+        $valor = trim((string) $valor);
+        return ($valor === '' || $valor === 'undefined' || $valor === 'null') ? null : $valor;
+    }
+
     private function getUploadConfig($request, $fieldName)
     {
         $file = $request->file($fieldName);
@@ -164,6 +171,13 @@ class PortadaController extends Controller
             $portada->UrlBtn = ($UrlBtn === 'undefined' || $UrlBtn === 'null') ? null : $UrlBtn;
             $portada->TextoBtn = ($textoBtn === 'undefined' || $textoBtn === 'null') ? null : $textoBtn;
 
+            // 2do botón (opcional): solo se guarda si vienen texto y URL
+            $portada->TextoBtn2 = $this->valorOpcional($request->input('TextoBtn2'));
+            $portada->UrlBtn2 = $portada->TextoBtn2 ? $this->valorOpcional($request->input('UrlBtn2')) : null;
+            if (!$portada->UrlBtn2) {
+                $portada->TextoBtn2 = null;
+            }
+
             $portada->identificadorPadre = $request->input('identificadorPadre');
             $portada->identificadorHijo = $request->input('identificadorHijo');
             $portada->save();
@@ -261,6 +275,13 @@ class PortadaController extends Controller
 
             $portada->UrlBtn = ($UrlBtn === 'undefined' || $UrlBtn === 'null') ? null : $UrlBtn;
             $portada->TextoBtn = ($textoBtn === 'undefined' || $textoBtn === 'null') ? null : $textoBtn;
+
+            // 2do botón (opcional): solo se guarda si vienen texto y URL
+            $portada->TextoBtn2 = $this->valorOpcional($request->input('TextoBtn2'));
+            $portada->UrlBtn2 = $portada->TextoBtn2 ? $this->valorOpcional($request->input('UrlBtn2')) : null;
+            if (!$portada->UrlBtn2) {
+                $portada->TextoBtn2 = null;
+            }
             $portada->vigente = $request->input('vigente');
             $portada->save();
 
@@ -314,14 +335,14 @@ class PortadaController extends Controller
     {
         try {
             if($condicion == 1) {
-                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'Titulo', 'Descripcion')
+                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'TextoBtn2', 'UrlBtn2', 'Titulo', 'Descripcion')
                     ->where('identificadorPadre', $id)
                     ->where('identificadorHijo', '!=', 0)
                     ->where('Vigente', 1)
                     ->get();
 
             }else{
-                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'Titulo', 'Descripcion')
+                $portadas = Portada::select('id', 'imagenEsc', 'imagenCel', 'TextoBtn', 'UrlBtn', 'TextoBtn2', 'UrlBtn2', 'Titulo', 'Descripcion')
                     ->where('identificadorPadre', $id)
                     ->where('Vigente', 1)
                     ->get();

@@ -28,6 +28,7 @@ class GuardarMedicoRequest extends FormRequest
             'genero' => 'required|boolean',
             
             'descripcion' => 'required|string|max:1500',
+            'reconocimiento' => 'nullable|string|max:255',
             'CMP' => 'nullable|string|max:10|unique:medicos',
             'RNE' => 'nullable|string|max:10|unique:medicos',
             'CBP' => 'nullable|string|max:10|unique:medicos',

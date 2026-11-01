@@ -20,6 +20,8 @@ class PortadaResource extends JsonResource
             'imagenCel' => $this->imagenCel,
             'TextoBtn' => $this->TextoBtn,
             'UrlBtn' => $this->UrlBtn,
+            'TextoBtn2' => $this->TextoBtn2,
+            'UrlBtn2' => $this->UrlBtn2,
             'vigente' => $this->vigente,
             'Titulo' => $this->Titulo,
             'Descripcion' => $this->Descripcion

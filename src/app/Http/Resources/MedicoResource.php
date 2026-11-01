@@ -23,6 +23,7 @@ class MedicoResource extends JsonResource
             'imagen' => $this->imagen,
             'linkedin' => $this->linkedin,
             'descripcion' => $this->descripcion,
+            'reconocimiento' => $this->reconocimiento,
             'CMP' => $this->CMP,
             'RNE' => $this->RNE,
             'CBP' => $this->CBP,

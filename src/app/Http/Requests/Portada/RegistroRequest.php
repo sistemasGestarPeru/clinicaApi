@@ -25,7 +25,9 @@ class RegistroRequest extends FormRequest
             "identificadorPadre" => "nullable|string",
             "identificadorHijo" => "nullable|string",
             "TextoBtn" => "nullable|string",
-            "UrlBtn" => "nullable|string",
+            "UrlBtn" => "nullable|string|max:1000",
+            "TextoBtn2" => "nullable|string|max:50",
+            "UrlBtn2" => "nullable|string|max:1000",
         ];
     }
 }

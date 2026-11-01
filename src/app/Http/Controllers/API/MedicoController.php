@@ -75,6 +75,13 @@ class MedicoController extends Controller
     }
 
 
+    // Guarda null si el texto viene vacío o como 'null'/'undefined' desde el FormData
+    private function normalizarTextoOpcional($texto)
+    {
+        $texto = trim((string) $texto);
+        return ($texto === '' || $texto === 'null' || $texto === 'undefined') ? null : $texto;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -99,6 +106,7 @@ class MedicoController extends Controller
                 'apellidoMaterno' => $medico->apellidoMaterno,
                 'genero' => $medico->genero,
                 'imagen' => $medico->imagen,
+                'doctoralia' => $medico->doctoralia,
                 'vigente' => $medico->vigente,
             ];
         }
@@ -115,6 +123,7 @@ class MedicoController extends Controller
                     DB::raw("CONCAT(apellidoPaterno, ' ', apellidoMaterno, ' ',nombre) as nombres"),
                     'genero',
                     'imagen',
+                    'doctoralia',
                     'vigente'
                 )
                 ->where('tipo', $tipo)
@@ -173,10 +182,12 @@ class MedicoController extends Controller
             $medico->genero = $request->input('genero');
 
             $medico->descripcion = $request->input('descripcion');
+            $medico->reconocimiento = $this->normalizarTextoOpcional($request->input('reconocimiento'));
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
             $medico->CPSP = $request->input('CPSP');
+            $medico->doctoralia = $request->input('doctoralia');
             $medico->tipo = $request->input('tipo');
             $medico->sede_id = $request->input('sede_id');
 
@@ -235,6 +246,8 @@ class MedicoController extends Controller
             $medico->CBP = $request->input('CBP');
             $medico->CPSP = $request->input('CPSP');
             $medico->descripcion = $request->input('descripcion');
+            $medico->reconocimiento = $this->normalizarTextoOpcional($request->input('reconocimiento'));
+            $medico->doctoralia = $request->input('doctoralia');
 
             // Obtener el valor de linkedin del request
             $linkedin = $request->input('linkedin');
@@ -295,6 +308,7 @@ class MedicoController extends Controller
             $medico->descripcion = $request->input('descripcion');
             $medico->linkedin = $request->input('linkedin');
             $medico->sede_id = $request->input('sede_id');
+            $medico->doctoralia = $request->input('doctoralia');
 
             if ($request->hasFile('imagen')) {
                 $uploadConfig = $this->getUploadConfig($request);
@@ -343,25 +357,44 @@ class MedicoController extends Controller
     {
         try {
 
-            $medicos = DB::table('medicos')
-                ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
-                ->select(
-                    'medicos.nombre',
-                    'medicos.apellidoPaterno',
-                    'medicos.apellidoMaterno',
-                    'medicos.genero',
-                    'medicos.imagen',
-                    'medicos.CMP',
-                    'medicos.RNE',
-                    'sedes.nombre as sede_id',
-                    'medicos.descripcion'
-                )
-                ->where('medicos.tipo', 0)
-                ->where('medicos.vigente', 1)
-                ->orderBy('medicos.id', 'asc')
-                ->get();
+                $medicos = DB::table('medicos')
+                    ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
+                    ->select(
+                        'medicos.id',
+                        'medicos.nombre',
+                        'medicos.apellidoPaterno',
+                        'medicos.apellidoMaterno',
+                        'medicos.genero',
+                        'medicos.imagen',
+                        'medicos.CMP',
+                        'medicos.RNE',
+                        'sedes.nombre as sede_id',
+                        'medicos.descripcion',
+                    'medicos.reconocimiento',
+                        'medicos.doctoralia'
+                    )
+                    ->where('medicos.tipo', 0)
+                    ->where('medicos.vigente', 1)
+                    ->orderBy('medicos.id', 'asc')
+                    ->get();
+
+                $certificaciones = DB::table('detallecertificacion')
+                    ->where('Vigente', 1)
+                    ->orderByDesc('Destacado')
+                    ->get()
+                    ->groupBy('CodigoMedico');
+
+                $medicos->transform(function ($medico) use ($certificaciones) {
+
+                    $medico->certificaciones = $certificaciones
+                        ->get($medico->id, collect())
+                        ->values();
+
+                    return $medico;
+                });
 
             return response()->json($medicos, 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'mensaje' => 'Ocurrió un error al listar los ginecólogos',
@@ -377,6 +410,7 @@ class MedicoController extends Controller
             $medicos = DB::table('medicos')
                 ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
                 ->select(
+                    'medicos.id',
                     'medicos.nombre',
                     'medicos.apellidoPaterno',
                     'medicos.apellidoMaterno',
@@ -386,12 +420,31 @@ class MedicoController extends Controller
                     // 'medicos.RNE',
                     'medicos.CBP',
                     'sedes.nombre as sede_id',
-                    'medicos.descripcion'
+                    'medicos.descripcion',
+                    'medicos.reconocimiento',
+                    'medicos.doctoralia'
                 )
                 ->where('medicos.tipo', 1)
                 ->where('medicos.vigente', 1)
                 ->orderBy('medicos.id', 'asc')
                 ->get();
+
+            $certificaciones = DB::table('detallecertificacion')
+                    ->where('Vigente', 1)
+                    ->orderByDesc('Destacado')
+                    ->get()
+                    ->groupBy('CodigoMedico');
+
+
+                $medicos->transform(function ($medico) use ($certificaciones) {
+
+                    $medico->certificaciones = $certificaciones
+                        ->get($medico->id, collect())
+                        ->values();
+
+                    return $medico;
+                });
+
 
             return response()->json($medicos, 200);
         } catch (\Exception $e) {
@@ -408,6 +461,7 @@ class MedicoController extends Controller
             $medicos = DB::table('medicos')
                 ->join('sedes', 'medicos.sede_id', '=', 'sedes.id')
                 ->select(
+                    'medicos.id',
                     'medicos.nombre',
                     'medicos.apellidoPaterno',
                     'medicos.apellidoMaterno',
@@ -417,12 +471,30 @@ class MedicoController extends Controller
                     // 'medicos.RNE',
                     'medicos.CPSP',
                     'sedes.nombre as sede_id',
-                    'medicos.descripcion'
+                    'medicos.descripcion',
+                    'medicos.reconocimiento',
+                    'medicos.doctoralia'
                 )
                 ->where('medicos.tipo', 2)
                 ->where('medicos.vigente', 1)
                 ->orderBy('medicos.id', 'asc')
                 ->get();
+
+            $certificaciones = DB::table('detallecertificacion')
+                    ->where('Vigente', 1)
+                    ->orderByDesc('Destacado')
+                    ->get()
+                    ->groupBy('CodigoMedico');
+
+
+                $medicos->transform(function ($medico) use ($certificaciones) {
+
+                    $medico->certificaciones = $certificaciones
+                        ->get($medico->id, collect())
+                        ->values();
+
+                    return $medico;
+                });
 
             return response()->json($medicos, 200);
         } catch (\Exception $e) {

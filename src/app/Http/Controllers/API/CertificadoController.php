@@ -101,16 +101,20 @@ class CertificadoController extends Controller
         $request->validate([
             'Codigo' => 'nullable|integer|min:0',
             'CodigoMedico' => 'required|integer|min:1',
-            'Nombre' => 'required|string|max:150',
-            'institucion' => 'nullable|string|max:150',
+            'Nombre' => 'required|string|max:255',
+            'institucion' => 'nullable|string|max:255',
             'FechaEmision' => 'required|date',
             'FechaCaducidad' => 'nullable|date|after_or_equal:FechaEmision',
             'Descripcion' => 'nullable|string|max:255',
             'Vigente' => 'nullable|boolean',
-            'archivo' => 'nullable|file|max:10240',
-            'Logo' => 'nullable|file|max:10240',
+            'archivo' => 'nullable|file|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'Logo' => 'nullable|file|mimes:png,jpg,jpeg,webp,svg|max:2048',
             'Destacado'=> 'nullable',
         ]);
+
+        if ($request->boolean('Destacado') && $this->tieneOtroDestacado($request->CodigoMedico)) {
+            return $this->respuestaSoloUnDestacado();
+        }
 
         $fileField = $this->uploadedFileField($request);
         $archivo = $fileField !== null
@@ -135,6 +139,22 @@ class CertificadoController extends Controller
         ], 201);
     }
 
+    // Solo se permite un certificado destacado por especialista
+    private function tieneOtroDestacado($codigoMedico, $excluirCodigo = null): bool
+    {
+        return DetalleCertificado::where('CodigoMedico', $codigoMedico)
+            ->where('Destacado', 1)
+            ->when($excluirCodigo, fn ($q) => $q->where('Codigo', '!=', $excluirCodigo))
+            ->exists();
+    }
+
+    private function respuestaSoloUnDestacado(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Solo se permite un certificado destacado por especialista.'
+        ], 422);
+    }
+
     /**
      * Actualizar un certificado
      */
@@ -153,10 +173,11 @@ class CertificadoController extends Controller
             'institucion' => 'sometimes|nullable|string|max:150',
             'FechaEmision' => 'sometimes|required|date',
             'FechaCaducidad' => 'nullable|date|after_or_equal:FechaEmision',
-            'Logo' => $request->hasFile('Logo') ? 'file|max:10240' : 'nullable|string|max:255',
+            'Logo' => $request->hasFile('Logo') ? 'file|mimes:png,jpg,jpeg,webp,svg|max:2048' : 'nullable|string|max:255',
             'Descripcion' => 'nullable|string|max:255',
             'Vigente' => 'nullable|boolean',
-            'archivo' => 'sometimes|required|file|max:10240',
+            'archivo' => 'sometimes|required|file|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'eliminarLogo' => 'nullable|boolean',
             'Destacado'=> 'nullable',
         ]);
 
@@ -172,6 +193,10 @@ class CertificadoController extends Controller
 
         if ($request->has('Destacado')) {
             $data['Destacado'] = $request->boolean('Destacado') ? 1 : 0;
+
+            if ($data['Destacado'] === 1 && $this->tieneOtroDestacado($certificado->CodigoMedico, $certificado->Codigo)) {
+                return $this->respuestaSoloUnDestacado();
+            }
         }
 
         if ($request->has('institucion')) {
@@ -184,13 +209,16 @@ class CertificadoController extends Controller
         $hasNewFile = $fileField !== null;
         if ($hasNewFile) {
             $data['Logo'] = $this->uploadFile($request, $fileField);
+        } elseif ($request->boolean('eliminarLogo')) {
+            $data['Logo'] = null;
         }
 
         $oldLogo = $certificado->Logo;
+        $logoQuitado = !$hasNewFile && $request->boolean('eliminarLogo');
         $certificado->fill($data);
         $certificado->save();
 
-        if ($hasNewFile) {
+        if ($hasNewFile || $logoQuitado) {
             $this->deleteFile($oldLogo);
         }
 

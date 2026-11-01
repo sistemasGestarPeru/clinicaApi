@@ -24,7 +24,9 @@ class ActualizarRequest extends FormRequest
         return [
             "id" => "required|integer",
             "TextoBtn" => "nullable|string",
-            "UrlBtn" => "nullable|string",
+            "UrlBtn" => "nullable|string|max:1000",
+            "TextoBtn2" => "nullable|string|max:50",
+            "UrlBtn2" => "nullable|string|max:1000",
             "vigente" => "nullable|boolean",
             "Titulo" => "nullable|string",
             "Descripcion" => "nullable|string",

@@ -17,6 +17,8 @@ class Portada extends Model
         'imagenCel',
         'TextoBtn',
         'UrlBtn',
+        'TextoBtn2',
+        'UrlBtn2',
         'vigente',
         'identificadorPadre',
         'identificadorHijo'
