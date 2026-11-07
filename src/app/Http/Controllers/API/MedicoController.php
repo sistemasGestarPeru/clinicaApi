@@ -82,6 +82,12 @@ class MedicoController extends Controller
         return ($texto === '' || $texto === 'null' || $texto === 'undefined') ? null : $texto;
     }
 
+    // Conserva solo las etiquetas de formato que ofrece el editor del panel de administración
+    private function limpiarDescripcion($descripcion)
+    {
+        return strip_tags((string) $descripcion, ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li']);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -181,7 +187,7 @@ class MedicoController extends Controller
             $medico->apellidoMaterno = $request->input('apellidoMaterno');
             $medico->genero = $request->input('genero');
 
-            $medico->descripcion = $request->input('descripcion');
+            $medico->descripcion = $this->limpiarDescripcion($request->input('descripcion'));
             $medico->reconocimiento = $this->normalizarTextoOpcional($request->input('reconocimiento'));
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
@@ -245,7 +251,7 @@ class MedicoController extends Controller
             $medico->RNE = $request->input('RNE');
             $medico->CBP = $request->input('CBP');
             $medico->CPSP = $request->input('CPSP');
-            $medico->descripcion = $request->input('descripcion');
+            $medico->descripcion = $this->limpiarDescripcion($request->input('descripcion'));
             $medico->reconocimiento = $this->normalizarTextoOpcional($request->input('reconocimiento'));
             $medico->doctoralia = $request->input('doctoralia');
 
@@ -305,7 +311,7 @@ class MedicoController extends Controller
             $medico->genero = $request->input('genero');
             $medico->CMP = $request->input('CMP');
             $medico->RNE = $request->input('RNE');
-            $medico->descripcion = $request->input('descripcion');
+            $medico->descripcion = $this->limpiarDescripcion($request->input('descripcion'));
             $medico->linkedin = $request->input('linkedin');
             $medico->sede_id = $request->input('sede_id');
             $medico->doctoralia = $request->input('doctoralia');
